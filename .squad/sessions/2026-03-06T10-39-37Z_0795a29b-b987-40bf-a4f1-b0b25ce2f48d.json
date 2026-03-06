@@ -1,0 +1,27 @@
+{
+  "id": "0795a29b-b987-40bf-a4f1-b0b25ce2f48d",
+  "createdAt": "2026-03-06T10:36:27.818Z",
+  "lastActiveAt": "2026-03-06T10:42:25.949Z",
+  "messages": [
+    {
+      "role": "system",
+      "content": "⚠ No Squad team found. Run /init to create your team first.",
+      "timestamp": "2026-03-06T10:39:37.785Z"
+    },
+    {
+      "role": "system",
+      "content": "⚠ No Squad team found. Run /init to create your team first.",
+      "timestamp": "2026-03-06T10:40:42.082Z"
+    },
+    {
+      "role": "system",
+      "content": "⚠ No Squad team found. Run /init to create your team first.",
+      "timestamp": "2026-03-06T10:40:57.516Z"
+    },
+    {
+      "role": "system",
+      "content": "⚠ No Squad team found. Run /init to create your team first.",
+      "timestamp": "2026-03-06T10:41:18.929Z"
+    }
+  ]
+}
