@@ -47,15 +47,16 @@ const base = import.meta.env.BASE_URL;
     </div>
     <div class="relative rounded-2xl border border-[#FFD700]/30 bg-[#1a0a2e] overflow-hidden shadow-2xl shadow-[#FFD700]/10">
       <iframe
+        id="home-game-frame"
         src={`${base}game/`}
         class="w-full aspect-[4/3] md:aspect-[16/10]"
         title="ComeRosquillas — Homer's Donut Quest"
-        allow="autoplay"
+        allow="autoplay; keyboard-map"
         loading="lazy"
       ></iframe>
     </div>
     <p class="text-center text-sm text-[#9890b0] mt-4">
-      Use <span class="text-[#FFD700]">← ↑ ↓ →</span> to move · <span class="text-[#FFD700]">P</span> to pause · <span class="text-[#FFD700]">M</span> for music · <span class="text-[#FFD700]">ENTER</span> to start
+      Click the game and use <span class="text-[#FFD700]">← ↑ ↓ →</span> to move · <span class="text-[#FFD700]">P</span> to pause · <span class="text-[#FFD700]">M</span> for music · <span class="text-[#FFD700]">ENTER</span> to start
     </p>
   </section>
 

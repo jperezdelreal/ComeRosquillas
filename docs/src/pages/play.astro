@@ -16,11 +16,12 @@ const base = import.meta.env.BASE_URL;
       </div>
       <div class="relative rounded-xl border border-[#FFD700]/30 bg-[#1a0a2e] overflow-hidden shadow-2xl shadow-[#FFD700]/10">
         <iframe
+          id="game-frame"
           src={`${base}game/`}
           class="w-full"
           style="aspect-ratio: 672 / 820; max-height: calc(100vh - 120px);"
           title="ComeRosquillas — Homer's Donut Quest"
-          allow="autoplay"
+          allow="autoplay; keyboard-map"
         ></iframe>
       </div>
       <p class="text-center text-xs text-[#9890b0] mt-3">
@@ -28,4 +29,13 @@ const base = import.meta.env.BASE_URL;
       </p>
     </div>
   </div>
+  <script>
+    // Auto-focus iframe so keyboard events reach the game
+    const frame = document.getElementById('game-frame');
+    if (frame) {
+      frame.addEventListener('load', () => frame.focus());
+      frame.addEventListener('click', () => frame.focus());
+      setTimeout(() => frame.focus(), 500);
+    }
+  </script>
 </GameLayout>
