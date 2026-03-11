@@ -1,0 +1,166 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate Game Assets
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check HTML structure
+        run: |
+          echo "Validating index.html exists and is well-formed..."
+          if [ ! -f "index.html" ]; then
+            echo "❌ index.html not found!"
+            exit 1
+          fi
+          
+          # Check for required HTML elements
+          if ! grep -q '<canvas id="gameCanvas">' index.html; then
+            echo "❌ Missing gameCanvas element!"
+            exit 1
+          fi
+          
+          if ! grep -q 'src="js/game.js"' index.html; then
+            echo "❌ Missing game.js script reference!"
+            exit 1
+          fi
+          
+          echo "✅ HTML structure validated"
+
+      - name: Validate JavaScript syntax
+        run: |
+          echo "Checking JavaScript syntax for all .js files..."
+          
+          # Find all JS files excluding node_modules and docs
+          js_files=$(find js -name "*.js" 2>/dev/null || echo "")
+          
+          if [ -z "$js_files" ]; then
+            echo "❌ No JavaScript files found in js/ directory!"
+            exit 1
+          fi
+          
+          # Check syntax for each file
+          errors=0
+          for file in $js_files; do
+            echo "Checking $file..."
+            if ! node --check "$file" 2>&1; then
+              echo "❌ Syntax error in $file"
+              errors=$((errors + 1))
+            fi
+          done
+          
+          if [ $errors -gt 0 ]; then
+            echo "❌ Found $errors file(s) with syntax errors"
+            exit 1
+          fi
+          
+          echo "✅ All JavaScript files passed syntax check"
+
+      - name: Verify game assets
+        run: |
+          echo "Verifying game directory structure..."
+          
+          # Check for required directories
+          if [ ! -d "js" ]; then
+            echo "❌ js/ directory not found!"
+            exit 1
+          fi
+          
+          # Check for main game file
+          if [ ! -f "js/game.js" ]; then
+            echo "❌ js/game.js not found!"
+            exit 1
+          fi
+          
+          echo "✅ Game assets verified"
+
+      - name: Check for console errors (basic)
+        run: |
+          echo "Performing basic code quality checks..."
+          
+          # Check for common issues in JS files
+          if grep -r "debugger;" js/ 2>/dev/null; then
+            echo "⚠️ Warning: Found debugger statements in code"
+          fi
+          
+          # Check for TODO comments
+          todo_count=$(grep -r "TODO\|FIXME" js/ 2>/dev/null | wc -l || echo 0)
+          if [ "$todo_count" -gt 0 ]; then
+            echo "ℹ️ Found $todo_count TODO/FIXME comments"
+          fi
+          
+          echo "✅ Code quality check complete"
+
+  # This job runs only on PRs and adds a comment with deploy preview info
+  pr-comment:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Add PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const sha = context.payload.pull_request.head.sha.substring(0, 7);
+            
+            const comment = `## 🎮 CI Pipeline Results
+            
+            ✅ All validation checks passed!
+            
+            **Commit:** \`${sha}\`
+            
+            ### What was checked:
+            - ✅ HTML structure validation
+            - ✅ JavaScript syntax check
+            - ✅ Game assets verification
+            - ✅ Code quality checks
+            
+            ### Preview deployment:
+            Once merged to \`main\`, the game will be deployed to:
+            - **Game:** https://jperezdelreal.github.io/ComeRosquillas/game/
+            - **Docs:** https://jperezdelreal.github.io/ComeRosquillas/
+            
+            ---
+            *Powered by GitHub Actions*`;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
+
+  # Summary job
+  ci-complete:
+    runs-on: ubuntu-latest
+    needs: validate
+    if: always()
+    steps:
+      - name: Check validation results
+        run: |
+          if [ "${{ needs.validate.result }}" == "success" ]; then
+            echo "✅ CI Pipeline completed successfully"
+            exit 0
+          else
+            echo "❌ CI Pipeline failed"
+            exit 1
+          fi
