@@ -42,11 +42,20 @@ class HighScoreManager {
     }
 
     isHighScore(score) {
+        // Validate score input
+        if (typeof score !== 'number' || !isFinite(score) || score < 0) {
+            return false;
+        }
         if (this.scores.length < this.maxScores) return true;
         return score > this.scores[this.scores.length - 1].score;
     }
 
     addScore(name, score, level) {
+        // Validate score input
+        if (typeof score !== 'number' || !isFinite(score) || score < 0) {
+            return false;
+        }
+
         const entry = {
             name: name.trim().substring(0, 3).toUpperCase() || 'AAA',
             score: score,
