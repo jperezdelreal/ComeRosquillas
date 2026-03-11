@@ -36,6 +36,12 @@
             this.maze = this.currentLayout.template.map(row => [...row]);
 
             this.setupInput();
+            
+            // Initialize touch input system
+            if (typeof TouchInput !== 'undefined') {
+                this.touchInput = new TouchInput(this);
+            }
+            
             this.showStartScreen();
             this.updateHUD();
             this.loop();
