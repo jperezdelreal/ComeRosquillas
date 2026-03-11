@@ -38,8 +38,13 @@ jobs:
             exit 1
           fi
           
-          if ! grep -q 'src="js/game.js"' index.html; then
-            echo "❌ Missing game.js script reference!"
+          if ! grep -q 'src="js/config.js"' index.html; then
+            echo "❌ Missing config.js script reference!"
+            exit 1
+          fi
+          
+          if ! grep -q 'src="js/main.js"' index.html; then
+            echo "❌ Missing main.js script reference!"
             exit 1
           fi
           
@@ -84,9 +89,19 @@ jobs:
             exit 1
           fi
           
-          # Check for main game file
-          if [ ! -f "js/game.js" ]; then
-            echo "❌ js/game.js not found!"
+          # Check for main game files (modular structure)
+          if [ ! -f "js/config.js" ]; then
+            echo "❌ js/config.js not found!"
+            exit 1
+          fi
+          
+          if [ ! -f "js/game-logic.js" ]; then
+            echo "❌ js/game-logic.js not found!"
+            exit 1
+          fi
+          
+          if [ ! -f "js/main.js" ]; then
+            echo "❌ js/main.js not found!"
             exit 1
           fi
           
