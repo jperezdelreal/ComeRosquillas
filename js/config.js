@@ -22,7 +22,7 @@ const OPP = [DOWN, LEFT, UP, RIGHT];
 
 // ==================== GAME STATES ====================
 const ST_START = 0, ST_READY = 1, ST_PLAYING = 2, ST_DYING = 3,
-    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6;
+    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7;
 
 // ==================== GHOST MODES ====================
 const GM_SCATTER = 0, GM_CHASE = 1, GM_FRIGHTENED = 2, GM_EATEN = 3;
@@ -266,4 +266,49 @@ const COLORS = {
     springfieldGreen: '#2d8b2d',
     krustyPurple: '#6a0dad',
     burnsGreen: '#556b2f',
+};
+
+// ==================== CUTSCENE DEFINITIONS ====================
+// Levels that trigger cutscenes: 2, 5, 9, 14
+const CUTSCENE_LEVELS = [2, 5, 9, 14];
+
+// Timeline format: [{frame, action, params}]
+// Actions: 'homer', 'donut', 'ghost', 'text', 'burns', 'nelson', 'duff'
+const CUTSCENES = {
+    1: { // After level 2: Homer chases a donut across the screen
+        duration: 240, // 4 seconds at 60fps
+        timeline: [
+            {frame: 0, action: 'donut', params: {x: -TILE, y: CANVAS_H/2, vx: 3}},
+            {frame: 10, action: 'homer', params: {x: -TILE*3, y: CANVAS_H/2, vx: 3, dir: RIGHT}},
+        ]
+    },
+    2: { // After level 5: Nelson points at Homer and says 'HA-HA!'
+        duration: 240, // 4 seconds
+        timeline: [
+            {frame: 0, action: 'homer', params: {x: CANVAS_W/3, y: CANVAS_H/2, vx: 0, vy: 0, dir: RIGHT}},
+            {frame: 30, action: 'nelson', params: {x: CANVAS_W*2/3, y: CANVAS_H/2}},
+            {frame: 60, action: 'text', params: {text: 'HA-HA!', x: CANVAS_W*2/3, y: CANVAS_H/2 - TILE*2, fontSize: 24}},
+        ]
+    },
+    3: { // After level 9: Homer runs from Mr. Burns, then drinks a Duff and chases Burns
+        duration: 480, // 8 seconds
+        timeline: [
+            {frame: 0, action: 'burns', params: {x: CANVAS_W - TILE*3, y: CANVAS_H/2, vx: -2}},
+            {frame: 10, action: 'homer', params: {x: CANVAS_W + TILE, y: CANVAS_H/2, vx: -2, dir: LEFT}},
+            {frame: 180, action: 'duff', params: {x: CANVAS_W/2, y: CANVAS_H/2}},
+            {frame: 240, action: 'reverse', params: {}}, // Reverse directions at frame 240
+        ]
+    },
+    4: { // After level 14: All ghosts lined up, Homer scares them all at once
+        duration: 300, // 5 seconds
+        timeline: [
+            {frame: 0, action: 'ghost', params: {idx: 0, x: CANVAS_W/5, y: CANVAS_H/2}},
+            {frame: 0, action: 'ghost', params: {idx: 1, x: CANVAS_W*2/5, y: CANVAS_H/2}},
+            {frame: 0, action: 'ghost', params: {idx: 2, x: CANVAS_W*3/5, y: CANVAS_H/2}},
+            {frame: 0, action: 'ghost', params: {idx: 3, x: CANVAS_W*4/5, y: CANVAS_H/2}},
+            {frame: 90, action: 'homer', params: {x: -TILE*2, y: CANVAS_H/2, vx: 0, vy: 0, dir: RIGHT}},
+            {frame: 120, action: 'power', params: {}}, // Show power effect
+            {frame: 150, action: 'scatter', params: {}}, // Ghosts run away
+        ]
+    }
 };
