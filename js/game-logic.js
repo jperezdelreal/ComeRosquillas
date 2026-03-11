@@ -71,6 +71,9 @@
                     this.state = ST_PLAYING;
                     this.sound.startMusic();
                     this.hideMessage();
+                } else if (this.state === ST_CUTSCENE) {
+                    // Skip cutscene on any key press
+                    this.skipCutscene();
                 } else if (e.code === 'KeyM') {
                     const muted = this.sound.toggleMute();
                     if (muted !== undefined) {
@@ -314,13 +317,24 @@
             if (this.state === ST_LEVEL_DONE) {
                 this.stateTimer--;
                 if (this.stateTimer <= 0) {
-                    this.level++;
-                    this.initLevel();
-                    this.state = ST_READY;
-                    this.stateTimer = 150;
-                    this.showMessage(`${this.currentLayout.name} - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
-                    this.updateHUD();
+                    // Check if this level should trigger a cutscene
+                    const cutsceneIndex = CUTSCENE_LEVELS.indexOf(this.level);
+                    if (cutsceneIndex !== -1) {
+                        this.startCutscene(cutsceneIndex + 1);
+                    } else {
+                        this.level++;
+                        this.initLevel();
+                        this.state = ST_READY;
+                        this.stateTimer = 150;
+                        this.showMessage(`${this.currentLayout.name} - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                        this.updateHUD();
+                    }
                 }
+                return;
+            }
+
+            if (this.state === ST_CUTSCENE) {
+                this.updateCutscene();
                 return;
             }
 
@@ -696,6 +710,12 @@
 
         // ==================== RENDERING ====================
         draw() {
+            // Handle cutscene rendering separately
+            if (this.state === ST_CUTSCENE) {
+                this.drawCutscene();
+                return;
+            }
+            
             const ctx = this.ctx;
             ctx.fillStyle = COLORS.pathDark;
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
@@ -885,6 +905,244 @@
                 ctx.fillStyle = '#fff';
                 ctx.fillText(ghost.name, x + 12, y + i * 14 + 7);
             });
+        }
+
+        // ==================== CUTSCENE SYSTEM ====================
+        startCutscene(cutsceneNum) {
+            this.state = ST_CUTSCENE;
+            this.cutsceneNum = cutsceneNum;
+            this.cutsceneData = CUTSCENES[cutsceneNum];
+            this.cutsceneFrame = 0;
+            this.cutsceneActors = [];
+            this.hideMessage();
+            
+            // Play cutscene jingle or keep music
+            this.sound.play('levelComplete');
+        }
+
+        updateCutscene() {
+            this.cutsceneFrame++;
+            
+            // Process timeline events at current frame
+            const events = this.cutsceneData.timeline.filter(e => e.frame === this.cutsceneFrame);
+            for (const event of events) {
+                this.processCutsceneEvent(event);
+            }
+            
+            // Update all actors
+            for (const actor of this.cutsceneActors) {
+                if (actor.vx !== undefined) actor.x += actor.vx;
+                if (actor.vy !== undefined) actor.y += actor.vy;
+            }
+            
+            // Check if cutscene is complete
+            if (this.cutsceneFrame >= this.cutsceneData.duration) {
+                this.endCutscene();
+            }
+        }
+
+        processCutsceneEvent(event) {
+            const {action, params} = event;
+            
+            switch(action) {
+                case 'homer':
+                    this.cutsceneActors.push({
+                        type: 'homer',
+                        x: params.x,
+                        y: params.y,
+                        vx: params.vx || 0,
+                        vy: params.vy || 0,
+                        dir: params.dir !== undefined ? params.dir : RIGHT,
+                        mouthAngle: 0.3
+                    });
+                    break;
+                    
+                case 'donut':
+                    this.cutsceneActors.push({
+                        type: 'donut',
+                        x: params.x,
+                        y: params.y,
+                        vx: params.vx || 0,
+                        vy: params.vy || 0
+                    });
+                    break;
+                    
+                case 'ghost':
+                    this.cutsceneActors.push({
+                        type: 'ghost',
+                        idx: params.idx,
+                        x: params.x,
+                        y: params.y,
+                        vx: params.vx || 0,
+                        vy: params.vy || 0,
+                        mode: GM_CHASE,
+                        dir: LEFT
+                    });
+                    break;
+                    
+                case 'burns':
+                    this.cutsceneActors.push({
+                        type: 'burns',
+                        x: params.x,
+                        y: params.y,
+                        vx: params.vx || 0,
+                        vy: params.vy || 0,
+                        dir: params.vx < 0 ? LEFT : RIGHT
+                    });
+                    break;
+                    
+                case 'nelson':
+                    this.cutsceneActors.push({
+                        type: 'nelson',
+                        x: params.x,
+                        y: params.y,
+                        vx: 0,
+                        vy: 0,
+                        dir: LEFT
+                    });
+                    break;
+                    
+                case 'duff':
+                    this.cutsceneActors.push({
+                        type: 'duff',
+                        x: params.x,
+                        y: params.y
+                    });
+                    break;
+                    
+                case 'text':
+                    this.cutsceneActors.push({
+                        type: 'text',
+                        text: params.text,
+                        x: params.x,
+                        y: params.y,
+                        fontSize: params.fontSize || 16,
+                        lifetime: 120
+                    });
+                    break;
+                    
+                case 'reverse':
+                    // Reverse all actor velocities and directions
+                    for (const actor of this.cutsceneActors) {
+                        if (actor.vx) actor.vx = -actor.vx;
+                        if (actor.vy) actor.vy = -actor.vy;
+                        if (actor.dir !== undefined) {
+                            actor.dir = OPP[actor.dir];
+                        }
+                    }
+                    break;
+                    
+                case 'power':
+                    // Add power effect to Homer
+                    for (const actor of this.cutsceneActors) {
+                        if (actor.type === 'homer') {
+                            actor.powered = true;
+                        }
+                    }
+                    this.sound.play('power');
+                    break;
+                    
+                case 'scatter':
+                    // Make all ghosts run away
+                    for (const actor of this.cutsceneActors) {
+                        if (actor.type === 'ghost') {
+                            actor.mode = GM_FRIGHTENED;
+                            actor.vx = -4;
+                        }
+                    }
+                    break;
+            }
+        }
+
+        drawCutscene() {
+            const ctx = this.ctx;
+            
+            // Black background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            
+            // Draw all actors
+            for (const actor of this.cutsceneActors) {
+                switch(actor.type) {
+                    case 'homer':
+                        Sprites.drawHomer(ctx, actor.x, actor.y, actor.dir, actor.mouthAngle, TILE);
+                        // Power glow effect
+                        if (actor.powered) {
+                            ctx.strokeStyle = '#ffd800';
+                            ctx.lineWidth = 3;
+                            ctx.globalAlpha = 0.5 + Math.sin(this.cutsceneFrame * 0.2) * 0.3;
+                            ctx.beginPath();
+                            ctx.arc(actor.x + TILE/2, actor.y + TILE/2, TILE, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.globalAlpha = 1;
+                        }
+                        break;
+                        
+                    case 'donut':
+                        Sprites.drawDonut(ctx, actor.x, actor.y, this.cutsceneFrame);
+                        break;
+                        
+                    case 'ghost':
+                        const ghost = {
+                            idx: actor.idx,
+                            x: actor.x,
+                            y: actor.y,
+                            dir: actor.dir,
+                            mode: actor.mode
+                        };
+                        Sprites.drawGhost(ctx, ghost, this.cutsceneFrame, actor.mode === GM_FRIGHTENED ? 100 : 0);
+                        break;
+                        
+                    case 'burns':
+                        const r = TILE / 2 - 1;
+                        Sprites._drawBurns(ctx, actor.x + TILE/2, actor.y + TILE/2, r, actor.dir, this.cutsceneFrame);
+                        break;
+                        
+                    case 'nelson':
+                        const rn = TILE / 2 - 1;
+                        Sprites._drawNelson(ctx, actor.x + TILE/2, actor.y + TILE/2, rn, actor.dir, this.cutsceneFrame);
+                        break;
+                        
+                    case 'duff':
+                        Sprites.drawDuff(ctx, actor.x, actor.y, this.cutsceneFrame);
+                        break;
+                        
+                    case 'text':
+                        if (actor.lifetime > 0) {
+                            ctx.font = `bold ${actor.fontSize}px Arial`;
+                            ctx.textAlign = 'center';
+                            ctx.fillStyle = '#ffd800';
+                            ctx.strokeStyle = '#000';
+                            ctx.lineWidth = 3;
+                            ctx.strokeText(actor.text, actor.x, actor.y);
+                            ctx.fillText(actor.text, actor.x, actor.y);
+                            actor.lifetime--;
+                        }
+                        break;
+                }
+            }
+            
+            // "Press any key to skip" hint
+            if (this.cutsceneFrame > 30) {
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillText('Press any key to skip', CANVAS_W / 2, CANVAS_H - 20);
+            }
+        }
+
+        skipCutscene() {
+            this.endCutscene();
+        }
+
+        endCutscene() {
+            this.cutsceneActors = [];
+            this.level++;
+            this.initLevel();
+            this.state = ST_READY;
+            this.stateTimer = 150;
+            this.showMessage(`${this.currentLayout.name} - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+            this.updateHUD();
         }
 
         // ==================== GAME LOOP ====================
