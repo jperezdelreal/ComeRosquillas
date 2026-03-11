@@ -11,9 +11,11 @@
             this.canvas.height = CANVAS_H;
             this.ctx = this.canvas.getContext('2d');
             this.sound = new SoundManager();
+            this.highScores = new HighScoreManager();
 
             this.scoreEl = document.getElementById('scoreDisplay');
             this.levelEl = document.getElementById('levelDisplay');
+            this.highScoreEl = document.getElementById('highScoreDisplay');
             this.livesIconsEl = document.getElementById('livesIcons');
             this.msgEl = document.getElementById('message');
 
@@ -28,6 +30,7 @@
             this.stateTimer = 0;
             this.floatingTexts = [];
             this.particles = [];
+            this.initialsEntry = { active: false, name: 'AAA', pos: 0 };
 
             // Pre-render some decorations
             this.cloudOffset = 0;
@@ -56,6 +59,9 @@
                 if (this.state === ST_START && (e.code === 'Enter' || e.code === 'Space')) {
                     e.preventDefault();
                     this.startNewGame();
+                } else if (this.state === ST_HIGH_SCORE_ENTRY) {
+                    e.preventDefault();
+                    this.handleHighScoreInput(e.code);
                 } else if (this.state === ST_GAME_OVER && (e.code === 'Enter' || e.code === 'Space')) {
                     e.preventDefault();
                     this.state = ST_START;
@@ -89,9 +95,54 @@
                 this.keys[e.code] = false;
             });
         }
+        
+        handleHighScoreInput(code) {
+            const chars = this.initialsEntry.name.split('');
+            
+            if (code === 'ArrowUp') {
+                // Cycle character forward (A-Z, 0-9, space)
+                const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+                const currentIdx = validChars.indexOf(chars[this.initialsEntry.pos]);
+                const nextIdx = (currentIdx + 1) % validChars.length;
+                chars[this.initialsEntry.pos] = validChars[nextIdx];
+                this.initialsEntry.name = chars.join('');
+                this.showHighScoreEntry();
+            } else if (code === 'ArrowDown') {
+                // Cycle character backward
+                const validChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+                const currentIdx = validChars.indexOf(chars[this.initialsEntry.pos]);
+                const nextIdx = (currentIdx - 1 + validChars.length) % validChars.length;
+                chars[this.initialsEntry.pos] = validChars[nextIdx];
+                this.initialsEntry.name = chars.join('');
+                this.showHighScoreEntry();
+            } else if (code === 'ArrowLeft') {
+                this.initialsEntry.pos = Math.max(0, this.initialsEntry.pos - 1);
+                this.showHighScoreEntry();
+            } else if (code === 'ArrowRight') {
+                this.initialsEntry.pos = Math.min(2, this.initialsEntry.pos + 1);
+                this.showHighScoreEntry();
+            } else if (code === 'Enter' || code === 'Space') {
+                // Save the high score
+                const rank = this.highScores.addScore(this.initialsEntry.name, this.score, this.level);
+                this.state = ST_GAME_OVER;
+                this.sound.play('gameOver');
+                const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
+                this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>Press ENTER to try again`);
+            }
+        }
 
         // ---- SCREENS ----
         showStartScreen() {
+            const scores = this.highScores.getScores();
+            let scoreTable = '';
+            if (scores.length > 0) {
+                scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">HIGH SCORES</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
+                scores.forEach((s, i) => {
+                    scoreTable += `${i + 1}. ${s.name} - ${s.score} (Lvl ${s.level})<br>`;
+                });
+                scoreTable += '</div>';
+            }
+            
             this.msgEl.innerHTML = `
                 <div class="title-large">&#127849; Come Rosquillas!</div>
                 <div class="catchphrase">"Mmm... donuts"</div>
@@ -102,6 +153,7 @@
                     &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
                     P = Pause &nbsp; M = Mute music<br><br>
                     Press ENTER or SPACE to start
+                    ${scoreTable}
                 </div>`;
             this.msgEl.style.display = 'block';
         }
@@ -110,6 +162,47 @@
             this.msgEl.innerHTML = `<div class="title-large">${title}</div>${subtitle ? `<div class="subtitle">${subtitle}</div>` : ''}`;
             this.msgEl.style.display = 'block';
         }
+        
+        showHighScoreEntry() {
+            const chars = this.initialsEntry.name.split('');
+            const highlighted = chars.map((c, i) => 
+                i === this.initialsEntry.pos 
+                    ? `<span style="color: #ff69b4; text-decoration: underline; font-size: 42px;">${c}</span>` 
+                    : `<span style="color: #ffd800; font-size: 36px;">${c}</span>`
+            ).join(' ');
+            
+            this.msgEl.innerHTML = `
+                <div class="title-large" style="color: #ff69b4; animation: pulse 1s infinite;">
+                    &#11088; NEW HIGH SCORE! &#11088;
+                </div>
+                <div class="subtitle" style="margin-top: 20px;">
+                    Score: ${this.score}<br>
+                    Level: ${this.level}<br><br>
+                    Enter your initials:<br><br>
+                    <div style="font-family: 'Permanent Marker', monospace; font-size: 36px; letter-spacing: 10px; margin: 16px 0;">
+                        ${highlighted}
+                    </div>
+                    <br>
+                    Use &#8593;&#8595; to change letter<br>
+                    &#8592;&#8594; to move position<br>
+                    ENTER to confirm
+                </div>`;
+            this.msgEl.style.display = 'block';
+            
+            // Add pulse animation if not already added
+            if (!document.getElementById('pulseStyle')) {
+                const style = document.createElement('style');
+                style.id = 'pulseStyle';
+                style.textContent = `
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.05); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
         hideMessage() {
             this.msgEl.style.display = 'none';
         }
@@ -299,10 +392,17 @@
                     this.lives--;
                     this.updateHUD();
                     if (this.lives <= 0) {
-                        this.state = ST_GAME_OVER;
-                        this.sound.play('gameOver');
-                        const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                        this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>Press ENTER to try again`);
+                        // Check if score qualifies for high score table
+                        if (this.highScores.isHighScore(this.score)) {
+                            this.state = ST_HIGH_SCORE_ENTRY;
+                            this.initialsEntry = { active: true, name: 'AAA', pos: 0 };
+                            this.showHighScoreEntry();
+                        } else {
+                            this.state = ST_GAME_OVER;
+                            this.sound.play('gameOver');
+                            const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
+                            this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>Press ENTER to try again`);
+                        }
                     } else {
                         this.initEntities();
                         this.state = ST_READY;
@@ -700,6 +800,7 @@
         updateHUD() {
             this.scoreEl.textContent = this.score;
             this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
+            this.highScoreEl.textContent = this.highScores.getHighScore();
             // Render donut icons for lives
             let html = '';
             for (let i = 0; i < this.lives; i++) {
