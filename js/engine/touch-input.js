@@ -107,6 +107,11 @@ class TouchInput {
             this.dpadActive = direction;
             this.game.keys[keyCode] = true;
             element.setAttribute('fill', 'rgba(255,216,0,0.7)');
+            
+            // For high score entry, dispatch keyboard event
+            if (this.game.state === ST_HIGH_SCORE_ENTRY) {
+                this.triggerKey(keyCode);
+            }
         });
         
         element.addEventListener('touchend', (e) => {
@@ -141,6 +146,9 @@ class TouchInput {
         if (this.game.state === ST_START) {
             this.game.sound.resume();
             this.game.startNewGame();
+        } else if (this.game.state === ST_HIGH_SCORE_ENTRY) {
+            // Touch on canvas during high score entry = confirm (Enter)
+            this.triggerKey('Enter');
         } else if (this.game.state === ST_GAME_OVER) {
             this.game.sound.resume();
             this.game.state = ST_START;

@@ -22,7 +22,7 @@ const OPP = [DOWN, LEFT, UP, RIGHT];
 
 // ==================== GAME STATES ====================
 const ST_START = 0, ST_READY = 1, ST_PLAYING = 2, ST_DYING = 3,
-    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7;
+    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7, ST_HIGH_SCORE_ENTRY = 8;
 
 // ==================== GHOST MODES ====================
 const GM_SCATTER = 0, GM_CHASE = 1, GM_FRIGHTENED = 2, GM_EATEN = 3;
