@@ -129,7 +129,8 @@
             }
             this.initEntities();
             this.modeIndex = 0;
-            this.modeTimer = MODE_TIMERS[0];
+            this._levelModeTimers = this.getLevelModeTimers();
+            this.modeTimer = this._levelModeTimers[0];
             this.globalMode = GM_SCATTER;
             this.frightTimer = 0;
             this.bonusActive = false;
@@ -147,30 +148,68 @@
                 mouthOpen: true,
                 speed: this.getSpeed('homer')
             };
-            this.ghosts = GHOST_CFG.map((cfg, i) => ({
-                x: cfg.startX * TILE,
-                y: cfg.startY * TILE,
-                dir: UP,
-                mode: GM_SCATTER,
-                color: cfg.color,
-                name: cfg.name,
-                scatterX: cfg.scatterX,
-                scatterY: cfg.scatterY,
-                homeX: cfg.homeX * TILE,
-                homeY: cfg.homeY * TILE,
-                speed: this.getSpeed('ghost'),
-                inHouse: i > 0,
-                exitTimer: cfg.exitDelay,
-                idx: i,
-                _lastDecisionTile: -1
-            }));
+            const ramp = this.getDifficultyRamp();
+            this.ghosts = GHOST_CFG.map((cfg, i) => {
+                const ghost = {
+                    x: cfg.startX * TILE,
+                    y: cfg.startY * TILE,
+                    dir: UP,
+                    mode: GM_SCATTER,
+                    color: cfg.color,
+                    name: cfg.name,
+                    scatterX: cfg.scatterX,
+                    scatterY: cfg.scatterY,
+                    homeX: cfg.homeX * TILE,
+                    homeY: cfg.homeY * TILE,
+                    inHouse: i > 0,
+                    exitTimer: Math.round(cfg.exitDelay * (1 - ramp * 0.6)),
+                    idx: i,
+                    _lastDecisionTile: -1
+                };
+                ghost.speed = this.getSpeed('ghost', ghost);
+                return ghost;
+            });
         }
 
-        getSpeed(type) {
+        // ---- DIFFICULTY CURVE ----
+        // Returns 0..1 difficulty ramp (0 = level 1, ~1 = level 10+)
+        getDifficultyRamp() {
+            return Math.min(1, (this.level - 1) / 9);
+        }
+
+        // Fright time shrinks as levels increase (360 → 120 frames)
+        getLevelFrightTime() {
+            const ramp = this.getDifficultyRamp();
+            return Math.round(FRIGHT_TIME * (1 - ramp * 0.67));
+        }
+
+        // Scatter durations shrink, chase durations grow per level
+        getLevelModeTimers() {
+            const ramp = this.getDifficultyRamp();
+            return MODE_TIMERS.map((t, i) => {
+                if (t < 0) return t; // infinite chase stays infinite
+                // Even indices are scatter, odd are chase
+                if (i % 2 === 0) return Math.round(t * (1 - ramp * 0.5)); // scatter shrinks
+                return Math.round(t * (1 + ramp * 0.3)); // chase grows
+            });
+        }
+
+        // Per-ghost speed with personality bonuses
+        getSpeed(type, ghost) {
             const lvl = this.level;
+            const ramp = this.getDifficultyRamp();
             if (type === 'homer') return BASE_SPEED * (1 + (lvl - 1) * 0.05);
-            if (type === 'ghost') return BASE_SPEED * (0.9 + (lvl - 1) * 0.05);
-            if (type === 'frightGhost') return BASE_SPEED * 0.5;
+            if (type === 'ghost') {
+                let base = BASE_SPEED * (0.9 + (lvl - 1) * 0.06);
+                if (ghost) {
+                    // Bob Patiño is slightly faster (aggressive chaser)
+                    if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
+                    // Snake is slightly erratic in speed
+                    if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
+                }
+                return base;
+            }
+            if (type === 'frightGhost') return BASE_SPEED * (0.5 + ramp * 0.15);
             if (type === 'eatenGhost') return BASE_SPEED * 2;
             return BASE_SPEED;
         }
@@ -298,7 +337,7 @@
                     for (const g of this.ghosts) {
                         if (g.mode === GM_FRIGHTENED) {
                             g.mode = this.globalMode;
-                            g.speed = this.getSpeed('ghost');
+                            g.speed = this.getSpeed('ghost', g);
                             g._lastDecisionTile = -1;
                         }
                     }
@@ -306,12 +345,13 @@
                 }
                 return;
             }
-            if (this.modeIndex < MODE_TIMERS.length) {
+            const timers = this._levelModeTimers;
+            if (this.modeIndex < timers.length) {
                 this.modeTimer--;
                 if (this.modeTimer <= 0) {
                     this.modeIndex++;
-                    if (this.modeIndex < MODE_TIMERS.length) {
-                        this.modeTimer = MODE_TIMERS[this.modeIndex];
+                    if (this.modeIndex < timers.length) {
+                        this.modeTimer = timers[this.modeIndex];
                         this.globalMode = this.modeIndex % 2 === 0 ? GM_SCATTER : GM_CHASE;
                         for (const g of this.ghosts) {
                             if (g.mode !== GM_FRIGHTENED && g.mode !== GM_EATEN) {
@@ -386,7 +426,7 @@
                 this.score += 50;
                 this.dotsEaten++;
                 this.ghostsEaten = 0;
-                this.frightTimer = FRIGHT_TIME;
+                this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
                 this.addFloatingText(cx, cy - 10, quote, COLORS.duffGold);
@@ -489,7 +529,7 @@
                     target = { x: 14, y: 12 };
                     if (Math.abs(tile.col - target.x) + Math.abs(tile.row - target.y) <= 1) {
                         g.mode = this.frightTimer > 0 ? GM_FRIGHTENED : this.globalMode;
-                        g.speed = g.mode === GM_FRIGHTENED ? this.getSpeed('frightGhost') : this.getSpeed('ghost');
+                        g.speed = g.mode === GM_FRIGHTENED ? this.getSpeed('frightGhost') : this.getSpeed('ghost', g);
                         g.inHouse = true;
                         g.exitTimer = 0;
                         g.x = 14 * TILE;
@@ -522,14 +562,19 @@
                 } else if (g.mode === GM_FRIGHTENED) {
                     g.dir = possible[Math.floor(Math.random() * possible.length)];
                 } else if (target) {
-                    let bestDist = Infinity, bestDir = possible[0];
-                    for (const d of possible) {
-                        const nc = tile.col + DX[d];
-                        const nr = tile.row + DY[d];
-                        const dist = (nc - target.x) ** 2 + (nr - target.y) ** 2;
-                        if (dist < bestDist) { bestDist = dist; bestDir = d; }
+                    // Snake (idx 3) has a chance to ignore the target and pick randomly
+                    if (g.idx === 3 && Math.random() < 0.3) {
+                        g.dir = possible[Math.floor(Math.random() * possible.length)];
+                    } else {
+                        let bestDist = Infinity, bestDir = possible[0];
+                        for (const d of possible) {
+                            const nc = tile.col + DX[d];
+                            const nr = tile.row + DY[d];
+                            const dist = (nc - target.x) ** 2 + (nr - target.y) ** 2;
+                            if (dist < bestDist) { bestDist = dist; bestDir = d; }
+                        }
+                        g.dir = bestDir;
                     }
-                    g.dir = bestDir;
                 } else {
                     g.dir = possible[0];
                 }
@@ -541,21 +586,61 @@
             if (g.x > COLS * TILE) g.x = -TILE;
         }
 
+        // ---- GHOST PERSONALITY AI ----
+        // Burns (idx 0): Strategic/Ambush — predicts Homer's path and cuts him off
+        // Bob Patiño (idx 1): Aggressive — directly chases Homer, relentless
+        // Nelson (idx 2): Patrol/Guard — patrols a zone, chases only when Homer is close
+        // Snake (idx 3): Random/Erratic — unpredictable movements with occasional chase bursts
         getChaseTarget(g) {
             const hTile = this.tileAt(this.homer.x + TILE / 2, this.homer.y + TILE / 2);
+            const ramp = this.getDifficultyRamp();
+
             switch (g.idx) {
-                case 0: return { x: hTile.col, y: hTile.row };
-                case 1: return { x: hTile.col + DX[this.homer.dir] * 4, y: hTile.row + DY[this.homer.dir] * 4 };
+                // Burns — Ambush: target well ahead of Homer to cut him off
+                case 0: {
+                    const lookAhead = 4 + Math.round(ramp * 4); // 4–8 tiles ahead
+                    let tx = hTile.col + DX[this.homer.dir] * lookAhead;
+                    let ty = hTile.row + DY[this.homer.dir] * lookAhead;
+                    // Clamp to maze bounds
+                    tx = Math.max(0, Math.min(COLS - 1, tx));
+                    ty = Math.max(0, Math.min(ROWS - 1, ty));
+                    return { x: tx, y: ty };
+                }
+                // Bob Patiño — Aggressive: always targets Homer's exact tile
+                case 1:
+                    return { x: hTile.col, y: hTile.row };
+
+                // Nelson — Patrol: guards center zone, only chases when Homer is nearby
                 case 2: {
-                    const ahead = { x: hTile.col + DX[this.homer.dir] * 2, y: hTile.row + DY[this.homer.dir] * 2 };
-                    const blinky = this.tileAt(this.ghosts[0].x + TILE / 2, this.ghosts[0].y + TILE / 2);
-                    return { x: ahead.x + (ahead.x - blinky.col), y: ahead.y + (ahead.y - blinky.row) };
+                    const gTile = this.tileAt(g.x + TILE / 2, g.y + TILE / 2);
+                    const distToHomer = Math.abs(gTile.col - hTile.col) + Math.abs(gTile.row - hTile.row);
+                    const chaseRadius = 8 + Math.round(ramp * 6); // 8–14 tile radius
+                    if (distToHomer <= chaseRadius) {
+                        return { x: hTile.col, y: hTile.row };
+                    }
+                    // Patrol: cycle between zone waypoints near power pellets
+                    const patrolPoints = [
+                        { x: 1, y: 3 }, { x: 26, y: 3 },
+                        { x: 1, y: 23 }, { x: 26, y: 23 }
+                    ];
+                    const cycleIdx = Math.floor(this.animFrame / 300) % patrolPoints.length;
+                    return patrolPoints[cycleIdx];
                 }
+                // Snake — Erratic: random target with occasional bursts of chase
                 case 3: {
-                    const dist = Math.abs(g.x / TILE - hTile.col) + Math.abs(g.y / TILE - hTile.row);
-                    return dist > 8 ? { x: hTile.col, y: hTile.row } : { x: g.scatterX, y: g.scatterY };
+                    // Higher levels = more frequent chase bursts
+                    const chaseChance = 0.25 + ramp * 0.35; // 25%–60% chance
+                    if (Math.random() < chaseChance) {
+                        return { x: hTile.col, y: hTile.row };
+                    }
+                    // Random tile target for erratic movement
+                    return {
+                        x: Math.floor(Math.random() * COLS),
+                        y: Math.floor(Math.random() * ROWS)
+                    };
                 }
-                default: return { x: hTile.col, y: hTile.row };
+                default:
+                    return { x: hTile.col, y: hTile.row };
             }
         }
 
