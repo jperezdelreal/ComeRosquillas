@@ -19,6 +19,6 @@
   },
   "homepage": "https://github.com/jperezdelreal/ComeRosquillas#readme",
   "devDependencies": {
-    "@bradygaster/squad-cli": "^0.8.20"
+    "@bradygaster/squad-cli": "^0.8.25"
   }
 }

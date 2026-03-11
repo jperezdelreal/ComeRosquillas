@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "teamRoot": ".",
+  "upstream": {
+    "hub": "jperezdelreal/FirstFrameStudios",
+    "relationship": "subsquad",
+    "manifestPath": ".squad/upstream/manifest.json"
+  }
+}

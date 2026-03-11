@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "upstream": {
+    "name": "FirstFrameStudios",
+    "repo": "jperezdelreal/FirstFrameStudios",
+    "localPath": "C:\\Users\\joperezd\\GitHub Repos\\FirstFrameStudios",
+    "relationship": "subsquad",
+    "connectedAt": "2026-07-24T00:00:00.000Z"
+  },
+  "inherits": {
+    "identity": [
+      "principles.md",
+      "mission-vision.md",
+      "company.md",
+      "quality-gates.md",
+      "wisdom.md"
+    ],
+    "skills": "all",
+    "decisions": "reference-only"
+  },
+  "syncPolicy": {
+    "direction": "pull",
+    "frequency": "manual",
+    "conflictResolution": "upstream-wins-for-identity, local-wins-for-project"
+  },
+  "notes": "squad-cli v0.8.20 does not have upstream commands. This connection was set up manually. When squad-cli adds upstream support, migrate to the native command."
+}
