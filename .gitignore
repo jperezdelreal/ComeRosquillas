@@ -2,3 +2,6 @@ node_modules/
 .copilot/
 node_modules/
 .copilot/
+# Squad: ignore generated logs
+.squad/orchestration-log/
+.squad/log/
