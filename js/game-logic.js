@@ -32,7 +32,8 @@
             // Pre-render some decorations
             this.cloudOffset = 0;
 
-            this.maze = MAZE_TEMPLATE.map(row => [...row]);
+            this.currentLayout = getMazeLayout(this.level);
+            this.maze = this.currentLayout.template.map(row => [...row]);
 
             this.setupInput();
             this.showStartScreen();
@@ -52,7 +53,9 @@
                 } else if (this.state === ST_GAME_OVER && (e.code === 'Enter' || e.code === 'Space')) {
                     e.preventDefault();
                     this.state = ST_START;
-                    this.maze = MAZE_TEMPLATE.map(row => [...row]);
+                    this.level = 1;
+                    this.currentLayout = getMazeLayout(this.level);
+                    this.maze = this.currentLayout.template.map(row => [...row]);
                     this.showStartScreen();
                 } else if (this.state === ST_PLAYING && e.code === 'KeyP') {
                     this.state = ST_PAUSED;
@@ -114,12 +117,13 @@
             this.state = ST_READY;
             this.stateTimer = 150;
             this.sound.play('start');
-            this.showMessage('&#127849; READY!', `Springfield - Level ${this.level}`);
+            this.showMessage('&#127849; READY!', `${this.currentLayout.name} - Level ${this.level}`);
             this.updateHUD();
         }
 
         initLevel() {
-            this.maze = MAZE_TEMPLATE.map(row => [...row]);
+            this.currentLayout = getMazeLayout(this.level);
+            this.maze = this.currentLayout.template.map(row => [...row]);
             this.totalDots = 0;
             this.dotsEaten = 0;
             for (let r = 0; r < ROWS; r++) {
@@ -308,7 +312,7 @@
                     this.initLevel();
                     this.state = ST_READY;
                     this.stateTimer = 150;
-                    this.showMessage(`Springfield - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                    this.showMessage(`${this.currentLayout.name} - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
                     this.updateHUD();
                 }
                 return;
@@ -450,7 +454,7 @@
                 this.sound.stopMusic();
                 this.sound.play('levelComplete');
                 const quote = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
-                this.showMessage('WOOHOO!', `${quote}<br>Level ${this.level} Complete!`);
+                this.showMessage('WOOHOO!', `${quote}<br>${this.currentLayout.name} - Level ${this.level} Complete!`);
             }
         }
 
@@ -675,7 +679,7 @@
 
         updateHUD() {
             this.scoreEl.textContent = this.score;
-            this.levelEl.textContent = this.level;
+            this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
             // Render donut icons for lives
             let html = '';
             for (let i = 0; i < this.lives; i++) {
@@ -788,15 +792,16 @@
 
         drawMaze(ctx) {
             const flash = this.state === ST_LEVEL_DONE && this.stateTimer % 20 < 10;
+            const wc = this.currentLayout.wallColors;
 
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
-                    const cell = MAZE_TEMPLATE[r][c];
+                    const cell = this.currentLayout.template[r][c];
                     if (cell === WALL) {
-                        const wallColor1 = flash ? '#ffd800' : COLORS.wallBlue;
-                        const wallColor2 = flash ? '#b8a000' : COLORS.wallBlueDark;
-                        const borderColor = flash ? '#ffd800' : COLORS.wallBorder;
-                        const highlightColor = flash ? '#ffe866' : COLORS.wallBlueLight;
+                        const wallColor1 = flash ? '#ffd800' : wc.main;
+                        const wallColor2 = flash ? '#b8a000' : wc.dark;
+                        const borderColor = flash ? '#ffd800' : wc.border;
+                        const highlightColor = flash ? '#ffe866' : wc.light;
 
                         // Main wall fill
                         ctx.fillStyle = wallColor1;
@@ -814,10 +819,11 @@
                         // Border lines on exposed edges
                         ctx.strokeStyle = borderColor;
                         ctx.lineWidth = 1;
-                        const top = r > 0 && MAZE_TEMPLATE[r - 1][c] !== WALL;
-                        const bot = r < ROWS - 1 && MAZE_TEMPLATE[r + 1][c] !== WALL;
-                        const lft = c > 0 && MAZE_TEMPLATE[r][c - 1] !== WALL;
-                        const rgt = c < COLS - 1 && MAZE_TEMPLATE[r][c + 1] !== WALL;
+                        const tpl = this.currentLayout.template;
+                        const top = r > 0 && tpl[r - 1][c] !== WALL;
+                        const bot = r < ROWS - 1 && tpl[r + 1][c] !== WALL;
+                        const lft = c > 0 && tpl[r][c - 1] !== WALL;
+                        const rgt = c < COLS - 1 && tpl[r][c + 1] !== WALL;
 
                         if (top) { ctx.beginPath(); ctx.moveTo(c * TILE, r * TILE + 1); ctx.lineTo((c + 1) * TILE, r * TILE + 1); ctx.stroke(); }
                         if (bot) { ctx.beginPath(); ctx.moveTo(c * TILE, (r + 1) * TILE - 1); ctx.lineTo((c + 1) * TILE, (r + 1) * TILE - 1); ctx.stroke(); }
