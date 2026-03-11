@@ -248,6 +248,7 @@
                     this.updateHUD();
                     if (this.lives <= 0) {
                         this.state = ST_GAME_OVER;
+                        this.sound.play('gameOver');
                         const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
                         this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>Press ENTER to try again`);
                     } else {
@@ -572,7 +573,7 @@
                         this.ghostsEaten++;
                         const pts = 200 * Math.pow(2, this.ghostsEaten - 1);
                         this.score += pts;
-                        this.sound.play('eatGhost');
+                        this.sound.play('eatGhost', this.ghostsEaten);
                         this.addFloatingText(g.x + TILE / 2, g.y, `${pts}`, '#00ffff');
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
                         this.updateHUD();
