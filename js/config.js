@@ -271,9 +271,14 @@ const DIFFICULTY_STORAGE_KEY = 'comeRosquillas_difficulty';
 
 // Get current difficulty settings from localStorage (defaults to 'normal')
 function getDifficultySettings() {
-    const saved = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
-    const level = saved && DIFFICULTY_PRESETS[saved] ? saved : 'normal';
-    return DIFFICULTY_PRESETS[level];
+    try {
+        const saved = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+        const level = saved && DIFFICULTY_PRESETS[saved] ? saved : 'normal';
+        return DIFFICULTY_PRESETS[level];
+    } catch (e) {
+        console.warn('Failed to load difficulty:', e);
+        return DIFFICULTY_PRESETS.normal;
+    }
 }
 
 // Get current difficulty level name
@@ -288,7 +293,11 @@ function setDifficulty(level) {
         console.warn(`Invalid difficulty level: ${level}. Using 'normal'.`);
         level = 'normal';
     }
-    localStorage.setItem(DIFFICULTY_STORAGE_KEY, level);
+    try {
+        localStorage.setItem(DIFFICULTY_STORAGE_KEY, level);
+    } catch (e) {
+        console.warn('Failed to save difficulty:', e);
+    }
     return DIFFICULTY_PRESETS[level];
 }
 
