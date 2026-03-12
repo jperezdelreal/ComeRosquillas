@@ -6,41 +6,49 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
-| Async issue work (bugs, tests, small features) | @copilot 🤖 | Well-defined tasks matching capability profile |
-| Session logging | Scribe | Automatic — never needs routing |
+| Game engine / rendering | Barney 🔧 | Canvas rendering, sprite animation, game loop, renderer.js |
+| Game logic / physics | Barney 🔧 | Collision detection, ghost AI, movement, level design, game-logic.js |
+| Audio system | Barney 🔧 | Sound effects, music, audio.js |
+| Game config | Barney 🔧 | Tuning values, speeds, timers, config.js |
+| HUD / menus | Lenny ⚛️ | Score display, lives, pause screen, game over screen |
+| Touch controls | Lenny ⚛️ | D-pad, swipe input, touch-input.js, mobile UX |
+| Responsive layout / CSS | Lenny ⚛️ | Mobile scaling, game container, visual styling in index.html |
+| Documentation site | Lenny ⚛️ | Astro docs, dev guides, game docs in docs/ |
+| Code review | Moe 🏗️ | Review PRs, check quality, suggest improvements |
+| Architecture | Moe 🏗️ | System design, file structure, module boundaries |
+| Game design decisions | Moe 🏗️ | Feature scope, gameplay mechanics, what ships |
+| Scope & priorities | Moe 🏗️ | What to build next, trade-offs, decisions |
+| Testing / QA | Nelson 🧪 | Write tests, find edge cases, verify fixes, cross-browser |
+| Performance | Nelson 🧪 | Frame rate profiling, memory leaks, Canvas optimization checks |
+| Bug reports | Nelson 🧪 | Reproduce bugs, document steps, verify fixes |
+| Session logging | Scribe 📋 | Automatic — never needs routing |
 
 ## Issue Routing
 
 | Label | Action | Who |
 |-------|--------|-----|
-| `squad` | Triage: analyze issue, evaluate @copilot fit, assign `squad:{member}` label | Lead |
-| `squad:{name}` | Pick up issue and complete the work | Named member |
-| `squad:copilot` | Assign to @copilot for autonomous work (if enabled) | @copilot 🤖 |
+| `squad` | Triage: analyze issue, assign `squad:{member}` label | Moe 🏗️ |
+| `squad:moe` | Architecture, design, review tasks | Moe 🏗️ |
+| `squad:barney` | Game engine, logic, physics, audio work | Barney 🔧 |
+| `squad:lenny` | UI, HUD, touch controls, docs site work | Lenny ⚛️ |
+| `squad:nelson` | Testing, QA, performance, bug verification | Nelson 🧪 |
 
 ### How Issue Assignment Works
 
-1. When a GitHub issue gets the `squad` label, the **Lead** triages it — analyzing content, evaluating @copilot's capability profile, assigning the right `squad:{member}` label, and commenting with triage notes.
-2. **@copilot evaluation:** The Lead checks if the issue matches @copilot's capability profile (🟢 good fit / 🟡 needs review / 🔴 not suitable). If it's a good fit, the Lead may route to `squad:copilot` instead of a squad member.
-3. When a `squad:{member}` label is applied, that member picks up the issue in their next session.
-4. When `squad:copilot` is applied and auto-assign is enabled, `@copilot` is assigned on the issue and picks it up autonomously.
-5. Members can reassign by removing their label and adding another member's label.
-6. The `squad` label is the "inbox" — untriaged issues waiting for Lead review.
+1. When a GitHub issue gets the `squad` label, **Moe** triages it — analyzing content, assigning the right `squad:{member}` label, and commenting with triage notes.
+2. When a `squad:{member}` label is applied, that member picks up the issue in their next session.
+3. Members can reassign by removing their label and adding another member's label.
+4. The `squad` label is the "inbox" — untriaged issues waiting for Moe's review.
 
-### Lead Triage Guidance for @copilot
+### Moe's Triage Guidance
 
-When triaging, the Lead should ask:
+When triaging, Moe should ask:
 
-1. **Is this well-defined?** Clear title, reproduction steps or acceptance criteria, bounded scope → likely 🟢
-2. **Does it follow existing patterns?** Adding a test, fixing a known bug, updating a dependency → likely 🟢
-3. **Does it need design judgment?** Architecture, API design, UX decisions → likely 🔴
-4. **Is it security-sensitive?** Auth, encryption, access control → always 🔴
-5. **Is it medium complexity with specs?** Feature with clear requirements, refactoring with tests → likely 🟡
+1. **Is it game engine?** Rendering, physics, game loop, audio → `squad:barney`
+2. **Is it UI/UX?** HUD, menus, touch controls, layout, docs → `squad:lenny`
+3. **Is it a bug report?** Nelson verifies, then routes fix to Barney or Lenny → `squad:nelson`
+4. **Is it a feature request?** Moe scopes it, then assigns to the right agent
+5. **Is it architecture?** Module boundaries, file structure, system design → `squad:moe`
 
 ## Rules
 

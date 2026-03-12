@@ -1,0 +1,44 @@
+{
+  "agents": {
+    "moe": {
+      "persistent_name": "Moe",
+      "universe": "The Simpsons",
+      "role": "Lead",
+      "created_at": "2026-07-24T00:00:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "barney": {
+      "persistent_name": "Barney",
+      "universe": "The Simpsons",
+      "role": "Game Dev",
+      "created_at": "2026-07-24T00:00:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "lenny": {
+      "persistent_name": "Lenny",
+      "universe": "The Simpsons",
+      "role": "UI Dev",
+      "created_at": "2026-07-24T00:00:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "nelson": {
+      "persistent_name": "Nelson",
+      "universe": "The Simpsons",
+      "role": "Tester",
+      "created_at": "2026-07-24T00:00:00Z",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "scribe": {
+      "persistent_name": "Scribe",
+      "universe": null,
+      "role": "Scribe",
+      "created_at": "2026-03-11T00:00:00Z",
+      "legacy_named": true,
+      "status": "active"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "universe_usage_history": [
+    {
+      "universe": "The Simpsons",
+      "assignment_id": "comerosquillas-simpsons-001",
+      "assigned_at": "2026-07-24T00:00:00Z",
+      "repo": "ComeRosquillas",
+      "agent_count": 4
+    }
+  ],
+  "assignment_cast_snapshots": {
+    "comerosquillas-simpsons-001": {
+      "universe": "The Simpsons",
+      "agents": {
+        "moe": { "character": "Moe Szyslak", "role": "Lead" },
+        "barney": { "character": "Barney Gumble", "role": "Game Dev" },
+        "lenny": { "character": "Lenny Leonard", "role": "UI Dev" },
+        "nelson": { "character": "Nelson Muntz", "role": "Tester" }
+      },
+      "snapshot_at": "2026-07-24T00:00:00Z"
+    }
+  }
+}

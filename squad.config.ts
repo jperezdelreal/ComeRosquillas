@@ -27,42 +27,100 @@ const config: SquadConfig = {
   routing: {
     rules: [
       {
-        workType: 'feature-dev',
-        agents: ['@scribe'],
+        workType: 'game-engine',
+        agents: ['@barney'],
         confidence: 'high'
       },
       {
-        workType: 'bug-fix',
-        agents: ['@scribe'],
+        workType: 'game-logic',
+        agents: ['@barney'],
         confidence: 'high'
       },
       {
-        workType: 'testing',
-        agents: ['@scribe'],
+        workType: 'rendering',
+        agents: ['@barney'],
+        confidence: 'high'
+      },
+      {
+        workType: 'audio',
+        agents: ['@barney'],
+        confidence: 'high'
+      },
+      {
+        workType: 'hud',
+        agents: ['@lenny'],
+        confidence: 'high'
+      },
+      {
+        workType: 'touch-controls',
+        agents: ['@lenny'],
+        confidence: 'high'
+      },
+      {
+        workType: 'responsive-layout',
+        agents: ['@lenny'],
         confidence: 'high'
       },
       {
         workType: 'documentation',
-        agents: ['@scribe'],
+        agents: ['@lenny'],
+        confidence: 'high'
+      },
+      {
+        workType: 'code-review',
+        agents: ['@moe'],
+        confidence: 'high'
+      },
+      {
+        workType: 'architecture',
+        agents: ['@moe'],
+        confidence: 'high'
+      },
+      {
+        workType: 'game-design',
+        agents: ['@moe'],
+        confidence: 'high'
+      },
+      {
+        workType: 'testing',
+        agents: ['@nelson'],
+        confidence: 'high'
+      },
+      {
+        workType: 'bug-fix',
+        agents: ['@barney', '@lenny'],
+        confidence: 'medium'
+      },
+      {
+        workType: 'feature-dev',
+        agents: ['@barney', '@lenny'],
+        confidence: 'medium'
+      },
+      {
+        workType: 'performance',
+        agents: ['@nelson'],
         confidence: 'high'
       }
     ],
     governance: {
       eagerByDefault: true,
-      scribeAutoRuns: false,
+      scribeAutoRuns: true,
       allowRecursiveSpawn: false
     }
   },
   
   casting: {
     allowlistUniverses: [
+      'The Simpsons',
       'The Usual Suspects',
       'Breaking Bad',
       'The Wire',
       'Firefly'
     ],
-    overflowStrategy: 'generic',
-    universeCapacity: {}
+    overflowStrategy: 'diegetic-expansion',
+    universeCapacity: {
+      'The Simpsons': 20
+    }
   },
   
   platforms: {

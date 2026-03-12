@@ -1,56 +1,79 @@
 ---
 name: "project-conventions"
-description: "Core conventions and patterns for this codebase"
+description: "Core conventions and patterns for the ComeRosquillas game codebase"
 domain: "project-conventions"
 confidence: "medium"
-source: "template"
+source: "observed"
 ---
 
 ## Context
 
-> **This is a starter template.** Replace the placeholder patterns below with your actual project conventions. Skills train agents on codebase-specific practices — accurate documentation here improves agent output quality.
+ComeRosquillas is a Pac-Man style web arcade game using vanilla HTML/JS/Canvas 2D. No frameworks, no build tools, no bundler. The game runs directly from `index.html`. The docs site uses Astro.
 
 ## Patterns
 
-### [Pattern Name]
+### Vanilla Stack — No Frameworks
 
-Describe a key convention or practice used in this codebase. Be specific about what to do and why.
+The game uses plain HTML, CSS, and JavaScript with Canvas 2D. No React, no Vue, no game libraries. All rendering goes through the Canvas API. Keep it simple.
+
+### Module Organization
+
+- `js/config.js` — All game constants (speeds, sizes, timers, colors)
+- `js/engine/` — Engine-level systems (renderer, audio, touch-input, high-scores)
+- `js/game-logic.js` — Core gameplay (movement, collisions, ghost AI, scoring)
+- `js/main.js` — Entry point, game loop orchestration
+- `index.html` — Single HTML file with inline CSS and Canvas element
+
+### Game Loop
+
+Uses `requestAnimationFrame` for the main loop. Target 60fps. Game state is managed via a state machine pattern (menu → playing → paused → game-over).
+
+### Configuration
+
+All tunable values (speeds, grid sizes, scoring values, timer durations) live in `js/config.js`. No magic numbers in game logic or rendering code.
 
 ### Error Handling
 
-<!-- Example: How does your project handle errors? -->
-<!-- - Use try/catch with specific error types? -->
-<!-- - Log to a specific service? -->
-<!-- - Return error objects vs throwing? -->
-
-### Testing
-
-<!-- Example: What test framework? Where do tests live? How to run them? -->
-<!-- - Test framework: Jest/Vitest/node:test/etc. -->
-<!-- - Test location: test/, __tests__/, *.test.ts, etc. -->
-<!-- - Run command: npm test, etc. -->
+Console logging for development. No crash-on-error — the game should degrade gracefully (e.g., missing audio doesn't block gameplay).
 
 ### Code Style
 
-<!-- Example: Linting, formatting, naming conventions -->
-<!-- - Linter: ESLint config? -->
-<!-- - Formatter: Prettier? -->
-<!-- - Naming: camelCase, snake_case, etc.? -->
+- camelCase for variables and functions
+- PascalCase for class names
+- ES6+ features (const/let, arrow functions, template literals, modules)
+- No TypeScript in game code (only in squad.config.ts and docs site)
 
 ### File Structure
 
-<!-- Example: How is the project organized? -->
-<!-- - src/ — Source code -->
-<!-- - test/ — Tests -->
-<!-- - docs/ — Documentation -->
+```
+index.html          — Game page (single HTML file)
+js/config.js        — Game constants
+js/engine/          — Engine modules
+js/game-logic.js    — Gameplay logic
+js/main.js          — Entry point
+docs/               — Astro documentation site
+.squad/             — Squad team state
+```
 
 ## Examples
 
-```
-// Add code examples that demonstrate your conventions
+```javascript
+// Config pattern — all values in config.js
+export const GAME_CONFIG = {
+  PLAYER_SPEED: 2,
+  GHOST_SPEED: 1.5,
+  TILE_SIZE: 24,
+  POWER_UP_DURATION: 8000
+};
+
+// Import in game logic
+import { GAME_CONFIG } from './config.js';
 ```
 
 ## Anti-Patterns
 
-<!-- List things to avoid in this codebase -->
-- **[Anti-pattern]** — Explanation of what not to do and why.
+- **No framework dependencies** — Don't add React, Phaser, PixiJS, or any game/UI framework.
+- **No build tools for the game** — The game must run without webpack, vite, or any bundler. Just open index.html.
+- **No magic numbers** — Every tunable value belongs in config.js.
+- **No inline styles for game elements** — CSS lives in the `<style>` block in index.html or external CSS files.
+- **No TypeScript in game code** — Keep game files as plain .js with ES modules.
