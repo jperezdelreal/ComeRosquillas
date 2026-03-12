@@ -40,6 +40,27 @@
 
             this.setupInput();
             
+            // Initialize settings menu
+            if (typeof SettingsMenu !== 'undefined') {
+                this.settingsMenu = new SettingsMenu(this.sound);
+                
+                // Hook up settings button
+                const settingsBtn = document.getElementById('settingsBtn');
+                if (settingsBtn) {
+                    settingsBtn.addEventListener('click', () => {
+                        this.settingsMenu.toggle();
+                    });
+                }
+                
+                // Allow 'S' key to open settings from start screen or pause menu
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'KeyS' && (this.state === ST_START || this.state === ST_PAUSED)) {
+                        e.preventDefault();
+                        this.settingsMenu.toggle();
+                    }
+                });
+            }
+            
             // Initialize touch input system
             if (typeof TouchInput !== 'undefined') {
                 this.touchInput = new TouchInput(this);
