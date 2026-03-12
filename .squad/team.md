@@ -28,3 +28,9 @@
 - **Upstream:** FirstFrameStudios (subsquad)
 - **Universe:** The Simpsons
 - **Created:** 2026-03-11
+
+## Issue Source
+
+- **Repository:** jperezdelreal/ComeRosquillas
+- **Connected:** 2026-03-12
+- **Scope:** Game issues (gameplay, bugs, features, mobile controls)
