@@ -401,6 +401,18 @@ All three feature issues can be developed in parallel. QA runs after features la
 
 **Status:** Active — Sprint 2 begins now
 
+### Lead Pipeline Maintenance Directive
+
+**Date:** 2026-03-13T22:55Z  
+**Captured by:** joperezd (via Copilot)  
+**For:** Moe (Lead)
+
+**Directive:** Lead should ensure a well-maintained issue pipeline aligned with roadmap and vision, enabling Ralph to continue autonomous execution cycles.
+
+**Context:** User request for pipeline health and strategic focus.
+
+**Status:** Active for sprint cycle
+
 ## Governance
 
 - All meaningful changes require team consensus
