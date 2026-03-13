@@ -41,6 +41,11 @@
             this.screenShakeTimer = 0;
             this.screenShakeIntensity = 0;
 
+            // Per-game stats tracking
+            this._gameDonutsEaten = 0;
+            this._gameGhostsEaten = 0;
+            this._gameStartTime = 0;
+
             // Pre-render some decorations
             this.cloudOffset = 0;
 
@@ -71,6 +76,14 @@
                 });
             }
             
+            // Allow 'L' key to open leaderboard from start/pause/gameover screens
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyL' && (this.state === ST_START || this.state === ST_PAUSED || this.state === ST_GAME_OVER)) {
+                    e.preventDefault();
+                    if (this.statsDashboard) this.statsDashboard.toggle('leaderboard');
+                }
+            });
+            
             // Initialize touch input system
             if (typeof TouchInput !== 'undefined') {
                 this.touchInput = new TouchInput(this);
@@ -79,6 +92,11 @@
             // Initialize tutorial system
             if (typeof Tutorial !== 'undefined') {
                 this.tutorial = new Tutorial(this);
+            }
+            
+            // Initialize stats dashboard
+            if (typeof StatsDashboard !== 'undefined') {
+                this.statsDashboard = new StatsDashboard(this.highScores);
             }
             
             this.showStartScreen();
@@ -165,7 +183,9 @@
                 this.showHighScoreEntry();
             } else if (code === 'Enter' || code === 'Space') {
                 // Save the high score
-                const rank = this.highScores.addScore(this.initialsEntry.name, this.score, this.level, this.bestCombo);
+                const gameStats = this._buildGameStats();
+                const rank = this.highScores.addScore(this.initialsEntry.name, this.score, this.level, this.bestCombo, gameStats);
+                this.highScores.recordGameEnd(gameStats);
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
@@ -177,12 +197,14 @@
         showStartScreen() {
             const scores = this.highScores.getScores();
             const allTimeBest = this._allTimeBestCombo;
+            const rank = this.highScores.getRank();
             let scoreTable = '';
             if (scores.length > 0) {
                 scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">HIGH SCORES</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
-                scores.forEach((s, i) => {
+                const topScores = scores.slice(0, 5);
+                topScores.forEach((s, i) => {
                     const comboStr = s.combo > 1 ? ` | 🔥${s.combo}x` : '';
-                    const lvlStr = s.level >= ENDLESS_MODE.startLevel ? `∞${s.level}` : `Lvl ${s.level}`;
+                    const lvlStr = (typeof ENDLESS_MODE !== 'undefined' && s.level >= ENDLESS_MODE.startLevel) ? `∞${s.level}` : `Lvl ${s.level}`;
                     scoreTable += `${i + 1}. ${s.name} - ${s.score} (${lvlStr}${comboStr})<br>`;
                 });
                 scoreTable += '</div>';
@@ -199,7 +221,7 @@
                     &#127850; Eat all the donuts<br>
                     &#127866; Grab a Duff to chase the bad guys<br>
                     &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
-                    P = Pause &nbsp; M = Mute music<br><br>
+                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard<br><br>
                     Press ENTER or SPACE to start
                     ${scoreTable}
                 </div>`;
@@ -267,10 +289,14 @@
             this.particles = [];
             this.bestCombo = 0;
             this.comboDisplayTimer = 0;
+            this._gameDonutsEaten = 0;
+            this._gameGhostsEaten = 0;
+            this._gameStartTime = Date.now();
             this.initLevel();
             this.state = ST_READY;
             this.stateTimer = 150;
             this.sound.play('start');
+            this.sound.setLevelTempo(this.level);
             this.showMessage('&#127849; READY!', this._levelTitle());
             this.updateHUD();
         }
@@ -503,6 +529,7 @@
                             this.initialsEntry = { active: true, name: 'AAA', pos: 0 };
                             this.showHighScoreEntry();
                         } else {
+                            this.highScores.recordGameEnd(this._buildGameStats());
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
                             const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
@@ -529,6 +556,7 @@
                     } else {
                         this.level++;
                         this.initLevel();
+                        this.sound.setLevelTempo(this.level);
                         this.state = ST_READY;
                         this.stateTimer = 150;
                         this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
@@ -552,6 +580,11 @@
             for (const ghost of this.ghosts) this.moveGhost(ghost);
             this.checkCollisions();
 
+            // Spatial audio update (throttled for performance)
+            if (this.animFrame % (typeof AUDIO_JUICE !== 'undefined' ? AUDIO_JUICE.spatialUpdateInterval : 6) === 0) {
+                this.sound.updateSpatial(this.homer.x, this.homer.y, this.ghosts);
+            }
+
             // Mouth animation
             if (this.animFrame % 4 === 0) {
                 this.homer.mouthAngle += this.homer.mouthOpen ? 0.15 : -0.15;
@@ -573,6 +606,7 @@
                     }
                     this.ghostsEaten = 0;
                     this.comboDisplayTimer = 0;
+                    this.sound.setFrightMode(false);
                 }
                 return;
             }
@@ -646,6 +680,7 @@
                 this.maze[tile.row][tile.col] = EMPTY;
                 this.score += 10;
                 this.dotsEaten++;
+                this._gameDonutsEaten++;
                 if (this.animFrame % 2 === 0) this.sound.play('chomp');
                 this.addParticles(cx, cy, COLORS.donutPink, 3);
                 this.checkExtraLife();
@@ -660,6 +695,7 @@
                 this.comboDisplayTimer = 0;
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
+                this.sound.setFrightMode(true);
                 // Haptic: double-pulse on power pellet pickup
                 if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
@@ -952,6 +988,7 @@
                         g.mode = GM_EATEN;
                         g.speed = this.getSpeed('eatenGhost');
                         this.ghostsEaten++;
+                        this._gameGhostsEaten++;
                         // Combo multiplier: 1x → 2x → 4x → 8x
                         const comboMultiplier = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
                         const pts = 200 * comboMultiplier;
@@ -991,6 +1028,18 @@
                     }
                 }
             }
+        }
+
+        _buildGameStats() {
+            return {
+                score: this.score,
+                level: this.level,
+                bestCombo: this.bestCombo,
+                difficulty: typeof getCurrentDifficulty === 'function' ? getCurrentDifficulty() : 'normal',
+                donutsEaten: this._gameDonutsEaten,
+                ghostsEaten: this._gameGhostsEaten,
+                playTimeMs: this._gameStartTime ? Date.now() - this._gameStartTime : 0
+            };
         }
 
         updateHUD() {
@@ -1501,6 +1550,7 @@
             this.cutsceneActors = [];
             this.level++;
             this.initLevel();
+            this.sound.setLevelTempo(this.level);
             this.state = ST_READY;
             this.stateTimer = 150;
             this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
