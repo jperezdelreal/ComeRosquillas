@@ -45,6 +45,33 @@
 - `/^##\s+.+/m` — matches markdown H2 sections (multiline mode)
 - `/requirements/i` — matches "Requirements" section
 
+### 2026-07-24: Sprint 2 QA Finalization (Issue #45, PR #48)
+
+**Context:** Finalized Sprint 2 QA suite after all 3 feature PRs merged into main (#46 Combo, #47 Tutorial, #49 Mobile Polish). Merged main into `squad/45-sprint2-qa`, resolved conflicts, enabled all scaffold tests, and marked PR #48 ready for review.
+
+**What Changed:**
+- **Merge conflicts** in `regression-difficulty.test.js` and `regression-scoring.test.js` — trivial (main added inline comments + `vi` import). Resolved by accepting main's version.
+- **feature-tutorial.test.js** — 6 `describe.skip` blocks → 6 active `describe` blocks (22 tests). Tests tutorial localStorage key (`comeRosquillas_tutorialComplete`), 3-step flow, skip/ESC logic, reset from settings, mobile vs desktop text variants.
+- **feature-combo.test.js** — 2 `describe.skip` blocks → 2 active blocks (14 new tests). Tests HUD visibility (`bestCombo > 1`), display timer (120 frames), fade threshold (30 frames), screen shake intensity (3/5/8 per milestone), particle count (15), floating text format (`"{n}x COMBO!"`), particle velocity/life ranges.
+- **feature-mobile.test.js** — 6 `describe.skip` blocks → 6 active blocks (22 new tests). Tests D-pad dimensions (160×160), touch button sizes (50px), swipe thresholds (30px/300ms), haptic localStorage key (`comeRosquillas_haptic`), vibration patterns (8ms/10ms), fullscreen icon toggle (⛶/⮌), orientation warning CSS query, button layout spacing (60px apart).
+- **integration-cross-feature.test.js** — 4 `describe.skip` blocks → 4 active blocks (9 new tests). Tests tutorial×combo suppression, mobile×tutorial touch prompts (swipe vs arrow keys), particle count budget (60 max), difficulty×ghost AI (speed multiplier uniform, personality targeting unchanged).
+
+**Final Results:** 289 tests passing, 0 skipped, 0 failures across 10 test files.
+
+**Key localStorage Keys Tested:**
+- `comeRosquillas_tutorialComplete` — Tutorial completion flag (`'1'`)
+- `comeRosquillas_bestCombo` — Best combo multiplier (integer)
+- `comeRosquillas_haptic` — Haptic feedback preference (`'true'`/`'false'`)
+- `comeRosquillas_difficulty` — Difficulty level (Sprint 1)
+- `comeRosquillasSettings` — Settings object (Sprint 1)
+- `comeRosquillas_highScores` — High score array (Sprint 1)
+
+**Test Pattern Notes:**
+- Sprint 2 tests follow the same self-contained pattern as Sprint 1: re-implement small logic functions in-test rather than importing production modules (avoids Canvas/DOM/Audio dependencies in jsdom).
+- Screen shake intensity formula: `multiplier <= 2 ? 3 : multiplier <= 4 ? 5 : 8`
+- Combo milestones: `[2, 4, 8]` — triggers at 2×, 4×, 8× multipliers
+- Tutorial mobile detection: `matchMedia('(hover: none) and (pointer: coarse)')`
+
 ### 2026-03-13: Sprint 2 QA Scaffolding (Issue #45, PR #48)
 
 **Context:** Built Sprint 2 test suite — regression tests for Sprint 1 features + scaffolding for incoming Sprint 2 features (#42 Tutorial, #43 Combo, #44 Mobile).
