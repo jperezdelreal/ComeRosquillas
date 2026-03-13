@@ -121,4 +121,32 @@
 - Small-screen (<480px) breakpoint needs separate treatment from mobile (<700px)
 - Fullscreen API requires `catch(() => {})` on promise — some browsers reject silently
 
+### Leaderboard & Stats Dashboard (Issue #56)
+
+**Architecture decisions:**
+- Created `js/ui/stats-dashboard.js` following established `js/ui/` modular pattern
+- Stats dashboard uses DOM overlay (z-index: 1500, between settings 1000 and tutorial 2000)
+- Two-tab layout: Leaderboard (scrollable top 50 table) and Stats (lifetime metrics + rank badges)
+- Upgraded HighScoreManager from top 10 to top 50, with extended entry fields (difficulty, donutsEaten, ghostsEaten)
+- Lifetime stats stored separately: localStorage key `comeRosquillas_lifetimeStats`
+
+**Data schema design:**
+- High score entries: name, score, level, combo, difficulty, donutsEaten, ghostsEaten, date
+- Lifetime stats: totalGames, totalDonutsEaten, totalGhostsEaten, highestCombo, highestLevel, totalPlayTimeMs, bestScoreByDifficulty
+- Schema designed for compatibility with Barney's Endless Mode (#54) - highestLevel field accommodates endless progression
+- addScore() accepts optional gameStats parameter (backward compatible)
+
+**Rank badge system:**
+- Four tiers: Beginner (0+ donuts), Regular (1000+), Expert (5000+), Master (20000+)
+- Defined as RANK_BADGES array in config.js (descending order for first-match lookup)
+- Rank shown on start screen, leaderboard banner, and stats dashboard
+- Progress bar toward next rank in stats view
+
+**Key learnings for future work:**
+- When concurrent branches modify the same files, use typeof guards for cross-branch compatibility
+- Start screen shows top 5 only with "...and N more" link to avoid scroll overflow
+- RANK_BADGES array is sorted highest-first for efficient first-match lookup
+- Per-game stat tracking must reset in startNewGame() and capture in game-end handlers
+- Script load order: stats-dashboard.js after tutorial.js, before renderer.js
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
