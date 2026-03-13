@@ -1,0 +1,25 @@
+{
+  "name": "Come Rosquillas — Homer's Donut Quest",
+  "short_name": "ComeRosquillas",
+  "description": "A Simpsons-themed Pac-Man arcade clone. Navigate Homer through Springfield's maze eating donuts!",
+  "start_url": "/ComeRosquillas/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0d0221",
+  "theme_color": "#1a0a2e",
+  "icons": [
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"]
+}
