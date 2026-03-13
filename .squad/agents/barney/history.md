@@ -76,4 +76,28 @@
 - `js/config.js` — Difficulty presets, storage, getter/setter functions
 - `js/game-logic.js` — Applies difficulty multipliers to speed, fright time, extra lives
 
+### Combo Multiplier System (Issue #43)
+**Date:** 2026-07-24  
+**Context:** Completed combo multiplier system — most logic was already in place from prior work
+
+**What Was Already Implemented:**
+- Combo tracking (`ghostsEaten` counter, `comboDisplayTimer`, `bestCombo`, `_allTimeBestCombo`)
+- Score multiplier: `200 * Math.pow(2, ghostsEaten - 1)` → 200, 400, 800, 1600
+- Animated combo overlay at top-center with pulse animation
+- Particle burst (15 particles) on milestone hits (2x, 4x, 8x)
+- Audio sting via `SoundManager._comboMilestone()` with ascending chord arpeggios
+- Combo reset on `frightTimer` expiry (line ~531)
+- localStorage persistence via `COMBO_MILESTONE_STORAGE_KEY`
+- Combo stat on game-over screen and high-score table
+
+**What I Added:**
+- Screen shake effect on milestones: `screenShakeTimer` + `screenShakeIntensity` with ctx.translate in draw()
+- Intensity scales: 3px (2x), 5px (4x), 8px (8x), decays over 12 frames
+- "Best Combo" HUD display: `#bestComboDisplay` span, shown when `bestCombo > 1`
+
+**Key Architecture:**
+- Screen shake uses save/restore pattern in draw() — safe with existing combo overlay's own save/restore
+- HUD combo display uses HTML DOM (same pattern as score/level/lives), not canvas
+- `HighScoreManager.addScore()` already accepts combo param (4th arg)
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->

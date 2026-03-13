@@ -524,6 +524,224 @@
             }
         }
         
+        /* Tutorial Overlay */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .tutorial-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+        }
+
+        .tutorial-card {
+            position: relative;
+            background: linear-gradient(180deg, #2d1b69 0%, #1a0a2e 100%);
+            border: 3px solid #ffd800;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 420px;
+            padding: 28px 24px 22px;
+            box-shadow: 0 0 60px rgba(255, 216, 0, 0.35), 0 8px 32px rgba(0, 0, 0, 0.6);
+            font-family: 'Bangers', Arial, sans-serif;
+            text-align: center;
+            animation: tutorialSlideIn 0.35s ease-out;
+        }
+
+        @keyframes tutorialSlideIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .tutorial-celebration {
+            animation: tutorialCelebrate 0.4s ease-out;
+        }
+
+        @keyframes tutorialCelebrate {
+            0% { opacity: 0; transform: scale(0.7); }
+            60% { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .tutorial-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .tutorial-step-label {
+            color: #aaa;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .tutorial-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tutorial-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1.5px solid rgba(255, 216, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .tutorial-dot-active {
+            background: #ffd800;
+            border-color: #ffd800;
+            box-shadow: 0 0 8px rgba(255, 216, 0, 0.6);
+        }
+
+        .tutorial-dot-done {
+            background: #44bb44;
+            border-color: #44bb44;
+        }
+
+        .tutorial-icon-container {
+            margin: 8px auto 12px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 216, 0, 0.15);
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .tutorial-icon-container canvas {
+            display: block;
+        }
+
+        .tutorial-title {
+            color: #ffd800;
+            font-size: 28px;
+            margin: 0 0 8px;
+            text-shadow: 2px 2px 0 #000, 0 0 16px rgba(255, 216, 0, 0.4);
+            letter-spacing: 2px;
+        }
+
+        .tutorial-text {
+            color: #ffffff;
+            font-size: 17px;
+            line-height: 1.5;
+            margin: 0 0 8px;
+            text-shadow: 1px 1px 0 #000;
+            font-family: Arial, sans-serif;
+        }
+
+        .tutorial-hint {
+            color: #ff69b4;
+            font-size: 15px;
+            margin: 0 0 20px;
+            font-style: italic;
+            text-shadow: 1px 1px 0 #000;
+            font-family: Arial, sans-serif;
+        }
+
+        .tutorial-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .tutorial-btn {
+            padding: 12px 20px;
+            font-family: 'Bangers', Arial, sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+            border: 2px solid;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+
+        .tutorial-skip-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #aaa;
+            flex: 0;
+            white-space: nowrap;
+        }
+
+        .tutorial-skip-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .tutorial-next-btn {
+            background: rgba(255, 216, 0, 0.25);
+            border-color: #ffd800;
+            color: #ffd800;
+            flex: 1;
+        }
+
+        .tutorial-next-btn:hover {
+            background: rgba(255, 216, 0, 0.45);
+            transform: scale(1.03);
+            box-shadow: 0 0 16px rgba(255, 216, 0, 0.3);
+        }
+
+        .tutorial-play-btn {
+            font-size: 22px;
+            padding: 14px 32px;
+        }
+
+        .tutorial-tap-hint {
+            color: #888;
+            font-size: 13px;
+            margin-top: 14px;
+            font-family: Arial, sans-serif;
+            animation: tutorialPulse 2s infinite;
+        }
+
+        @keyframes tutorialPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 700px) {
+            .tutorial-card {
+                width: 95%;
+                padding: 20px 16px 18px;
+            }
+
+            .tutorial-title {
+                font-size: 24px;
+            }
+
+            .tutorial-text {
+                font-size: 15px;
+            }
+
+            .tutorial-hint {
+                font-size: 13px;
+            }
+
+            .tutorial-actions {
+                flex-direction: column;
+            }
+
+            .tutorial-btn {
+                font-size: 16px;
+            }
+        }
+
         /* Touch Controls - only visible on touch devices */
         #touchDpad {
             display: none;
@@ -621,6 +839,7 @@
     <script src="js/config.js"></script>
     <script src="js/engine/audio.js"></script>
     <script src="js/ui/settings-menu.js"></script>
+    <script src="js/ui/tutorial.js"></script>
     <script src="js/engine/renderer.js"></script>
     <script src="js/engine/high-scores.js"></script>
     <script src="js/engine/touch-input.js"></script>
