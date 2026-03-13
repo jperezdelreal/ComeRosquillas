@@ -241,6 +241,26 @@ const FRIGHT_TIME = 360;
 const FRIGHT_FLASH_TIME = 120;
 const BASE_SPEED = 1.8;
 
+// ==================== PROGRESSIVE DIFFICULTY CURVE ====================
+// Levels 1-8: progressive scaling per level
+const DIFFICULTY_CURVE = {
+    ghostSpeedPerLevel: 0.025,          // +2.5% ghost speed per level
+    frightReductionPerLevel: 0.04,      // -4% fright time per level
+    scatterReductionPerLevel: 0.06,     // -6% scatter duration per level
+    chaseLengtheningPerLevel: 0.04,     // +4% chase duration per level
+    exitDelayReduction: 0.6,            // ghost exit delay reduction (0-1 ramp)
+    curatedLevels: 8,                   // levels before endless mode
+}
+
+// ==================== ENDLESS MODE ====================
+const ENDLESS_MODE = {
+    startLevel: 9,                      // level at which endless mode begins
+    maxSpeedMultiplier: 1.8,            // speed cap (prevents unplayable speeds)
+    minFrightFrames: 90,                // ~1.5 seconds at 60fps (minimum floor)
+    endlessScalingFactor: 0.5,          // difficulty scales at half rate in endless
+    minScatterFrames: 60,               // 1 second minimum scatter duration
+}
+
 // ==================== COMBO MULTIPLIER ====================
 // Multiplier values that trigger milestone particle + audio effects
 const COMBO_MILESTONES = [2, 4, 8];

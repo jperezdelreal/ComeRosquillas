@@ -182,7 +182,8 @@
                 scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">HIGH SCORES</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
                 scores.forEach((s, i) => {
                     const comboStr = s.combo > 1 ? ` | 🔥${s.combo}x` : '';
-                    scoreTable += `${i + 1}. ${s.name} - ${s.score} (Lvl ${s.level}${comboStr})<br>`;
+                    const lvlStr = s.level >= ENDLESS_MODE.startLevel ? `∞${s.level}` : `Lvl ${s.level}`;
+                    scoreTable += `${i + 1}. ${s.name} - ${s.score} (${lvlStr}${comboStr})<br>`;
                 });
                 scoreTable += '</div>';
                 if (allTimeBest > 1) {
@@ -224,7 +225,7 @@
                 </div>
                 <div class="subtitle" style="margin-top: 20px;">
                     Score: ${this.score}<br>
-                    Level: ${this.level}<br>
+                    Level: ${this.isEndlessMode() ? `∞ ${this.level}` : this.level}<br>
                     ${this.bestCombo > 1 ? `Best Combo: 🔥 ${this.bestCombo}x<br>` : ''}
                     <br>
                     Enter your initials:<br><br>
@@ -270,7 +271,7 @@
             this.state = ST_READY;
             this.stateTimer = 150;
             this.sound.play('start');
-            this.showMessage('&#127849; READY!', `${this.currentLayout.name} - Level ${this.level}`);
+            this.showMessage('&#127849; READY!', this._levelTitle());
             this.updateHUD();
         }
 
@@ -321,7 +322,7 @@
                     homeX: cfg.homeX * TILE,
                     homeY: cfg.homeY * TILE,
                     inHouse: i > 0,
-                    exitTimer: Math.round(cfg.exitDelay * (1 - ramp * 0.6)),
+                    exitTimer: Math.round(cfg.exitDelay * (1 - ramp * DIFFICULTY_CURVE.exitDelayReduction)),
                     idx: i,
                     _lastDecisionTile: -1
                 };
@@ -331,47 +332,70 @@
         }
 
         // ---- DIFFICULTY CURVE ----
-        // Returns 0..1 difficulty ramp (0 = level 1, ~1 = level 10+)
-        getDifficultyRamp() {
-            return Math.min(1, (this.level - 1) / 9);
+        // Returns true if current level is in endless mode (level 9+)
+        isEndlessMode() {
+            return this.level >= ENDLESS_MODE.startLevel;
         }
 
-        // Fright time shrinks as levels increase (360 → 120 frames)
+        // Levels 1-8: linear. Level 9+: continues scaling at reduced rate
+        getEffectiveLevel() {
+            if (this.level <= DIFFICULTY_CURVE.curatedLevels) {
+                return this.level;
+            }
+            const endlessLevels = this.level - DIFFICULTY_CURVE.curatedLevels;
+            return DIFFICULTY_CURVE.curatedLevels + endlessLevels * ENDLESS_MODE.endlessScalingFactor;
+        }
+
+        // Returns 0..1+ difficulty ramp based on effective level
+        getDifficultyRamp() {
+            return Math.min(1, (this.getEffectiveLevel() - 1) / 9);
+        }
+
+        // Fright time shrinks per level with minimum floor in endless
         getLevelFrightTime() {
-            const ramp = this.getDifficultyRamp();
+            const effectiveLevel = this.getEffectiveLevel();
+            const reduction = Math.pow(1 - DIFFICULTY_CURVE.frightReductionPerLevel, effectiveLevel - 1);
             const difficulty = getDifficultySettings();
-            return Math.round(FRIGHT_TIME * (1 - ramp * 0.67) * difficulty.frightTimeMultiplier);
+            const frightTime = Math.round(FRIGHT_TIME * reduction * difficulty.frightTimeMultiplier);
+            return Math.max(ENDLESS_MODE.minFrightFrames, frightTime);
         }
 
         // Scatter durations shrink, chase durations grow per level
         getLevelModeTimers() {
-            const ramp = this.getDifficultyRamp();
+            const effectiveLevel = this.getEffectiveLevel();
+            const scatterReduction = Math.pow(1 - DIFFICULTY_CURVE.scatterReductionPerLevel, effectiveLevel - 1);
+            const chaseGrowth = Math.pow(1 + DIFFICULTY_CURVE.chaseLengtheningPerLevel, effectiveLevel - 1);
             return MODE_TIMERS.map((t, i) => {
-                if (t < 0) return t; // infinite chase stays infinite
-                // Even indices are scatter, odd are chase
-                if (i % 2 === 0) return Math.round(t * (1 - ramp * 0.5)); // scatter shrinks
-                return Math.round(t * (1 + ramp * 0.3)); // chase grows
+                if (t < 0) return t;
+                if (i % 2 === 0) {
+                    return Math.max(ENDLESS_MODE.minScatterFrames, Math.round(t * scatterReduction));
+                }
+                return Math.round(t * chaseGrowth);
             });
         }
 
-        // Per-ghost speed with personality bonuses
+        // Per-ghost speed with personality bonuses and speed cap
         getSpeed(type, ghost) {
-            const lvl = this.level;
+            const effectiveLevel = this.getEffectiveLevel();
             const ramp = this.getDifficultyRamp();
             const difficulty = getDifficultySettings();
+            const speedCap = BASE_SPEED * ENDLESS_MODE.maxSpeedMultiplier;
             
-            if (type === 'homer') return BASE_SPEED * (1 + (lvl - 1) * 0.05);
+            if (type === 'homer') {
+                return Math.min(speedCap, BASE_SPEED * (1 + (effectiveLevel - 1) * 0.05));
+            }
             if (type === 'ghost') {
-                let base = BASE_SPEED * (0.9 + (lvl - 1) * 0.06) * difficulty.ghostSpeedMultiplier;
+                const levelMultiplier = Math.pow(1 + DIFFICULTY_CURVE.ghostSpeedPerLevel, effectiveLevel - 1);
+                let base = BASE_SPEED * 0.9 * levelMultiplier * difficulty.ghostSpeedMultiplier;
                 if (ghost) {
-                    // Bob Patiño is slightly faster (aggressive chaser)
                     if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
-                    // Snake is slightly erratic in speed
                     if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
                 }
-                return base;
+                return Math.min(speedCap, base);
             }
-            if (type === 'frightGhost') return BASE_SPEED * (0.5 + ramp * 0.15) * difficulty.ghostSpeedMultiplier;
+            if (type === 'frightGhost') {
+                return Math.min(speedCap * 0.6, BASE_SPEED * (0.5 + ramp * 0.15) * difficulty.ghostSpeedMultiplier);
+            }
             if (type === 'eatenGhost') return BASE_SPEED * 2;
             return BASE_SPEED;
         }
@@ -507,7 +531,7 @@
                         this.initLevel();
                         this.state = ST_READY;
                         this.stateTimer = 150;
-                        this.showMessage(`${this.currentLayout.name} - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                        this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
                         this.updateHUD();
                     }
                 }
@@ -659,7 +683,10 @@
                 this.sound.stopMusic();
                 this.sound.play('levelComplete');
                 const quote = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
-                this.showMessage('WOOHOO!', `${quote}<br>${this.currentLayout.name} - Level ${this.level} Complete!`);
+                const levelLabel = this.isEndlessMode()
+                    ? `∞ ENDLESS ${this.currentLayout.name} ${this.level}`
+                    : `${this.currentLayout.name} - Level ${this.level}`;
+                this.showMessage('WOOHOO!', `${quote}<br>${levelLabel} Complete!`);
             }
         }
 
@@ -968,7 +995,11 @@
 
         updateHUD() {
             this.scoreEl.textContent = this.score;
-            this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
+            if (this.isEndlessMode()) {
+                this.levelEl.textContent = `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
+            } else {
+                this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
+            }
             this.highScoreEl.textContent = this.highScores.getHighScore();
             // Show best combo on HUD when player has achieved one
             if (this.bestComboEl) {
@@ -1112,6 +1143,22 @@
                 const comboColor = comboMult >= 8 ? '#ff4444' : comboMult >= 4 ? '#ff8800' : '#ffd800';
                 ctx.fillStyle = comboColor;
                 ctx.fillText(`${comboMult}x COMBO!`, 0, 0);
+                ctx.restore();
+            }
+
+            // Endless mode badge (pulsing infinity symbol)
+            if (this.isEndlessMode() && this.state === ST_PLAYING) {
+                const pulse = 0.85 + Math.sin(this.animFrame * 0.08) * 0.15;
+                ctx.save();
+                ctx.globalAlpha = 0.9;
+                ctx.translate(CANVAS_W - 50, 18);
+                ctx.scale(pulse, pulse);
+                ctx.font = 'bold 14px "Bangers", Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#000';
+                ctx.fillText('∞ ENDLESS', 1, 1);
+                ctx.fillStyle = '#ff69b4';
+                ctx.fillText('∞ ENDLESS', 0, 0);
                 ctx.restore();
             }
 
@@ -1456,8 +1503,16 @@
             this.initLevel();
             this.state = ST_READY;
             this.stateTimer = 150;
-            this.showMessage(`${this.currentLayout.name} - Level ${this.level}`, HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+            this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
             this.updateHUD();
+        }
+
+        // Returns level title with endless mode indicator
+        _levelTitle() {
+            if (this.isEndlessMode()) {
+                return `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
+            }
+            return `${this.currentLayout.name} - Level ${this.level}`;
         }
 
         // ==================== GAME LOOP ====================
