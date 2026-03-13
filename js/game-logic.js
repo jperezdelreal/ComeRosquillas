@@ -770,59 +770,63 @@
             return null; // No path found
         }
 
-        // ---- GHOST PERSONALITY AI ----
-        // Burns (idx 0): Strategic/Ambush — predicts Homer's path and cuts him off
-        // Bob Patiño (idx 1): Aggressive — directly chases Homer, relentless
-        // Nelson (idx 2): Patrol/Guard — patrols a zone, chases only when Homer is close
-        // Snake (idx 3): Random/Erratic — unpredictable movements with occasional chase bursts
+        // ---- GHOST PERSONALITY AI (Pac-Man Style) ----
+        // Sr. Burns (Blinky): Aggressive direct chaser — always targets Homer's current position
+        // Bob Patiño (Pinky): Ambush — targets 4 tiles ahead of Homer's direction
+        // Nelson (Inky): Calculated/unpredictable — uses vector math from Burns to Homer, doubled
+        // Snake (Clyde): Patrol/flee — chases when far, flees to scatter corner when within 8 tiles
         getChaseTarget(g) {
             const hTile = this.tileAt(this.homer.x + TILE / 2, this.homer.y + TILE / 2);
-            const ramp = this.getDifficultyRamp();
 
             switch (g.idx) {
-                // Burns — Ambush: target well ahead of Homer to cut him off
-                case 0: {
-                    const lookAhead = 4 + Math.round(ramp * 4); // 4–8 tiles ahead
-                    let tx = hTile.col + DX[this.homer.dir] * lookAhead;
-                    let ty = hTile.row + DY[this.homer.dir] * lookAhead;
+                // Sr. Burns (Blinky) — Direct aggressive chase
+                case 0:
+                    return { x: hTile.col, y: hTile.row };
+
+                // Bob Patiño (Pinky) — Ambush: targets 4 tiles ahead of Homer
+                case 1: {
+                    let tx = hTile.col + DX[this.homer.dir] * 4;
+                    let ty = hTile.row + DY[this.homer.dir] * 4;
                     // Clamp to maze bounds
                     tx = Math.max(0, Math.min(COLS - 1, tx));
                     ty = Math.max(0, Math.min(ROWS - 1, ty));
                     return { x: tx, y: ty };
                 }
-                // Bob Patiño — Aggressive: always targets Homer's exact tile
-                case 1:
-                    return { x: hTile.col, y: hTile.row };
 
-                // Nelson — Patrol: guards center zone, only chases when Homer is nearby
+                // Nelson (Inky) — Calculated: vector from Burns to Homer, doubled
                 case 2: {
-                    const gTile = this.tileAt(g.x + TILE / 2, g.y + TILE / 2);
-                    const distToHomer = Math.abs(gTile.col - hTile.col) + Math.abs(gTile.row - hTile.row);
-                    const chaseRadius = 8 + Math.round(ramp * 6); // 8–14 tile radius
-                    if (distToHomer <= chaseRadius) {
-                        return { x: hTile.col, y: hTile.row };
-                    }
-                    // Patrol: cycle between zone waypoints near power pellets
-                    const patrolPoints = [
-                        { x: 1, y: 3 }, { x: 26, y: 3 },
-                        { x: 1, y: 23 }, { x: 26, y: 23 }
-                    ];
-                    const cycleIdx = Math.floor(this.animFrame / 300) % patrolPoints.length;
-                    return patrolPoints[cycleIdx];
+                    const burns = this.ghosts[0]; // Blinky reference
+                    const burnsTile = this.tileAt(burns.x + TILE / 2, burns.y + TILE / 2);
+                    
+                    // Get point 2 tiles ahead of Homer
+                    const pivotX = hTile.col + DX[this.homer.dir] * 2;
+                    const pivotY = hTile.row + DY[this.homer.dir] * 2;
+                    
+                    // Double the vector from Burns to pivot
+                    let tx = pivotX + (pivotX - burnsTile.col);
+                    let ty = pivotY + (pivotY - burnsTile.row);
+                    
+                    // Clamp to maze bounds
+                    tx = Math.max(0, Math.min(COLS - 1, tx));
+                    ty = Math.max(0, Math.min(ROWS - 1, ty));
+                    return { x: tx, y: ty };
                 }
-                // Snake — Erratic: random target with occasional bursts of chase
+
+                // Snake (Clyde) — Patrol/flee: chase when far, scatter when close
                 case 3: {
-                    // Higher levels = more frequent chase bursts
-                    const chaseChance = 0.25 + ramp * 0.35; // 25%–60% chance
-                    if (Math.random() < chaseChance) {
-                        return { x: hTile.col, y: hTile.row };
+                    const gTile = this.tileAt(g.x + TILE / 2, g.y + TILE / 2);
+                    const distToHomer = Math.sqrt(
+                        (gTile.col - hTile.col) ** 2 + (gTile.row - hTile.row) ** 2
+                    );
+                    
+                    // If within 8 tiles, flee to scatter corner
+                    if (distToHomer < 8) {
+                        return { x: g.scatterX, y: g.scatterY };
                     }
-                    // Random tile target for erratic movement
-                    return {
-                        x: Math.floor(Math.random() * COLS),
-                        y: Math.floor(Math.random() * ROWS)
-                    };
+                    // Otherwise chase Homer
+                    return { x: hTile.col, y: hTile.row };
                 }
+
                 default:
                     return { x: hTile.col, y: hTile.row };
             }
