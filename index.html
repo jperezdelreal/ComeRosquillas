@@ -138,6 +138,392 @@
         #bottomBar span { color: #aaa; text-shadow: 1px 1px 0 #000; }
         #bottomBar .key { color: #ffd800; }
         
+        /* Settings Button */
+        #settingsBtn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 216, 0, 0.25);
+            border: 2px solid rgba(255, 216, 0, 0.6);
+            border-radius: 50%;
+            font-size: 28px;
+            color: #ffd800;
+            cursor: pointer;
+            z-index: 100;
+            transition: transform 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #settingsBtn:hover {
+            background: rgba(255, 216, 0, 0.4);
+            transform: scale(1.05);
+        }
+        #settingsBtn:active {
+            background: rgba(255, 216, 0, 0.5);
+            transform: scale(0.95);
+        }
+        
+        /* Settings Overlay */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+        
+        .settings-modal {
+            background: linear-gradient(180deg, #2d1b69 0%, #1a0a2e 100%);
+            border: 3px solid #ffd800;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 0 40px rgba(255, 216, 0, 0.4);
+            font-family: 'Bangers', Arial, sans-serif;
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 2px solid rgba(255, 216, 0, 0.3);
+        }
+        
+        .settings-header h2 {
+            color: #ffd800;
+            font-size: 32px;
+            margin: 0;
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 2px;
+        }
+        
+        .settings-close {
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .settings-close:hover {
+            transform: scale(1.2);
+        }
+        
+        .settings-content {
+            padding: 20px 24px;
+        }
+        
+        .settings-section {
+            margin-bottom: 24px;
+        }
+        
+        .settings-section h3 {
+            color: #ff69b4;
+            font-size: 24px;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 1px;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .setting-row label {
+            color: #ffffff;
+            font-size: 18px;
+            text-shadow: 1px 1px 0 #000;
+            letter-spacing: 1px;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            max-width: 250px;
+        }
+        
+        .slider-container input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: rgba(255, 216, 0, 0.2);
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #ffd800;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 216, 0, 0.6);
+        }
+        
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #ffd800;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(255, 216, 0, 0.6);
+        }
+        
+        .slider-value {
+            color: #ffd800;
+            font-size: 16px;
+            min-width: 50px;
+            text-align: right;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .toggle-container input[type="checkbox"] {
+            width: 50px;
+            height: 26px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+            transition: background 0.3s;
+        }
+        
+        .toggle-container input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-container input[type="checkbox"]:checked {
+            background: #ffd800;
+        }
+        
+        .toggle-container input[type="checkbox"]:checked::before {
+            transform: translateX(24px);
+        }
+        
+        .toggle-label {
+            color: #ffd800;
+            font-size: 16px;
+            min-width: 40px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .key-hint {
+            color: #888;
+            font-size: 14px;
+            font-style: italic;
+        }
+        
+        .difficulty-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 216, 0, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .radio-option:hover {
+            background: rgba(255, 216, 0, 0.1);
+            border-color: rgba(255, 216, 0, 0.5);
+        }
+        
+        .radio-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        
+        .radio-option input[type="radio"]:checked ~ .radio-label {
+            color: #ffd800;
+        }
+        
+        .radio-label {
+            display: flex;
+            flex-direction: column;
+            color: #ffffff;
+            transition: color 0.2s;
+        }
+        
+        .radio-label strong {
+            font-size: 18px;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .radio-label small {
+            font-size: 14px;
+            color: #aaa;
+            font-family: Arial, sans-serif;
+            margin-top: 2px;
+        }
+        
+        .controls-display {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+        
+        .control-key {
+            color: #ffd800;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #000;
+            letter-spacing: 2px;
+        }
+        
+        .control-action {
+            color: #ffffff;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .settings-footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-top: 2px solid rgba(255, 216, 0, 0.3);
+            gap: 12px;
+        }
+        
+        .settings-button {
+            flex: 1;
+            padding: 12px 20px;
+            font-family: 'Bangers', Arial, sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-shadow: 1px 1px 0 #000;
+        }
+        
+        .settings-reset {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        .settings-reset:hover {
+            background: rgba(255, 107, 107, 0.4);
+            transform: scale(1.02);
+        }
+        
+        .settings-save {
+            background: rgba(255, 216, 0, 0.3);
+            border-color: #ffd800;
+            color: #ffd800;
+        }
+        
+        .settings-save:hover {
+            background: rgba(255, 216, 0, 0.5);
+            transform: scale(1.02);
+        }
+        
+        /* Responsive Settings Modal */
+        @media (max-width: 700px) {
+            .settings-modal {
+                width: 95%;
+                max-height: 90vh;
+            }
+            
+            .settings-header h2 {
+                font-size: 24px;
+            }
+            
+            .settings-section h3 {
+                font-size: 20px;
+            }
+            
+            .setting-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .slider-container {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .settings-footer {
+                flex-direction: column;
+            }
+            
+            .radio-label strong {
+                font-size: 16px;
+            }
+            
+            .radio-label small {
+                font-size: 12px;
+            }
+        }
+        
         /* Touch Controls - only visible on touch devices */
         #touchDpad {
             display: none;
@@ -206,6 +592,7 @@
     </style>
 </head>
 <body>
+    <button id="settingsBtn" aria-label="Settings">⚙️</button>
     <div id="gameContainer">
         <div id="hud">
             <span class="score">&#127849; <span id="scoreDisplay">0</span></span>
@@ -230,6 +617,7 @@
     <!-- Load game modules in dependency order -->
     <script src="js/config.js"></script>
     <script src="js/engine/audio.js"></script>
+    <script src="js/ui/settings-menu.js"></script>
     <script src="js/engine/renderer.js"></script>
     <script src="js/engine/high-scores.js"></script>
     <script src="js/engine/touch-input.js"></script>
