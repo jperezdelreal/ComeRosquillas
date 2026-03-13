@@ -32,6 +32,11 @@
             this.particles = [];
             this.initialsEntry = { active: false, name: 'AAA', pos: 0 };
 
+            // Combo multiplier state
+            this.comboDisplayTimer = 0;
+            this.bestCombo = 0;
+            this._allTimeBestCombo = this._loadBestCombo();
+
             // Pre-render some decorations
             this.cloudOffset = 0;
 
@@ -144,7 +149,7 @@
                 this.showHighScoreEntry();
             } else if (code === 'Enter' || code === 'Space') {
                 // Save the high score
-                const rank = this.highScores.addScore(this.initialsEntry.name, this.score, this.level);
+                const rank = this.highScores.addScore(this.initialsEntry.name, this.score, this.level, this.bestCombo);
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
@@ -155,13 +160,18 @@
         // ---- SCREENS ----
         showStartScreen() {
             const scores = this.highScores.getScores();
+            const allTimeBest = this._allTimeBestCombo;
             let scoreTable = '';
             if (scores.length > 0) {
                 scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">HIGH SCORES</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
                 scores.forEach((s, i) => {
-                    scoreTable += `${i + 1}. ${s.name} - ${s.score} (Lvl ${s.level})<br>`;
+                    const comboStr = s.combo > 1 ? ` | 🔥${s.combo}x` : '';
+                    scoreTable += `${i + 1}. ${s.name} - ${s.score} (Lvl ${s.level}${comboStr})<br>`;
                 });
                 scoreTable += '</div>';
+                if (allTimeBest > 1) {
+                    scoreTable += `<div style="font-size: 13px; color: #ff69b4; margin-top: 4px;">Best Combo Ever: 🔥 ${allTimeBest}x</div>`;
+                }
             }
             
             this.msgEl.innerHTML = `
@@ -198,7 +208,9 @@
                 </div>
                 <div class="subtitle" style="margin-top: 20px;">
                     Score: ${this.score}<br>
-                    Level: ${this.level}<br><br>
+                    Level: ${this.level}<br>
+                    ${this.bestCombo > 1 ? `Best Combo: 🔥 ${this.bestCombo}x<br>` : ''}
+                    <br>
                     Enter your initials:<br><br>
                     <div style="font-family: 'Permanent Marker', monospace; font-size: 36px; letter-spacing: 10px; margin: 16px 0;">
                         ${highlighted}
@@ -236,6 +248,8 @@
             this.extraLifeGiven = false;
             this.floatingTexts = [];
             this.particles = [];
+            this.bestCombo = 0;
+            this.comboDisplayTimer = 0;
             this.initLevel();
             this.state = ST_READY;
             this.stateTimer = 150;
@@ -263,6 +277,8 @@
             this.bonusActive = false;
             this.bonusTimer = 0;
             this.bonusPos = null;
+            this.ghostsEaten = 0;
+            this.comboDisplayTimer = 0;
         }
 
         initEntities() {
@@ -379,6 +395,25 @@
             }
         }
 
+        // ---- COMBO PERSISTENCE ----
+        _loadBestCombo() {
+            try {
+                const val = parseInt(localStorage.getItem(COMBO_MILESTONE_STORAGE_KEY));
+                return isNaN(val) ? 0 : val;
+            } catch (e) { return 0; }
+        }
+
+        _saveBestCombo() {
+            try {
+                // Only update localStorage if current game best is a new all-time best
+                const stored = parseInt(localStorage.getItem(COMBO_MILESTONE_STORAGE_KEY)) || 0;
+                if (this.bestCombo > stored) {
+                    localStorage.setItem(COMBO_MILESTONE_STORAGE_KEY, String(this.bestCombo));
+                    this._allTimeBestCombo = this.bestCombo;
+                }
+            } catch (e) {}
+        }
+
         // ---- UPDATE ----
         update() {
             this.animFrame++;
@@ -399,6 +434,9 @@
                 p.vy += 0.05;
                 return p.life > 0;
             });
+
+            // Update combo display timer
+            if (this.comboDisplayTimer > 0) this.comboDisplayTimer--;
 
             if (this.state === ST_READY) {
                 this.stateTimer--;
@@ -491,6 +529,7 @@
                         }
                     }
                     this.ghostsEaten = 0;
+                    this.comboDisplayTimer = 0;
                 }
                 return;
             }
@@ -575,6 +614,7 @@
                 this.score += 50;
                 this.dotsEaten++;
                 this.ghostsEaten = 0;
+                this.comboDisplayTimer = 0;
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
@@ -864,8 +904,25 @@
                         g.mode = GM_EATEN;
                         g.speed = this.getSpeed('eatenGhost');
                         this.ghostsEaten++;
-                        const pts = 200 * Math.pow(2, this.ghostsEaten - 1);
+                        // Combo multiplier: 1x → 2x → 4x → 8x
+                        const comboMultiplier = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
+                        const pts = 200 * comboMultiplier;
                         this.score += pts;
+
+                        // Milestone: trigger burst and audio at 2x, 4x, 8x
+                        if (COMBO_MILESTONES.includes(comboMultiplier)) {
+                            this.sound.play('comboMilestone', comboMultiplier);
+                            this.addParticles(g.x + TILE / 2, g.y + TILE / 2, '#ffd800', 15);
+                            this.addFloatingText(g.x + TILE / 2, g.y - TILE, `${comboMultiplier}x COMBO!`, '#ffd800');
+                        }
+                        this.comboDisplayTimer = 120;
+
+                        // Update best combo for this game (track multiplier value)
+                        if (comboMultiplier > this.bestCombo) {
+                            this.bestCombo = comboMultiplier;
+                            this._saveBestCombo();
+                        }
+
                         this.sound.play('eatGhost', this.ghostsEaten);
                         this.addFloatingText(g.x + TILE / 2, g.y, `${pts}`, '#00ffff');
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
@@ -989,6 +1046,27 @@
                 ctx.fillRect(p.x, p.y, p.size, p.size);
             }
             ctx.globalAlpha = 1;
+
+            // Combo counter overlay (shown during power-pellet activation when ≥ 2 ghosts eaten)
+            if (this.comboDisplayTimer > 0 && this.ghostsEaten >= 2) {
+                const comboMult = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
+                const alpha = this.comboDisplayTimer < 30 ? this.comboDisplayTimer / 30 : 1;
+                const pulse = 1 + Math.sin(this.animFrame * 0.25) * 0.08;
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.translate(CANVAS_W / 2, 36);
+                ctx.scale(pulse, pulse);
+                ctx.font = 'bold 22px "Bangers", Arial';
+                ctx.textAlign = 'center';
+                // Shadow
+                ctx.fillStyle = '#000';
+                ctx.fillText(`${comboMult}x COMBO!`, 1, 1);
+                // Gradient fill color based on multiplier
+                const comboColor = comboMult >= 8 ? '#ff4444' : comboMult >= 4 ? '#ff8800' : '#ffd800';
+                ctx.fillStyle = comboColor;
+                ctx.fillText(`${comboMult}x COMBO!`, 0, 0);
+                ctx.restore();
+            }
 
             // Lives mini-Homers at bottom
             for (let i = 0; i < this.lives - 1; i++) {

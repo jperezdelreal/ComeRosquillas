@@ -48,6 +48,7 @@ class SoundManager {
             case 'chomp': this._chomp(now); break;
             case 'power': this._powerUp(now); break;
             case 'eatGhost': this._eatGhost(now, data || 1); break;
+            case 'comboMilestone': this._comboMilestone(now, data || 2); break;
             case 'die': this._doh(now); break;
             case 'start': this._simpsonsJingle(now); break;
             case 'levelComplete': this._levelComplete(now); break;
@@ -97,6 +98,21 @@ class SoundManager {
         g.gain.linearRampToValueAtTime(0, start + duration);
         src.start(start);
         src.stop(start + duration + 0.05);
+    }
+
+    // ==================== SFX: COMBO MILESTONE (ascending tones per multiplier) ====================
+
+    _comboMilestone(t, multiplier) {
+        // 2x = C4 (262 Hz), 4x = E4 (330 Hz), 8x = G4 (392 Hz)
+        const freqMap = { 2: 262, 4: 330, 8: 392 };
+        const root = freqMap[multiplier] || 262;
+        // Ascending chord arpeggio
+        this._osc('sine', [
+            [root, 0], [root * 1.25, 0.07], [root * 1.5, 0.14]
+        ], t, t + 0.35, 0.1);
+        this._osc('triangle', [[root * 0.5, 0], [root, 0.1]], t, t + 0.3, 0.06);
+        // High sparkle tail
+        this._noise(t + 0.05, 0.25, 0.03, 5000, 'highpass');
     }
 
     // ==================== SFX: CHOMP (4 waka-waka variations) ====================

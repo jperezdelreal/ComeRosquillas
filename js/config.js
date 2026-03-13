@@ -241,6 +241,12 @@ const FRIGHT_TIME = 360;
 const FRIGHT_FLASH_TIME = 120;
 const BASE_SPEED = 1.8;
 
+// ==================== COMBO MULTIPLIER ====================
+// Multiplier values that trigger milestone particle + audio effects
+const COMBO_MILESTONES = [2, 4, 8];
+// localStorage key for persisting all-time best combo
+const COMBO_MILESTONE_STORAGE_KEY = 'comeRosquillas_bestCombo';
+
 // ==================== DIFFICULTY SYSTEM ====================
 const DIFFICULTY_PRESETS = {
     easy: {
