@@ -180,3 +180,41 @@ Roadmap is directional, not prescriptive. Success metrics guide iteration. If co
 Feature lists are easy. Strategic roadmaps require understanding **player psychology** — what creates immediate fun, what drives mastery, what triggers sharing. Every feature must answer: "What job does this do in the player journey?"
 
 **Decision Document:** `.squad/decisions/inbox/moe-roadmap-strategy.md` — full strategic reasoning captured for future reference.
+
+### Sprint 2 Planning Ceremony (2026-07-24)
+
+**Context:** Sprint 1 fully shipped (PRs #27–#30 merged). New 10-item strategic roadmap defined in PR #38. Duplicate issues #34 and #35 closed — superseded by roadmap items #8 and #7 with expanded scope.
+
+**Sprint 2 Scope — "Immediate Fun" Pillar:**
+
+| Issue | Feature | Owner | Priority |
+|-------|---------|-------|----------|
+| #42 | First-Time Player Tutorial & Onboarding | Lenny | P0 |
+| #43 | Combo Multiplier System | Barney | P1 |
+| #44 | Mobile-First Polish Pass | Lenny | P1 |
+| #45 | Sprint 2 QA & Regression Testing | Nelson | P1 |
+
+**Strategic Rationale:**
+- Focused on making the game feel great to play RIGHT NOW — not adding features nobody reaches
+- Tutorial is P0 because nothing else matters if 60% of players bounce before finishing level 1
+- Combo system is the core "juice" mechanic — transforms ghost-eating from point grab to skill expression
+- Mobile polish ensures the primary platform (70%+ of traffic) actually works well
+- QA validates everything and guards Sprint 1 gains
+
+**What We Deliberately Cut:**
+- Progressive Difficulty & Endless Mode — current 8 levels suffice while we nail core feel
+- Audio Upgrade — combo-specific audio included IN combo issue; full overhaul deferred
+- Social Sharing — nothing worth sharing until the game feels great
+- Performance Optimization — no evidence of problems; premature optimization
+
+**Key Architectural Decisions:**
+- Tutorial follows `js/ui/` pattern established by Lenny in Sprint 1
+- Combo state lives in game-logic.js alongside existing score tracking
+- Mobile polish extends existing touch-input.js (not a rewrite)
+- PWA manifest.json adds "Add to Home Screen" capability
+
+**Dependency Graph:** All 3 feature issues parallel → QA after all land
+
+**Sprint 3 Preview:** Deep Engagement pillar — Endless Mode, Audio Upgrade, Social Sharing. Builds on Sprint 2's "Immediate Fun" foundation.
+
+**Decision Document:** `.squad/decisions/inbox/moe-sprint2-plan.md`
