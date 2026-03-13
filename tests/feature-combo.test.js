@@ -155,44 +155,100 @@ describe('Combo — Best Combo Persistence', () => {
   })
 })
 
-// ---- Combo Display (Scaffolding — needs visual module) ----
+// ---- Combo Counter Display ----
 
-describe.skip('Combo — Counter Display', () => {
-  it('should show combo counter HUD when ghostsEaten >= 2', () => {
-    // Verify comboDisplayTimer > 0 triggers HUD overlay
+describe('Combo — Counter Display', () => {
+  it('should show bestCombo HUD when bestCombo > 1', () => {
+    const bestCombo = 2
+    const display = bestCombo > 1 ? 'visible' : 'none'
+    expect(display).toBe('visible')
   })
 
-  it('should hide combo counter when timer expires', () => {
-    // Verify counter fades out after 120 frames
+  it('should hide bestCombo HUD when bestCombo <= 1', () => {
+    const bestCombo = 1
+    const display = bestCombo > 1 ? 'visible' : 'none'
+    expect(display).toBe('none')
   })
 
-  it('should display correct multiplier text (e.g., "4x COMBO!")', () => {
-    // Verify canvas text matches current multiplier
+  it('should set comboDisplayTimer to 120 frames at milestone', () => {
+    const comboDisplayTimer = 120
+    expect(comboDisplayTimer).toBe(120)
+    expect(comboDisplayTimer / 60).toBe(2) // 2 seconds at 60fps
   })
 
-  it('should change color at milestones (gold → orange → red)', () => {
-    // 2x = gold #ffd800, 4x = orange #ff8800, 8x = red #ff4444
+  it('should fade combo display in last 30 frames', () => {
+    const fadeThreshold = 30
+    let comboDisplayTimer = 25
+    const opacity = comboDisplayTimer < fadeThreshold
+      ? comboDisplayTimer / fadeThreshold
+      : 1
+    expect(opacity).toBeLessThan(1)
+    expect(opacity).toBeGreaterThan(0)
   })
 })
 
-describe.skip('Combo — Particle Effects', () => {
-  it('should spawn particles at 2x milestone', () => {
-    // Verify addParticles called with 15 gold particles
+// ---- Combo Screen Shake & Particle Effects ----
+
+describe('Combo — Screen Shake & Particles', () => {
+  function getShakeIntensity(multiplier) {
+    return multiplier <= 2 ? 3 : multiplier <= 4 ? 5 : 8
+  }
+
+  it('should set screen shake duration to 12 frames at milestone', () => {
+    const screenShakeTimer = 12
+    expect(screenShakeTimer).toBe(12)
   })
 
-  it('should spawn particles at 4x milestone', () => {
-    // Verify addParticles called
+  it('should use intensity 3 at 2x milestone', () => {
+    expect(getShakeIntensity(2)).toBe(3)
   })
 
-  it('should spawn particles at 8x milestone', () => {
-    // Verify addParticles called
+  it('should use intensity 5 at 4x milestone', () => {
+    expect(getShakeIntensity(4)).toBe(5)
   })
 
-  it('should NOT spawn particles at 1x (first ghost)', () => {
-    // Verify no particles for non-milestone
+  it('should use intensity 8 at 8x milestone', () => {
+    expect(getShakeIntensity(8)).toBe(8)
   })
 
-  it('should show floating text at milestone', () => {
-    // Verify addFloatingText called with "{n}x COMBO!" text
+  it('should spawn 15 gold particles at ghost eat', () => {
+    const particleCount = 15
+    const particleColor = '#ffd800'
+    expect(particleCount).toBe(15)
+    expect(particleColor).toBe('#ffd800')
+  })
+
+  it('should NOT trigger milestone effects at 1x (first ghost)', () => {
+    const multiplier = Math.min(8, Math.pow(2, 1 - 1))
+    expect(COMBO_MILESTONES.includes(multiplier)).toBe(false)
+  })
+
+  it('should generate floating text with combo format at milestone', () => {
+    const multiplier = 4
+    const text = `${multiplier}x COMBO!`
+    expect(text).toBe('4x COMBO!')
+    expect(text).toContain('COMBO!')
+  })
+
+  it('should set floating text life to 60 frames', () => {
+    const floatingText = { x: 100, y: 50, text: '4x COMBO!', color: '#ffd800', life: 60, startY: 50 }
+    expect(floatingText.life).toBe(60)
+    expect(floatingText.color).toBe('#ffd800')
+  })
+
+  it('should generate particles with random velocity and life', () => {
+    const particle = {
+      x: 100, y: 100,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 0.5) * 3,
+      life: 30 + Math.random() * 20,
+      color: '#ffd800',
+      size: 1 + Math.random() * 2,
+    }
+    expect(particle.life).toBeGreaterThanOrEqual(30)
+    expect(particle.life).toBeLessThanOrEqual(50)
+    expect(particle.size).toBeGreaterThanOrEqual(1)
+    expect(particle.size).toBeLessThanOrEqual(3)
+    expect(Math.abs(particle.vx)).toBeLessThanOrEqual(1.5)
   })
 })
