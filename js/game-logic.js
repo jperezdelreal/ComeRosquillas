@@ -17,6 +17,8 @@
             this.levelEl = document.getElementById('levelDisplay');
             this.highScoreEl = document.getElementById('highScoreDisplay');
             this.livesIconsEl = document.getElementById('livesIcons');
+            this.bestComboEl = document.getElementById('bestComboDisplay');
+            this.bestComboValueEl = document.getElementById('bestComboValue');
             this.msgEl = document.getElementById('message');
 
             this.keys = {};
@@ -36,6 +38,8 @@
             this.comboDisplayTimer = 0;
             this.bestCombo = 0;
             this._allTimeBestCombo = this._loadBestCombo();
+            this.screenShakeTimer = 0;
+            this.screenShakeIntensity = 0;
 
             // Pre-render some decorations
             this.cloudOffset = 0;
@@ -437,6 +441,9 @@
 
             // Update combo display timer
             if (this.comboDisplayTimer > 0) this.comboDisplayTimer--;
+
+            // Update screen shake
+            if (this.screenShakeTimer > 0) this.screenShakeTimer--;
 
             if (this.state === ST_READY) {
                 this.stateTimer--;
@@ -909,11 +916,14 @@
                         const pts = 200 * comboMultiplier;
                         this.score += pts;
 
-                        // Milestone: trigger burst and audio at 2x, 4x, 8x
+                        // Milestone: trigger burst, shake, and audio at 2x, 4x, 8x
                         if (COMBO_MILESTONES.includes(comboMultiplier)) {
                             this.sound.play('comboMilestone', comboMultiplier);
                             this.addParticles(g.x + TILE / 2, g.y + TILE / 2, '#ffd800', 15);
                             this.addFloatingText(g.x + TILE / 2, g.y - TILE, `${comboMultiplier}x COMBO!`, '#ffd800');
+                            // Screen shake scales with milestone tier
+                            this.screenShakeTimer = 12;
+                            this.screenShakeIntensity = comboMultiplier <= 2 ? 3 : comboMultiplier <= 4 ? 5 : 8;
                         }
                         this.comboDisplayTimer = 120;
 
@@ -942,6 +952,15 @@
             this.scoreEl.textContent = this.score;
             this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
             this.highScoreEl.textContent = this.highScores.getHighScore();
+            // Show best combo on HUD when player has achieved one
+            if (this.bestComboEl) {
+                if (this.bestCombo > 1) {
+                    this.bestComboValueEl.textContent = this.bestCombo;
+                    this.bestComboEl.style.display = '';
+                } else {
+                    this.bestComboEl.style.display = 'none';
+                }
+            }
             // Render donut icons for lives
             let html = '';
             for (let i = 0; i < this.lives; i++) {
@@ -959,6 +978,16 @@
             }
             
             const ctx = this.ctx;
+
+            // Screen shake offset
+            if (this.screenShakeTimer > 0) {
+                const intensity = this.screenShakeIntensity * (this.screenShakeTimer / 12);
+                const sx = (Math.random() - 0.5) * 2 * intensity;
+                const sy = (Math.random() - 0.5) * 2 * intensity;
+                ctx.save();
+                ctx.translate(sx, sy);
+            }
+
             ctx.fillStyle = COLORS.pathDark;
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -1076,6 +1105,11 @@
             // Ghost names display (bottom right)
             if (this.state === ST_START || this.state === ST_READY) {
                 this.drawGhostLegend(ctx);
+            }
+
+            // Restore screen shake transform
+            if (this.screenShakeTimer > 0) {
+                ctx.restore();
             }
         }
 
