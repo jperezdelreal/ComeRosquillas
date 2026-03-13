@@ -356,6 +356,51 @@ This structure ensures every feature serves a clear purpose in the player journe
 **Status:** Active — ready for team execution
 **Next Review:** End of Sprint 2
 
+### Sprint 2 Planning Decision — "Immediate Fun" Pillar
+
+**Date:** 2026-07-24  
+**Decided by:** Moe (Lead)  
+**Context:** Sprint Planning ceremony for Sprint 2 (Issue #39)
+
+#### Decision: Execute Sprint 2 with Focus on Tutorial, Combo, Mobile, and QA
+
+**Strategic Frame:** Sprint 2 focuses exclusively on the **Immediate Fun** pillar — features that make the game more engaging in the first 60 seconds and on the primary platform (mobile).
+
+**What's IN:**
+| # | Issue | Owner | Priority | Why Now |
+|---|-------|-------|----------|---------|
+| #42 | Tutorial & Onboarding | Lenny | P0 | Reduces bounce rate from ~60% to target ~40%. Prerequisite for everything. |
+| #43 | Combo Multiplier System | Barney | P1 | Core "juice" mechanic. Makes ghost-chasing feel rewarding with visual/audio feedback. |
+| #44 | Mobile-First Polish | Lenny | P1 | 70% of web arcade traffic is mobile. Larger touch zones, haptic feedback, fullscreen mode. |
+| #45 | Sprint 2 QA & Regression | Nelson | P1 | Validate all Sprint 2 features + ensure Sprint 1 features haven't regressed. |
+
+**What's OUT (deferred to Sprint 3+):**
+- Progressive Difficulty & Endless Mode (#4)
+- Social Sharing (#5)
+- Audio Feedback Upgrade (#6)
+- Ghost Debug Mode (#7)
+- Daily Challenge (#8)
+- Performance Optimization (#9)
+- Leaderboard & Stats (#10)
+
+**Dependencies:**
+```
+#42 (Tutorial) ──────┐
+#43 (Combo)    ──────┤──→ #45 (QA)
+#44 (Mobile)   ──────┘
+```
+
+All three feature issues can be developed in parallel. QA runs after features land.
+
+**Success Criteria:**
+- Tutorial reduces first-level bounce rate
+- Combo system makes ghost-chasing feel rewarding
+- Mobile controls feel responsive and satisfying
+- Zero P0 regressions from Sprint 1
+- All QA checklist items pass
+
+**Status:** Active — Sprint 2 begins now
+
 ## Governance
 
 - All meaningful changes require team consensus
