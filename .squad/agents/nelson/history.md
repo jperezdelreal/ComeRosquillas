@@ -97,3 +97,23 @@
 - Combo multiplier math: `Math.min(8, Math.pow(2, ghostsEaten - 1))` — cap at 8x
 - Swipe direction: compare `|dx|` vs `|dy|` with 30px minimum threshold
 - Screen scaling: `Math.min(screenW / CANVAS_W, screenH / CANVAS_H)`
+
+### 2026-07-24: Sprint 3 QA Scaffolding (Issue #57, PR #60)
+
+**Context:** Built Sprint 3 QA suite proactively while Barney (#54 Endless Mode) and Lenny (#56 Leaderboard) are developing. Created 6 new test files with 94 running tests + 75 skipped scaffolds.
+
+**What Changed:**
+- **feature-progressive-difficulty.test.js** — 36 running tests. Validates ramp curve (0→1.0 over levels 1-10), ghost speed ramp (+6%/level), fright decay (360→119 frames), scatter shortening (50% reduction), chase growth (+30%), speed caps at level 10+.
+- **feature-endless-mode.test.js** — 12 running + 12 skipped. Running: maze cycling beyond level 8, difficulty plateau. Skipped: HUD indicator, speed caps, fright floor (waiting for #54).
+- **feature-leaderboard.test.js** — 21 running + 14 skipped. Running: data schema with combo field, clear, sorting. Skipped: top 50, scrolling, clear confirmation (waiting for #56).
+- **feature-stats.test.js** — 28 skipped. Scaffold for lifetime stats and rank badges.
+- **feature-audio-juice.test.js** — 8 running + 14 skipped. Running: pitch variation, bus architecture. Skipped: spatial audio, ducking (Sprint 3.5).
+- **integration-sprint3.test.js** — 17 running + 7 skipped. Running: difficulty × combo timing, speed × level, maze × difficulty.
+
+**Final Results:** 383 passing, 75 skipped, 0 failures across 16 test files.
+
+**Key Formulas Tested:**
+- `getDifficultyRamp(level)` = `Math.min(1, (level - 1) / 9)` — caps at level 10
+- `getGhostSpeed(level)` = `BASE_SPEED * (0.9 + (level - 1) * 0.06)` — no cap (needs #54)
+- `getLevelFrightTime(level)` = `FRIGHT_TIME * (1 - ramp * 0.67)` — floor 119 frames
+- Ghost speed grows unbounded — endless mode (#54) should add caps.
