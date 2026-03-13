@@ -195,6 +195,100 @@ All 4 PRs have cross-branch overlap (shared commits for Nelson history, BFS code
 
 **Status:** Active — ready to execute
 
+### Ghost AI Pathfinding & Personalities (Inbox Merge)
+
+**Date:** 2026-07-24  
+**Decided by:** Barney (Game Dev)  
+**Context:** Issue #23 — Ghost AI Tuning
+
+#### Decision: BFS Pathfinding with Classic Pac-Man Personalities
+
+**What Changed**
+Replaced simple direct-line ghost targeting with BFS pathfinding and implemented distinct Pac-Man-style ghost personalities.
+
+**Technical Implementation**
+- **Pathfinding:** BFS algorithm with 20-tile max search depth
+  - Queue-based exploration with visited set
+  - Parent map for backtracking to find first move
+  - Fallback to Euclidean distance if BFS fails
+  - Performance: No frame drops with 4 ghosts on 28x31 grid
+
+- **Ghost Personalities (Pac-Man Style):**
+  1. **Sr. Burns (Blinky):** Aggressive direct chaser — targets Homer's current tile
+  2. **Bob Patiño (Pinky):** Ambush — targets 4 tiles ahead of Homer's direction
+  3. **Nelson (Inky):** Calculated — uses vector from Burns to Homer (2 tiles ahead), doubled
+  4. **Snake (Clyde):** Patrol/flee — chases when >8 tiles away, flees when close
+
+**Why This Approach**
+- BFS is simpler than A* and sufficient for grid-based maze navigation
+- 20-tile depth balances pathfinding quality with performance
+- Classic Pac-Man behaviors are well-tested for arcade game feel
+- Each ghost has distinct strategic value:
+  - Burns is relentless pressure
+  - Pinky creates ambushes and cuts off escape routes
+  - Inky is unpredictable and creates flanking scenarios
+  - Snake provides dynamic threat (scary when far, relief when close)
+
+**Preserved Systems**
+- Existing scatter/chase/frightened/eaten mode system
+- MODE_TIMERS array for scatter↔chase cycles
+- Scatter targets from GHOST_CFG config
+- Speed modifiers per ghost and difficulty ramp
+
+**Alternative Considered**
+Could extract BFS to separate `js/ai-pathfinding.js` module, but kept in `game-logic.js` for simplicity (only ~50 lines, single use case).
+
+**Status:** Implemented in PR #29. Ready for testing and review.
+
+### Cross-Repo Coordination Rule
+
+**Date:** 2026-03-13T20:12Z  
+**Decided by:** jperezdelreal (via SS Coordinator)  
+**Tier:** T0 (Core Rule)  
+
+**Decision: No Cross-Repo Direct Git Commits**
+
+**What:** No repo may make direct git commits to another repo's branch. ALL cross-repo communication goes through GitHub Issues. Each repo's Squad session owns its git state exclusively.
+
+**Why:** Prevents push conflicts when multiple Ralph Go sessions run concurrently across federated squads.
+
+**API Contract:** Use `gh issue create`, `gh issue comment`, `gh pr review` — NEVER `gh api repos/.../contents -X PUT`.
+
+**Status:** ✅ Active
+
+### Ralph Refueling Behavior
+
+**Date:** 2026-03-13T19:58Z  
+**Decided by:** jperezdelreal (via SS Coordinator)  
+**Tier:** T1 (System Behavior)
+
+**Decision: Proactive Roadmap Issue Creation on Empty Board**
+
+**What:** When Ralph detects an empty board (no open issues with squad labels, no open PRs), instead of idling:
+1. Check if a "Define next roadmap" issue already exists
+2. If none exists → create one with Lead assignment
+3. If one exists → skip and report status
+
+**Why:** Prevents the autonomous pipeline from fully stopping. Complements reactive workflow with proactive refueling.
+
+**Implementation:** 
+```bash
+gh issue list --label roadmap --state open --limit 1
+gh issue create --title "📋 Define next roadmap" --label roadmap --label "squad:{lead-name}"
+```
+
+**Status:** ✅ Active
+
+### Strategic Direction Directive — 2026-03-13T20:44Z
+
+**Date:** 2026-03-13T20:44Z  
+**Captured by:** joperezd (via Copilot)  
+**For:** Moe (Lead)
+
+**Directive:** Lead should focus on strategic roadmap definition for issue #37. Prioritize vision and planning excellence.
+
+**Status:** Active for sprint cycle
+
 ## Governance
 
 - All meaningful changes require team consensus
