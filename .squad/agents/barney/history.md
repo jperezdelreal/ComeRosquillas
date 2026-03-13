@@ -100,4 +100,32 @@
 - HUD combo display uses HTML DOM (same pattern as score/level/lives), not canvas
 - `HighScoreManager.addScore()` already accepts combo param (4th arg)
 
+### Progressive Difficulty & Endless Mode (Issue #54)
+**Date:** 2026-03-14  
+**Context:** Implemented progressive difficulty curve for levels 1-8 and endless mode for level 9+
+
+**Technical Decisions:**
+- Compound multipliers (`Math.pow`) instead of linear scaling for smoother difficulty curves
+- `getEffectiveLevel()` abstraction: levels 1-8 map directly, 9+ scale at 0.5x rate
+- Speed cap at 1.8x BASE_SPEED prevents unplayable states in deep endless runs
+- Fright time floor at 90 frames (~1.5s) keeps power pellets always useful
+- Scatter duration floor at 60 frames (1s) maintains strategic breathing room
+
+**Key Architecture:**
+- All difficulty params in `config.js` as `DIFFICULTY_CURVE` and `ENDLESS_MODE` objects
+- `isEndlessMode()` and `_levelTitle()` helpers centralize endless mode checks
+- Existing `getDifficultyRamp()` now routes through `getEffectiveLevel()`
+- `DIFFICULTY_PRESETS` (Easy/Normal/Hard) multiply on top of the progressive curve
+- Maze rotation via `getMazeLayout()` already cycles — no changes needed for endless
+
+**Integration Points:**
+- HUD shows `∞ ENDLESS - {maze} {level}` when in endless mode
+- Canvas badge renders pulsing `∞ ENDLESS` overlay during gameplay
+- High score table marks endless entries with `∞` prefix
+- Level transitions, cutscenes, and combo system all work beyond level 8
+
+**Key Files:**
+- `js/config.js` lines 244-264: DIFFICULTY_CURVE and ENDLESS_MODE constants
+- `js/game-logic.js`: isEndlessMode(), getEffectiveLevel(), updated getDifficultyRamp(), getSpeed(), getLevelFrightTime(), getLevelModeTimers(), _levelTitle()
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
