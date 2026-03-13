@@ -2,7 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#1a0a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
     <title>Come Rosquillas - Homer's Donut Quest</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -759,12 +764,21 @@
             position: fixed;
             bottom: 20px;
             left: 20px;
-            width: 120px;
-            height: 120px;
+            width: 160px;
+            height: 160px;
             z-index: 100;
             pointer-events: auto;
         }
-        #touchPauseBtn, #touchMuteBtn {
+        #touchDpad svg { width: 100%; height: 100%; }
+        .dpad-arrow {
+            transition: fill 0.08s, filter 0.08s;
+        }
+        .dpad-active {
+            fill: rgba(255,216,0,0.85) !important;
+            filter: drop-shadow(0 0 8px rgba(255,216,0,0.9));
+        }
+
+        #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
             display: none;
             position: fixed;
             top: 20px;
@@ -777,30 +791,61 @@
             color: #ffd800;
             cursor: pointer;
             z-index: 100;
-            transition: transform 0.1s, background 0.2s;
+            transition: transform 0.1s, background 0.12s, box-shadow 0.12s;
             -webkit-tap-highlight-color: transparent;
         }
-        #touchPauseBtn {
-            right: 80px;
+        #touchPauseBtn { right: 20px; }
+        #touchMuteBtn { right: 80px; }
+        #touchFullscreenBtn { right: 140px; }
+        .touch-btn-active {
+            transform: scale(0.88) !important;
+            background: rgba(255,216,0,0.6) !important;
+            box-shadow: 0 0 12px rgba(255,216,0,0.7);
         }
-        #touchMuteBtn {
-            right: 20px;
-        }
-        #touchPauseBtn:active, #touchMuteBtn:active {
-            background: rgba(255, 216, 0, 0.5);
-        }
-        
+
         /* Show touch controls on touch-capable devices */
         @media (hover: none) and (pointer: coarse) {
-            #touchDpad, #touchPauseBtn, #touchMuteBtn {
+            #touchDpad, #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
                 display: block;
             }
             #bottomBar {
-                font-size: 12px;
-                gap: 15px;
+                display: none;
             }
         }
-        
+
+        /* Orientation warning — portrait on touch devices */
+        #orientationWarning {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(13,2,33,0.96);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            font-family: 'Bangers', Arial, sans-serif;
+        }
+        .orient-icon {
+            font-size: 64px;
+            animation: orientSpin 2s ease-in-out infinite;
+        }
+        @keyframes orientSpin {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+        .orient-text {
+            color: #ffd800;
+            font-size: 24px;
+            text-align: center;
+            padding: 0 24px;
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 1px;
+        }
+        @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+            #orientationWarning { display: flex; }
+        }
+
         /* Responsive scaling for mobile */
         @media (max-width: 700px) {
             body {
@@ -817,6 +862,30 @@
             #hud .score, #hud .level, #hud .lives-container {
                 font-size: 16px;
             }
+        }
+
+        /* Small-screen (<480px) simplifications */
+        @media (max-width: 480px) {
+            #hud {
+                padding: 6px 10px;
+                border-radius: 8px 8px 0 0;
+            }
+            #hud .score { font-size: 14px; letter-spacing: 1px; }
+            #hud .level { font-size: 13px; }
+            #hud .lives-container { font-size: 14px; }
+            #hud .high-score { font-size: 13px !important; }
+            #bestComboDisplay { font-size: 12px !important; }
+            #settingsBtn { width: 40px; height: 40px; font-size: 22px; top: 12px; left: 12px; }
+            #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
+                width: 42px; height: 42px; font-size: 22px; top: 12px;
+            }
+            #touchPauseBtn { right: 12px; }
+            #touchMuteBtn { right: 62px; }
+            #touchFullscreenBtn { right: 112px; }
+            #touchDpad { width: 140px; height: 140px; bottom: 14px; left: 14px; }
+            #message .title-large { font-size: 36px; }
+            #message .catchphrase { font-size: 20px; }
+            #message .subtitle { font-size: 16px; }
         }
     </style>
 </head>

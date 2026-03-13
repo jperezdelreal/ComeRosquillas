@@ -636,6 +636,8 @@
                 this.comboDisplayTimer = 0;
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
+                // Haptic: double-pulse on power pellet pickup
+                if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
                 this.addFloatingText(cx, cy - 10, quote, COLORS.duffGold);
                 this.addParticles(cx, cy, COLORS.duffGold, 8);
@@ -946,6 +948,8 @@
                         }
 
                         this.sound.play('eatGhost', this.ghostsEaten);
+                        // Haptic: satisfying pulse on ghost eaten
+                        if (this.touchInput) this.touchInput.vibrate([20, 10, 30]);
                         this.addFloatingText(g.x + TILE / 2, g.y, `${pts}`, '#00ffff');
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
                         this.updateHUD();
@@ -954,6 +958,8 @@
                         this.stateTimer = 90;
                         this.sound.stopMusic();
                         this.sound.play('die');
+                        // Haptic: strong buzz on ghost collision (death)
+                        if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
                         return;
                     }
                 }
