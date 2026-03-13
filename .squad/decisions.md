@@ -399,7 +399,94 @@ All three feature issues can be developed in parallel. QA runs after features la
 - Zero P0 regressions from Sprint 1
 - All QA checklist items pass
 
-**Status:** Active — Sprint 2 begins now
+**Status:** ✅ Complete — All Sprint 2 features merged and tested
+
+### Sprint 3 Planning Decision — "Deep Engagement" Pillar
+
+**Date:** 2026-07-24  
+**Decided by:** Moe (Lead)  
+**Context:** Sprint Planning ceremony for Sprint 3 (Issue #52)
+
+#### Decision: Execute Sprint 3 with Focus on Endless Mode, Audio Upgrade, and Leaderboard
+
+**Strategic Frame:** Sprint 3 focuses on the **Deep Engagement** pillar — features that create mastery progression, sensory depth, and meta-progression. Sprint 2 hooked players in 60 seconds; Sprint 3 gives them reasons to stay for 60 sessions.
+
+**What's IN:**
+| # | Issue | Owner | Priority | Why Now |
+|---|-------|-------|----------|---------|
+| #54 | Progressive Difficulty & Endless Mode | Barney | P0 | Core retention mechanic. Current game ends at level 8 — endless mode creates infinite skill ceiling. "One more try" loop. |
+| #55 | Audio Feedback & Juice Upgrade | Barney | P1 | Audio is 50% of arcade feel. Pitch variation, spatial sound, ducking transform functional audio into delightful audio. |
+| #56 | Leaderboard & Stats Dashboard | Lenny | P1 | Meta-progression. Players need to SEE improvement. Top 50, lifetime stats, rank badges create goal-setting behavior. |
+| #57 | Sprint 3 QA & Regression Testing | Nelson | P1 | Sprint 3 adds significant complexity. Must validate new features + guard Sprint 1-2 gains. Includes performance smoke tests. |
+
+**Success Criteria:**
+- Endless mode creates measurable increase in session length
+- Audio upgrade makes the game feel noticeably more polished
+- Leaderboard drives repeat play behavior
+- Zero P0 regressions from Sprint 1-2
+- Performance holds at 60fps on mobile
+
+**Status:** ✅ Complete — PRs #61, #62, #63 merged
+
+### Progressive Difficulty & Endless Mode Design
+
+**Date:** 2026-03-14  
+**Author:** Barney (Game Dev)  
+**Context:** Issue #54 — Progressive Difficulty Curve & Endless Mode (PR #61)
+
+#### Decision: Compound Scaling with Effective Level Abstraction
+
+**What:** Implemented progressive difficulty using compound multipliers (`Math.pow`) and an `getEffectiveLevel()` abstraction that provides a unified difficulty calculation for both curated levels (1-8) and endless mode (9+).
+
+**Why Compound Scaling:** Compound scaling (`* 1.025^level`) provides a natural curve that's noticeable early but diminishes in impact at higher levels, matching classic arcade game difficulty curves (Pac-Man, Galaga).
+
+**Implementation:** 
+- Levels 1-8 map directly (no change in behavior)
+- Level 9+: `effectiveLevel = 8 + (level - 8) * 0.5`
+- Speed cap at 1.8x BASE_SPEED (3.24 px/frame)
+- Fright time floor at 90 frames (1.5 seconds at 60fps)
+
+**Status:** ✅ Implemented in PR #61 (closes #54)
+
+### Audio Feedback & Juice Upgrade
+
+**Date:** 2026-07-25  
+**Author:** Barney (Game Dev)  
+**Context:** Issue #55 — Audio Feedback & Juice Upgrade (PR #63)
+
+#### Decision: Layered Audio Architecture with Config-Driven Tuning
+
+**What:** Extended SoundManager with four new audio subsystems:
+1. **Pitch variation** — chomp streak progression + random spread
+2. **Spatial audio** — StereoPannerNode for ghost proximity directional hints
+3. **Audio ducking** — GainNode automation to duck music during SFX
+4. **Dynamic music** — tempo scaling per level + fright mode musical shift
+
+**Why:** Separate buses allow independent control. Config-driven constants enable rapid iteration. GainNode automation provides smooth ducking without clicks/pops.
+
+**Performance:** Spatial updates throttled to 10Hz. No audio nodes created per frame. 289/289 tests pass with zero regressions.
+
+**Status:** ✅ Implemented in PR #63 (closes #55)
+
+### Leaderboard & Stats Dashboard Design
+
+**Date:** 2026-07-25  
+**Author:** Lenny (UI Dev)  
+**Context:** Issue #56 — Leaderboard & Stats Dashboard (PR #62)
+
+#### Decision: localStorage-Based Leaderboard with Top 50 Tracking
+
+**What:** Persistent leaderboard storing top 50 scores locally with:
+- Player name entry
+- Score, level reached, combo record per entry
+- Lifetime stats dashboard (total games, average score, personal best)
+- Rank badges (Master, Expert, Advanced, etc.)
+
+**Why:** localStorage keeps everything on-device (no backend required). Top 50 prevents list bloat while maintaining competition. Badges provide goal-setting behavior.
+
+**Performance:** Leaderboard queries optimized via efficient sorting. Stats calculations cached. No external API calls.
+
+**Status:** ✅ Implemented in PR #62 (closes #56)
 
 ### Lead Pipeline Maintenance Directive
 

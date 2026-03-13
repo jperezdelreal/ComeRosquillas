@@ -100,4 +100,64 @@
 - HUD combo display uses HTML DOM (same pattern as score/level/lives), not canvas
 - `HighScoreManager.addScore()` already accepts combo param (4th arg)
 
+### Progressive Difficulty & Endless Mode (Issue #54)
+**Date:** 2026-03-14  
+**Context:** Implemented progressive difficulty curve for levels 1-8 and endless mode for level 9+
+
+**Technical Decisions:**
+- Compound multipliers (`Math.pow`) instead of linear scaling for smoother difficulty curves
+- `getEffectiveLevel()` abstraction: levels 1-8 map directly, 9+ scale at 0.5x rate
+- Speed cap at 1.8x BASE_SPEED prevents unplayable states in deep endless runs
+- Fright time floor at 90 frames (~1.5s) keeps power pellets always useful
+- Scatter duration floor at 60 frames (1s) maintains strategic breathing room
+
+**Key Architecture:**
+- All difficulty params in `config.js` as `DIFFICULTY_CURVE` and `ENDLESS_MODE` objects
+- `isEndlessMode()` and `_levelTitle()` helpers centralize endless mode checks
+- Existing `getDifficultyRamp()` now routes through `getEffectiveLevel()`
+- `DIFFICULTY_PRESETS` (Easy/Normal/Hard) multiply on top of the progressive curve
+- Maze rotation via `getMazeLayout()` already cycles — no changes needed for endless
+
+**Integration Points:**
+- HUD shows `∞ ENDLESS - {maze} {level}` when in endless mode
+- Canvas badge renders pulsing `∞ ENDLESS` overlay during gameplay
+- High score table marks endless entries with `∞` prefix
+- Level transitions, cutscenes, and combo system all work beyond level 8
+
+**Key Files:**
+- `js/config.js` lines 244-264: DIFFICULTY_CURVE and ENDLESS_MODE constants
+- `js/game-logic.js`: isEndlessMode(), getEffectiveLevel(), updated getDifficultyRamp(), getSpeed(), getLevelFrightTime(), getLevelModeTimers(), _levelTitle()
+
+### Audio Feedback & Juice Upgrade (Issue #55)
+**Date:** 2026-07-25  
+**Context:** Full audio juice upgrade — pitch variation, spatial audio, ducking, dynamic music
+
+**Technical Decisions:**
+- Chomp pitch progression uses semitone-based scaling (`Math.pow(2, streak * 0.5 / 12)`) with streak decay after 600ms
+- Spatial audio via `StereoPannerNode` (not full PannerNode) for simplicity and broad compatibility
+- Ghost proximity uses persistent oscillator nodes (created lazily, never destroyed) — avoids rapid-fire node creation
+- Audio ducking uses `GainNode` automation (`cancelScheduledValues` + `linearRampToValueAtTime`) for glitch-free transitions
+- Fright mode music: entirely different melody patterns in A3 range, sawtooth timbre, -200 cents detune, heavier bass
+- Music tempo scaling uses `loopDur = 4.0 / tempo` — compresses note timing, not pitch
+- All tuning constants centralized in `AUDIO_JUICE` config object for easy iteration
+
+**Architecture Patterns:**
+- `_nominalMusicVol` tracks the "intended" music volume, separate from ducked/muted states
+- `_baseLevelTempo` stores the level-derived tempo so fright mode can restore it on exit
+- `_spatialBus` is a separate gain node from `_sfxBus` — can be muted independently
+- `startPowerHum()`/`stopPowerHum()` manage a persistent LFO-modulated oscillator
+- `setFrightMode(active)` coordinates tempo, power hum, and melody selection in one call
+
+**Integration Points:**
+- `updateSpatial()` called every 6 frames from game loop (throttled for performance)
+- `setLevelTempo()` called on game start and each level advance
+- `setFrightMode(true/false)` called on power pellet pickup and fright timer expiry
+- `stopMusic()` automatically stops power hum and resets fright state
+- `toggleMute()` now also mutes/unmutes spatial bus
+
+**Key Files:**
+- `js/config.js`: AUDIO_JUICE constants
+- `js/engine/audio.js`: SoundManager — spatial, ducking, tempo, fright mode
+- `js/game-logic.js`: Integration hooks (updateSpatial, setLevelTempo, setFrightMode)
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
