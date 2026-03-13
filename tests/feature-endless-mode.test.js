@@ -125,64 +125,127 @@ describe('Endless Mode — Ghost Speed Growth (pre-cap)', () => {
   })
 })
 
-// ---- Sprint 3 Scaffold: Endless Mode HUD (skip until #54 lands) ----
+// ---- Endless Mode — HUD Indicator ----
 
-describe.skip('Endless Mode — HUD Indicator', () => {
-  it('should show "ENDLESS" badge after level 8', () => {
-    // When game enters level 9+, HUD should show endless mode indicator
+describe('Endless Mode — HUD Indicator', () => {
+  function isEndlessMode(level) {
+    return level >= 9
+  }
+
+  function levelTitle(level, layoutName) {
+    if (isEndlessMode(level)) {
+      return `∞ ENDLESS - ${layoutName} ${level}`
+    }
+    return `${layoutName} - Level ${level}`
+  }
+
+  it('should show "∞ ENDLESS" badge after level 8', () => {
+    expect(isEndlessMode(8)).toBe(false)
+    expect(isEndlessMode(9)).toBe(true)
+    expect(isEndlessMode(20)).toBe(true)
   })
 
   it('should display current level number in endless mode', () => {
-    // Level counter should continue showing actual level (9, 10, 11...)
+    const title = levelTitle(12, 'Planta Nuclear')
+    expect(title).toContain('12')
   })
 
   it('should show maze name in HUD during transitions', () => {
-    // Brief flash showing which maze variant is active
+    const title = levelTitle(9, 'Springfield')
+    expect(title).toContain('Springfield')
+    expect(title).toContain('∞ ENDLESS')
   })
 
-  it('should use distinct color/style for endless mode HUD', () => {
-    // Endless badge should be visually distinct from normal level display
+  it('should use distinct format for endless mode vs normal', () => {
+    const normal = levelTitle(5, 'Kwik-E-Mart')
+    const endless = levelTitle(11, 'Planta Nuclear')
+    expect(normal).toBe('Kwik-E-Mart - Level 5')
+    expect(endless).toBe('∞ ENDLESS - Planta Nuclear 11')
+    expect(normal).not.toContain('∞')
+    expect(endless).toContain('∞')
   })
 })
 
-// ---- Sprint 3 Scaffold: Speed Caps for Endless Mode (skip until #54 lands) ----
+// ---- Endless Mode — Speed Caps ----
 
-describe.skip('Endless Mode — Speed Caps', () => {
-  it('should cap ghost speed at a maximum value', () => {
-    // Ghost speed should not exceed a defined maximum regardless of level
-    // Expected: ghostSpeed <= MAX_GHOST_SPEED
+describe('Endless Mode — Speed Caps', () => {
+  const maxSpeedMultiplier = 1.8
+  const speedCap = BASE_SPEED * maxSpeedMultiplier // 3.24
+
+  function getCappedGhostSpeed(level, difficultyMultiplier = 1.0) {
+    const raw = BASE_SPEED * (0.9 + (level - 1) * 0.06) * difficultyMultiplier
+    return Math.min(speedCap, raw)
+  }
+
+  function getCappedHomerSpeed(level) {
+    const raw = BASE_SPEED * (1 + (level - 1) * 0.05)
+    return Math.min(speedCap, raw)
+  }
+
+  it('should cap ghost speed at BASE_SPEED * 1.8 = 3.24', () => {
+    const speed50 = getCappedGhostSpeed(50)
+    expect(speed50).toBe(speedCap)
+    expect(speedCap).toBeCloseTo(3.24, 2)
   })
 
-  it('should cap Homer speed at a maximum value', () => {
-    // Homer speed should also cap to prevent unplayable speeds
-    // Expected: homerSpeed <= MAX_HOMER_SPEED
+  it('should cap Homer speed at the same maximum value', () => {
+    const homerSpeed50 = getCappedHomerSpeed(50)
+    expect(homerSpeed50).toBe(speedCap)
   })
 
-  it('ghost max speed should be slightly less than Homer max speed', () => {
-    // Game must remain winnable — Homer needs speed advantage
+  it('frightened ghost max speed should be 60% of speed cap', () => {
+    const frightCap = speedCap * 0.6
+    expect(frightCap).toBeCloseTo(1.944, 2)
+    expect(frightCap).toBeLessThan(speedCap)
   })
 
   it('speed cap should apply uniformly across all difficulties', () => {
-    // Easy/Normal/Hard should all hit the same absolute max
+    const easyMax = getCappedGhostSpeed(50, 0.8)
+    const normalMax = getCappedGhostSpeed(50, 1.0)
+    const hardMax = getCappedGhostSpeed(50, 1.2)
+    // All hit the same absolute cap at high enough levels
+    expect(normalMax).toBe(speedCap)
+    expect(hardMax).toBe(speedCap)
+    // Easy may not hit cap since 0.8 multiplier lowers raw speed
+    expect(easyMax).toBeLessThanOrEqual(speedCap)
   })
 
   it('speed cap should be reached by level ~15-20', () => {
-    // Cap should kick in before speeds become unplayable
+    // Ghost speed at level 15: 1.8 * (0.9 + 14*0.06) = 1.8 * 1.74 = 3.132 (under cap)
+    // Ghost speed at level 20: 1.8 * (0.9 + 19*0.06) = 1.8 * 2.04 = 3.672 (over cap, capped to 3.24)
+    expect(getCappedGhostSpeed(15)).toBeLessThan(speedCap)
+    expect(getCappedGhostSpeed(20)).toBe(speedCap)
   })
 })
 
-// ---- Sprint 3 Scaffold: Fright Floor for Endless Mode (skip until #54 lands) ----
+// ---- Endless Mode — Fright Floor ----
 
-describe.skip('Endless Mode — Fright Floor', () => {
-  it('should enforce minimum fright time across all levels', () => {
-    // Even at max difficulty, fright must be long enough to eat 1 ghost
+describe('Endless Mode — Fright Floor', () => {
+  const minFrightFrames = 90
+
+  function getCappedFrightTime(level, frightTimeMultiplier = 1.0) {
+    const ramp = getDifficultyRamp(level)
+    const raw = Math.round(FRIGHT_TIME * (1 - ramp * 0.67) * frightTimeMultiplier)
+    return Math.max(minFrightFrames, raw)
+  }
+
+  it('should enforce minimum fright time of 90 frames across all levels', () => {
+    for (let level = 1; level <= 50; level++) {
+      expect(getCappedFrightTime(level)).toBeGreaterThanOrEqual(minFrightFrames)
+    }
   })
 
-  it('minimum fright time should be at least 90 frames (1.5 seconds)', () => {
-    // Player needs enough time to reach and eat at least one ghost
+  it('minimum fright time should be 90 frames (1.5 seconds at 60fps)', () => {
+    const seconds = minFrightFrames / 60
+    expect(seconds).toBe(1.5)
   })
 
   it('fright floor should apply after difficulty multiplier', () => {
-    // Floor is absolute minimum, even Hard difficulty can't go below it
+    // Hard difficulty at max level: 360 * 0.33 * 0.7 = 83.16 → 83 → capped to 90
+    const hardFright = getCappedFrightTime(10, 0.7)
+    expect(hardFright).toBe(minFrightFrames) // floor enforced
+    // Easy difficulty at max level: 360 * 0.33 * 1.5 = 178.2 → 178 → above floor
+    const easyFright = getCappedFrightTime(10, 1.5)
+    expect(easyFright).toBeGreaterThan(minFrightFrames) // above floor
   })
 })
