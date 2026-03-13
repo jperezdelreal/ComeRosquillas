@@ -26,7 +26,7 @@ describe('Scoring — Dot Collection', () => {
 
   it('should accumulate dots correctly over many collections', () => {
     let score = 0
-    for (let i = 0; i < 244; i++) score += 10
+    for (let i = 0; i < 244; i++) score += 10 // Full maze of dots
     expect(score).toBe(2440)
   })
 })
@@ -62,6 +62,7 @@ describe('Scoring — Ghost Eating Sequence', () => {
   it('should reset counter on new power pellet', () => {
     let ghostsEaten = 4
     expect(ghostScore(ghostsEaten)).toBe(1600)
+    // New power pellet resets
     ghostsEaten = 0
     ghostsEaten++
     expect(ghostScore(ghostsEaten)).toBe(200)
@@ -122,6 +123,7 @@ describe('Lives — Core Mechanics', () => {
   it('should trigger game over when lives reach 0', () => {
     let lives = 1
     let state = 'PLAYING'
+    // Lose last life
     lives--
     if (lives <= 0) state = 'GAME_OVER'
     expect(state).toBe('GAME_OVER')
@@ -130,6 +132,7 @@ describe('Lives — Core Mechanics', () => {
 
   it('should NOT go negative on lives', () => {
     let lives = 0
+    // Already dead — should not decrement further in real game
     expect(lives).toBe(0)
   })
 })
@@ -221,6 +224,7 @@ describe('High Scores — Persistence and Ranking', () => {
     expect(mgr.scores[0].name).toBe('HOM')
     expect(mgr.scores[0].score).toBe(5000)
 
+    // Verify localStorage
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY))
     expect(stored).toHaveLength(1)
     expect(stored[0].score).toBe(5000)
@@ -262,6 +266,7 @@ describe('High Scores — Persistence and Ranking', () => {
     mgr1.addScore('HOM', 5000, 3)
     mgr1.addScore('BAR', 3000, 2)
 
+    // Simulate page reload
     const mgr2 = createManager()
     mgr2.loadScores()
     expect(mgr2.scores).toHaveLength(2)
@@ -280,8 +285,8 @@ describe('High Scores — Persistence and Ranking', () => {
     const rank1 = mgr.addScore('AAA', 5000, 3)
     expect(rank1).toBe(1)
     const rank2 = mgr.addScore('BBB', 8000, 5)
-    expect(rank2).toBe(1)
+    expect(rank2).toBe(1) // New #1
     const rank3 = mgr.addScore('CCC', 3000, 2)
-    expect(rank3).toBe(3)
+    expect(rank3).toBe(3) // Lowest of 3
   })
 })

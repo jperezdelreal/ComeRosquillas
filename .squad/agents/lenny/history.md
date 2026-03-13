@@ -55,4 +55,70 @@
 - localStorage persistence happens on every change (no manual save step needed)
 - Audio bus values must be set via `setValueAtTime()` in AudioContext to avoid console warnings
 
+### Tutorial & Onboarding System (Issue #42)
+
+**Architecture decisions:**
+- Created `js/ui/tutorial.js` following the established `js/ui/` modular pattern
+- Tutorial overlay uses DOM elements (same as settings-menu.js), not Canvas rendering for text/buttons
+- Canvas mini-illustrations embedded inside tutorial cards for animated step demonstrations
+- localStorage key: `comeRosquillas_tutorialComplete` — simple boolean flag for first-visit detection
+
+**Tutorial flow:**
+- 3-step click-to-continue walkthrough: Movement → Power Pellets → Ghost Eating
+- Each step has a mini Canvas animation illustrating the mechanic
+- Desktop shows arrow key highlights, mobile shows swipe arrows
+- "Skip Tutorial" always available (ESC on desktop, button on mobile)
+- Celebration particle burst uses game's existing `addParticles()` system
+
+**Integration points:**
+- Game class: Tutorial initialized after settings menu, before `showStartScreen()`
+- First-visit check: `setTimeout(() => this.tutorial.start(), 300)` gives start screen time to render
+- Settings menu: `_game` reference set on SettingsMenu instance for "Show Tutorial" button access
+- Tutorial.reset() clears localStorage flag and restarts the tutorial from settings menu
+
+**CSS organization:**
+- All tutorial styles added to index.html `<style>` block (following existing convention)
+- Uses same color palette: purple gradients (#2d1b69), yellow accents (#ffd800), pink highlights (#ff69b4)
+- Responsive breakpoint at 700px matches existing settings modal pattern
+- `z-index: 2000` ensures tutorial renders above settings overlay (z-index: 1000)
+
+**Key learnings for future work:**
+- When concurrent agents share the same repo, git branch operations can race — always verify branch before committing
+- Tutorial module is fully self-contained — can be loaded/unloaded without modifying core game logic
+- Cross-module communication pattern: store parent reference (e.g., `_game`) rather than using globals
+- Script load order: tutorial.js must load after settings-menu.js but before game-logic.js
+
+### Mobile-First Polish Pass (Issue #44)
+
+**Architecture decisions:**
+- TouchInput class extended with haptic, fullscreen, and orientation subsystems — no new files needed
+- Haptic feedback uses Vibration API with pattern arrays: `navigator.vibrate([ms, pause, ms])` for tactile differentiation
+- Haptic preference stored in localStorage key: `comeRosquillas_haptic` (default: enabled)
+- Fullscreen uses Fullscreen API with `webkitRequestFullscreen` fallback for iOS Safari compatibility
+- Orientation warning is pure CSS: `@media (hover: none) and (pointer: coarse) and (orientation: portrait)`
+- D-pad visual feedback via CSS class toggle (`.dpad-active`) instead of inline `setAttribute('fill')` for better performance
+
+**Touch zone enlargement:**
+- SVG viewBox increased from `0 0 120 120` to `0 0 160 160` (33% larger coordinate space)
+- Arrow paths proportionally enlarged (e.g., up arrow `M60,20 L75,45` → `M80,15 L105,55`)
+- Element CSS size increased from 120px to 160px
+- On <480px screens, D-pad scales to 140px to fit smaller viewports
+
+**Haptic feedback integration:**
+- Three game events wired: ghost collision `[50,30,80]`, power pellet `[15,10,25]`, ghost eaten `[20,10,30]`
+- Haptics called via `this.touchInput.vibrate()` in game-logic.js with null-check guard
+- D-pad buttons and swipes also trigger micro-haptic (8ms) for tactile confirmation
+
+**PWA manifest:**
+- `manifest.json` with `display: fullscreen`, `orientation: landscape`
+- SVG icons at 192x192 and 512x512 in `icons/` directory
+- Meta tags: `theme-color`, `apple-mobile-web-app-capable`, `viewport-fit: cover`
+
+**Key learnings for future work:**
+- Bottom bar (keyboard hints) hidden on touch devices — desktop-only UI element
+- Pause button at `right: 20px` is optimal thumb position (tested against 80px)
+- CSS `@media (hover: none) and (pointer: coarse)` is the reliable touch device detector
+- Small-screen (<480px) breakpoint needs separate treatment from mobile (<700px)
+- Fullscreen API requires `catch(() => {})` on promise — some browsers reject silently
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->

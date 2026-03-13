@@ -17,6 +17,8 @@
             this.levelEl = document.getElementById('levelDisplay');
             this.highScoreEl = document.getElementById('highScoreDisplay');
             this.livesIconsEl = document.getElementById('livesIcons');
+            this.bestComboEl = document.getElementById('bestComboDisplay');
+            this.bestComboValueEl = document.getElementById('bestComboValue');
             this.msgEl = document.getElementById('message');
 
             this.keys = {};
@@ -36,6 +38,8 @@
             this.comboDisplayTimer = 0;
             this.bestCombo = 0;
             this._allTimeBestCombo = this._loadBestCombo();
+            this.screenShakeTimer = 0;
+            this.screenShakeIntensity = 0;
 
             // Pre-render some decorations
             this.cloudOffset = 0;
@@ -48,6 +52,7 @@
             // Initialize settings menu
             if (typeof SettingsMenu !== 'undefined') {
                 this.settingsMenu = new SettingsMenu(this.sound);
+                this.settingsMenu._game = this;
                 
                 // Hook up settings button
                 const settingsBtn = document.getElementById('settingsBtn');
@@ -71,8 +76,19 @@
                 this.touchInput = new TouchInput(this);
             }
             
+            // Initialize tutorial system
+            if (typeof Tutorial !== 'undefined') {
+                this.tutorial = new Tutorial(this);
+            }
+            
             this.showStartScreen();
             this.updateHUD();
+
+            // Show tutorial for first-time players (after start screen renders)
+            if (this.tutorial && this.tutorial.shouldShow()) {
+                setTimeout(() => this.tutorial.start(), 300);
+            }
+
             this.loop();
         }
 
@@ -438,6 +454,9 @@
             // Update combo display timer
             if (this.comboDisplayTimer > 0) this.comboDisplayTimer--;
 
+            // Update screen shake
+            if (this.screenShakeTimer > 0) this.screenShakeTimer--;
+
             if (this.state === ST_READY) {
                 this.stateTimer--;
                 if (this.stateTimer <= 0) {
@@ -617,6 +636,8 @@
                 this.comboDisplayTimer = 0;
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
+                // Haptic: double-pulse on power pellet pickup
+                if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
                 this.addFloatingText(cx, cy - 10, quote, COLORS.duffGold);
                 this.addParticles(cx, cy, COLORS.duffGold, 8);
@@ -909,11 +930,14 @@
                         const pts = 200 * comboMultiplier;
                         this.score += pts;
 
-                        // Milestone: trigger burst and audio at 2x, 4x, 8x
+                        // Milestone: trigger burst, shake, and audio at 2x, 4x, 8x
                         if (COMBO_MILESTONES.includes(comboMultiplier)) {
                             this.sound.play('comboMilestone', comboMultiplier);
                             this.addParticles(g.x + TILE / 2, g.y + TILE / 2, '#ffd800', 15);
                             this.addFloatingText(g.x + TILE / 2, g.y - TILE, `${comboMultiplier}x COMBO!`, '#ffd800');
+                            // Screen shake scales with milestone tier
+                            this.screenShakeTimer = 12;
+                            this.screenShakeIntensity = comboMultiplier <= 2 ? 3 : comboMultiplier <= 4 ? 5 : 8;
                         }
                         this.comboDisplayTimer = 120;
 
@@ -924,6 +948,8 @@
                         }
 
                         this.sound.play('eatGhost', this.ghostsEaten);
+                        // Haptic: satisfying pulse on ghost eaten
+                        if (this.touchInput) this.touchInput.vibrate([20, 10, 30]);
                         this.addFloatingText(g.x + TILE / 2, g.y, `${pts}`, '#00ffff');
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
                         this.updateHUD();
@@ -932,6 +958,8 @@
                         this.stateTimer = 90;
                         this.sound.stopMusic();
                         this.sound.play('die');
+                        // Haptic: strong buzz on ghost collision (death)
+                        if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
                         return;
                     }
                 }
@@ -942,6 +970,15 @@
             this.scoreEl.textContent = this.score;
             this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
             this.highScoreEl.textContent = this.highScores.getHighScore();
+            // Show best combo on HUD when player has achieved one
+            if (this.bestComboEl) {
+                if (this.bestCombo > 1) {
+                    this.bestComboValueEl.textContent = this.bestCombo;
+                    this.bestComboEl.style.display = '';
+                } else {
+                    this.bestComboEl.style.display = 'none';
+                }
+            }
             // Render donut icons for lives
             let html = '';
             for (let i = 0; i < this.lives; i++) {
@@ -959,6 +996,16 @@
             }
             
             const ctx = this.ctx;
+
+            // Screen shake offset
+            if (this.screenShakeTimer > 0) {
+                const intensity = this.screenShakeIntensity * (this.screenShakeTimer / 12);
+                const sx = (Math.random() - 0.5) * 2 * intensity;
+                const sy = (Math.random() - 0.5) * 2 * intensity;
+                ctx.save();
+                ctx.translate(sx, sy);
+            }
+
             ctx.fillStyle = COLORS.pathDark;
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
@@ -1076,6 +1123,11 @@
             // Ghost names display (bottom right)
             if (this.state === ST_START || this.state === ST_READY) {
                 this.drawGhostLegend(ctx);
+            }
+
+            // Restore screen shake transform
+            if (this.screenShakeTimer > 0) {
+                ctx.restore();
             }
         }
 

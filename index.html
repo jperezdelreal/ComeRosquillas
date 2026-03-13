@@ -2,7 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#1a0a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
     <title>Come Rosquillas - Homer's Donut Quest</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -474,6 +479,17 @@
             transform: scale(1.02);
         }
         
+        .settings-tutorial-btn {
+            background: rgba(255, 105, 180, 0.2);
+            border-color: #ff69b4;
+            color: #ff69b4;
+        }
+        
+        .settings-tutorial-btn:hover {
+            background: rgba(255, 105, 180, 0.4);
+            transform: scale(1.02);
+        }
+        
         .settings-save {
             background: rgba(255, 216, 0, 0.3);
             border-color: #ffd800;
@@ -524,18 +540,245 @@
             }
         }
         
+        /* Tutorial Overlay */
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .tutorial-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+        }
+
+        .tutorial-card {
+            position: relative;
+            background: linear-gradient(180deg, #2d1b69 0%, #1a0a2e 100%);
+            border: 3px solid #ffd800;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 420px;
+            padding: 28px 24px 22px;
+            box-shadow: 0 0 60px rgba(255, 216, 0, 0.35), 0 8px 32px rgba(0, 0, 0, 0.6);
+            font-family: 'Bangers', Arial, sans-serif;
+            text-align: center;
+            animation: tutorialSlideIn 0.35s ease-out;
+        }
+
+        @keyframes tutorialSlideIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .tutorial-celebration {
+            animation: tutorialCelebrate 0.4s ease-out;
+        }
+
+        @keyframes tutorialCelebrate {
+            0% { opacity: 0; transform: scale(0.7); }
+            60% { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .tutorial-progress {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .tutorial-step-label {
+            color: #aaa;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .tutorial-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tutorial-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1.5px solid rgba(255, 216, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .tutorial-dot-active {
+            background: #ffd800;
+            border-color: #ffd800;
+            box-shadow: 0 0 8px rgba(255, 216, 0, 0.6);
+        }
+
+        .tutorial-dot-done {
+            background: #44bb44;
+            border-color: #44bb44;
+        }
+
+        .tutorial-icon-container {
+            margin: 8px auto 12px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 216, 0, 0.15);
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .tutorial-icon-container canvas {
+            display: block;
+        }
+
+        .tutorial-title {
+            color: #ffd800;
+            font-size: 28px;
+            margin: 0 0 8px;
+            text-shadow: 2px 2px 0 #000, 0 0 16px rgba(255, 216, 0, 0.4);
+            letter-spacing: 2px;
+        }
+
+        .tutorial-text {
+            color: #ffffff;
+            font-size: 17px;
+            line-height: 1.5;
+            margin: 0 0 8px;
+            text-shadow: 1px 1px 0 #000;
+            font-family: Arial, sans-serif;
+        }
+
+        .tutorial-hint {
+            color: #ff69b4;
+            font-size: 15px;
+            margin: 0 0 20px;
+            font-style: italic;
+            text-shadow: 1px 1px 0 #000;
+            font-family: Arial, sans-serif;
+        }
+
+        .tutorial-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .tutorial-btn {
+            padding: 12px 20px;
+            font-family: 'Bangers', Arial, sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+            border: 2px solid;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+
+        .tutorial-skip-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #aaa;
+            flex: 0;
+            white-space: nowrap;
+        }
+
+        .tutorial-skip-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .tutorial-next-btn {
+            background: rgba(255, 216, 0, 0.25);
+            border-color: #ffd800;
+            color: #ffd800;
+            flex: 1;
+        }
+
+        .tutorial-next-btn:hover {
+            background: rgba(255, 216, 0, 0.45);
+            transform: scale(1.03);
+            box-shadow: 0 0 16px rgba(255, 216, 0, 0.3);
+        }
+
+        .tutorial-play-btn {
+            font-size: 22px;
+            padding: 14px 32px;
+        }
+
+        .tutorial-tap-hint {
+            color: #888;
+            font-size: 13px;
+            margin-top: 14px;
+            font-family: Arial, sans-serif;
+            animation: tutorialPulse 2s infinite;
+        }
+
+        @keyframes tutorialPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @media (max-width: 700px) {
+            .tutorial-card {
+                width: 95%;
+                padding: 20px 16px 18px;
+            }
+
+            .tutorial-title {
+                font-size: 24px;
+            }
+
+            .tutorial-text {
+                font-size: 15px;
+            }
+
+            .tutorial-hint {
+                font-size: 13px;
+            }
+
+            .tutorial-actions {
+                flex-direction: column;
+            }
+
+            .tutorial-btn {
+                font-size: 16px;
+            }
+        }
+
         /* Touch Controls - only visible on touch devices */
         #touchDpad {
             display: none;
             position: fixed;
             bottom: 20px;
             left: 20px;
-            width: 120px;
-            height: 120px;
+            width: 160px;
+            height: 160px;
             z-index: 100;
             pointer-events: auto;
         }
-        #touchPauseBtn, #touchMuteBtn {
+        #touchDpad svg { width: 100%; height: 100%; }
+        .dpad-arrow {
+            transition: fill 0.08s, filter 0.08s;
+        }
+        .dpad-active {
+            fill: rgba(255,216,0,0.85) !important;
+            filter: drop-shadow(0 0 8px rgba(255,216,0,0.9));
+        }
+
+        #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
             display: none;
             position: fixed;
             top: 20px;
@@ -548,30 +791,61 @@
             color: #ffd800;
             cursor: pointer;
             z-index: 100;
-            transition: transform 0.1s, background 0.2s;
+            transition: transform 0.1s, background 0.12s, box-shadow 0.12s;
             -webkit-tap-highlight-color: transparent;
         }
-        #touchPauseBtn {
-            right: 80px;
+        #touchPauseBtn { right: 20px; }
+        #touchMuteBtn { right: 80px; }
+        #touchFullscreenBtn { right: 140px; }
+        .touch-btn-active {
+            transform: scale(0.88) !important;
+            background: rgba(255,216,0,0.6) !important;
+            box-shadow: 0 0 12px rgba(255,216,0,0.7);
         }
-        #touchMuteBtn {
-            right: 20px;
-        }
-        #touchPauseBtn:active, #touchMuteBtn:active {
-            background: rgba(255, 216, 0, 0.5);
-        }
-        
+
         /* Show touch controls on touch-capable devices */
         @media (hover: none) and (pointer: coarse) {
-            #touchDpad, #touchPauseBtn, #touchMuteBtn {
+            #touchDpad, #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
                 display: block;
             }
             #bottomBar {
-                font-size: 12px;
-                gap: 15px;
+                display: none;
             }
         }
-        
+
+        /* Orientation warning — portrait on touch devices */
+        #orientationWarning {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(13,2,33,0.96);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            font-family: 'Bangers', Arial, sans-serif;
+        }
+        .orient-icon {
+            font-size: 64px;
+            animation: orientSpin 2s ease-in-out infinite;
+        }
+        @keyframes orientSpin {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+        .orient-text {
+            color: #ffd800;
+            font-size: 24px;
+            text-align: center;
+            padding: 0 24px;
+            text-shadow: 2px 2px 0 #000;
+            letter-spacing: 1px;
+        }
+        @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+            #orientationWarning { display: flex; }
+        }
+
         /* Responsive scaling for mobile */
         @media (max-width: 700px) {
             body {
@@ -589,6 +863,30 @@
                 font-size: 16px;
             }
         }
+
+        /* Small-screen (<480px) simplifications */
+        @media (max-width: 480px) {
+            #hud {
+                padding: 6px 10px;
+                border-radius: 8px 8px 0 0;
+            }
+            #hud .score { font-size: 14px; letter-spacing: 1px; }
+            #hud .level { font-size: 13px; }
+            #hud .lives-container { font-size: 14px; }
+            #hud .high-score { font-size: 13px !important; }
+            #bestComboDisplay { font-size: 12px !important; }
+            #settingsBtn { width: 40px; height: 40px; font-size: 22px; top: 12px; left: 12px; }
+            #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
+                width: 42px; height: 42px; font-size: 22px; top: 12px;
+            }
+            #touchPauseBtn { right: 12px; }
+            #touchMuteBtn { right: 62px; }
+            #touchFullscreenBtn { right: 112px; }
+            #touchDpad { width: 140px; height: 140px; bottom: 14px; left: 14px; }
+            #message .title-large { font-size: 36px; }
+            #message .catchphrase { font-size: 20px; }
+            #message .subtitle { font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -599,6 +897,9 @@
             <span class="level">Springfield Lvl <span id="levelDisplay">1</span></span>
             <span class="high-score" style="color: #ffa500; font-size: 18px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000;">
                 Hi: <span id="highScoreDisplay">0</span>
+            </span>
+            <span id="bestComboDisplay" style="color: #ff69b4; font-size: 16px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000; display: none;">
+                🔥 <span id="bestComboValue">0</span>x
             </span>
             <span class="lives-container">
                 <span id="livesIcons"></span>
@@ -618,6 +919,7 @@
     <script src="js/config.js"></script>
     <script src="js/engine/audio.js"></script>
     <script src="js/ui/settings-menu.js"></script>
+    <script src="js/ui/tutorial.js"></script>
     <script src="js/engine/renderer.js"></script>
     <script src="js/engine/high-scores.js"></script>
     <script src="js/engine/touch-input.js"></script>

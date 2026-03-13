@@ -245,3 +245,87 @@ Every item serves one of these pillars. Nothing is here just because it's "cool"
 
 **Status:** Active — ready for team to execute  
 **Next Review:** End of Sprint 2 (retrospective on Items 1-5 outcomes)
+
+---
+
+## Nelson: Test Patterns for ComeRosquillas
+
+**Date:** 2026-03-13  
+**Decided by:** Nelson (Tester)  
+**Context:** Sprint 2 QA work (Issue #45)
+
+### Decision: Logic-First Testing Without DOM/Canvas Mocking
+
+#### Rationale
+
+Since ComeRosquillas uses Canvas 2D with no framework, traditional unit testing (mocking DOM, Canvas, AudioContext) is expensive and fragile. Instead, extract core math/logic into pure functions and test those in isolation.
+
+#### Test Patterns
+
+**1. Isolated Logic Testing**
+
+For deterministic calculations, re-implement and validate:
+- Ghost personality targeting: extract `getChaseTarget` switch logic
+- Combo multiplier: `Math.min(8, Math.pow(2, ghostsEaten - 1))`
+- Swipe direction: `|dx| > |dy|` for cardinal detection
+- Screen scaling: `Math.min(screenW / CANVAS_W, screenH / CANVAS_H)`
+
+**Benefit:** Tests run fast (< 200ms total), no DOM/Canvas setup.  
+**Tradeoff:** If real implementation changes formula, tests won't catch drift. **Mitigation:** Store formulas in `config.js` constants.
+
+**2. Scaffolded Feature Tests with `describe.skip()`**
+
+When features are in parallel branches:
+1. Write `describe.skip()` blocks with test names matching acceptance criteria
+2. Add comments describing assertions needed
+3. Ready to unskip when feature lands with minimal changes
+
+**Benefit:** QA work proceeds proactively; team sees test intent early.
+
+**3. localStorage Testing**
+
+Always:
+- `localStorage.clear()` in `beforeEach` and `afterEach`
+- Test corrupted data: `'NOT_JSON!!!'`, `'not-a-number'`
+- Test reload pattern: write → new manager instance → read
+- Test fallback to defaults on missing/invalid keys
+
+#### Recommendation for Future Mechanics
+
+When adding new game mechanics:
+1. Keep formulas as **named constants in `config.js`** (not magic numbers scattered in `game-logic.js`)
+2. This makes them easily testable without mocking the Game class
+3. Example: `COMBO_MILESTONES = [2, 4, 8]` is testable; inline `[2, 4, 8]` is not
+
+---
+
+**Status:** Active — shapes Sprint 2 QA approach  
+**Adopted by:** Nelson for Issue #45
+
+---
+
+## Screen Shake Pattern for Game Effects
+
+**Date:** 2026-07-24  
+**Author:** Barney (Game Dev)  
+**Context:** Issue #43 — Combo Multiplier System
+
+### Decision: Canvas-Level Screen Shake via save/restore
+
+**What:** Screen shake is implemented using `ctx.save()` + `ctx.translate(random offset)` at the start of `draw()`, with `ctx.restore()` at the end. Two state variables control it: `screenShakeTimer` (frames remaining) and `screenShakeIntensity` (max pixel offset).
+
+**Why:**
+- No DOM manipulation needed — pure canvas approach
+- Decays naturally using timer-based intensity scaling
+- Safe with nested save/restore (combo overlay already uses its own)
+- Easy to reuse: any game event can trigger shake by setting the two variables
+
+**Reuse Pattern:**
+```javascript
+this.screenShakeTimer = 12;        // frames of shake
+this.screenShakeIntensity = 5;     // max pixel offset
+```
+
+**For Lenny:** If UI overlays need to avoid shaking (e.g., HUD), they should be rendered outside the save/restore block or use HTML DOM (which is unaffected).
+
+**Status:** Implemented in PR #46
