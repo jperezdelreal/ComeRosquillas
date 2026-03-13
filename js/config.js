@@ -327,6 +327,41 @@ function setDifficulty(level) {
     return DIFFICULTY_PRESETS[level];
 }
 
+// ==================== AUDIO JUICE ====================
+const AUDIO_JUICE = {
+    // Chomp pitch progression
+    chompStreakSemitones: 0.5,           // semitone increase per consecutive chomp
+    chompStreakMax: 12,                  // max streak before pitch resets
+    chompStreakDecayMs: 600,             // ms of silence before streak resets
+    chompRandomSpread: 0.16,            // +/-8% random pitch spread
+
+    // Ghost spatial audio
+    spatialMaxDistance: 14,              // tiles beyond which ghost audio is silent
+    spatialMinVolume: 0.0,              // volume at max distance
+    spatialMaxVolume: 0.12,             // volume when ghost is on top of player
+    spatialUpdateInterval: 6,           // update spatial every N frames (performance)
+
+    // Power pellet hum
+    powerHumFreq: 55,                   // base frequency for power pellet ambient hum
+    powerHumVolume: 0.06,               // hum max volume
+
+    // Audio ducking
+    duckAmount: 0.25,                   // music volume multiplier during ducking (25%)
+    duckFadeIn: 0.05,                   // seconds to duck down
+    duckFadeOut: 0.3,                   // seconds to restore music
+    duckDurationSfx: 0.4,              // seconds for short SFX duck (power, eatGhost)
+    duckDurationStinger: 2.5,          // seconds for long stinger duck (levelComplete, gameOver)
+
+    // Dynamic music tempo
+    baseMusicTempo: 1.0,                // normal tempo multiplier
+    frightMusicTempo: 1.25,             // tempo during fright mode
+    maxLevelTempo: 1.15,                // max tempo boost from level progression
+    tempoPerLevel: 0.015,               // tempo increase per level
+
+    // Fright mode music shift (semitones down for eerie feel)
+    frightDetune: -200,                 // cents detune for fright melody
+}
+
 // ==================== SIMPSONS COLOR PALETTE ====================
 const COLORS = {
     simpsonYellow: '#ffd800',

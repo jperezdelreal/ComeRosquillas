@@ -271,6 +271,7 @@
             this.state = ST_READY;
             this.stateTimer = 150;
             this.sound.play('start');
+            this.sound.setLevelTempo(this.level);
             this.showMessage('&#127849; READY!', this._levelTitle());
             this.updateHUD();
         }
@@ -529,6 +530,7 @@
                     } else {
                         this.level++;
                         this.initLevel();
+                        this.sound.setLevelTempo(this.level);
                         this.state = ST_READY;
                         this.stateTimer = 150;
                         this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
@@ -552,6 +554,11 @@
             for (const ghost of this.ghosts) this.moveGhost(ghost);
             this.checkCollisions();
 
+            // Spatial audio update (throttled for performance)
+            if (this.animFrame % AUDIO_JUICE.spatialUpdateInterval === 0) {
+                this.sound.updateSpatial(this.homer.x, this.homer.y, this.ghosts);
+            }
+
             // Mouth animation
             if (this.animFrame % 4 === 0) {
                 this.homer.mouthAngle += this.homer.mouthOpen ? 0.15 : -0.15;
@@ -573,6 +580,7 @@
                     }
                     this.ghostsEaten = 0;
                     this.comboDisplayTimer = 0;
+                    this.sound.setFrightMode(false);
                 }
                 return;
             }
@@ -660,6 +668,7 @@
                 this.comboDisplayTimer = 0;
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
+                this.sound.setFrightMode(true);
                 // Haptic: double-pulse on power pellet pickup
                 if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
@@ -1501,6 +1510,7 @@
             this.cutsceneActors = [];
             this.level++;
             this.initLevel();
+            this.sound.setLevelTempo(this.level);
             this.state = ST_READY;
             this.stateTimer = 150;
             this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
