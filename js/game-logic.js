@@ -286,7 +286,8 @@
         // Fright time shrinks as levels increase (360 → 120 frames)
         getLevelFrightTime() {
             const ramp = this.getDifficultyRamp();
-            return Math.round(FRIGHT_TIME * (1 - ramp * 0.67));
+            const difficulty = getDifficultySettings();
+            return Math.round(FRIGHT_TIME * (1 - ramp * 0.67) * difficulty.frightTimeMultiplier);
         }
 
         // Scatter durations shrink, chase durations grow per level
@@ -304,9 +305,11 @@
         getSpeed(type, ghost) {
             const lvl = this.level;
             const ramp = this.getDifficultyRamp();
+            const difficulty = getDifficultySettings();
+            
             if (type === 'homer') return BASE_SPEED * (1 + (lvl - 1) * 0.05);
             if (type === 'ghost') {
-                let base = BASE_SPEED * (0.9 + (lvl - 1) * 0.06);
+                let base = BASE_SPEED * (0.9 + (lvl - 1) * 0.06) * difficulty.ghostSpeedMultiplier;
                 if (ghost) {
                     // Bob Patiño is slightly faster (aggressive chaser)
                     if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
@@ -315,7 +318,7 @@
                 }
                 return base;
             }
-            if (type === 'frightGhost') return BASE_SPEED * (0.5 + ramp * 0.15);
+            if (type === 'frightGhost') return BASE_SPEED * (0.5 + ramp * 0.15) * difficulty.ghostSpeedMultiplier;
             if (type === 'eatenGhost') return BASE_SPEED * 2;
             return BASE_SPEED;
         }
@@ -605,7 +608,8 @@
         }
 
         checkExtraLife() {
-            if (!this.extraLifeGiven && this.score >= 10000) {
+            const difficulty = getDifficultySettings();
+            if (!this.extraLifeGiven && this.score >= difficulty.extraLifeThreshold) {
                 this.extraLifeGiven = true;
                 this.lives++;
                 this.sound.play('extraLife');
