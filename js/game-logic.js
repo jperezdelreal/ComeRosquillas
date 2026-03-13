@@ -52,6 +52,7 @@
             // Initialize settings menu
             if (typeof SettingsMenu !== 'undefined') {
                 this.settingsMenu = new SettingsMenu(this.sound);
+                this.settingsMenu._game = this;
                 
                 // Hook up settings button
                 const settingsBtn = document.getElementById('settingsBtn');
@@ -75,8 +76,19 @@
                 this.touchInput = new TouchInput(this);
             }
             
+            // Initialize tutorial system
+            if (typeof Tutorial !== 'undefined') {
+                this.tutorial = new Tutorial(this);
+            }
+            
             this.showStartScreen();
             this.updateHUD();
+
+            // Show tutorial for first-time players (after start screen renders)
+            if (this.tutorial && this.tutorial.shouldShow()) {
+                setTimeout(() => this.tutorial.start(), 300);
+            }
+
             this.loop();
         }
 
