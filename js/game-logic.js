@@ -1047,7 +1047,7 @@
             }
             ctx.globalAlpha = 1;
 
-            // Combo counter overlay (shown during power-pellet activation when ≥ 2 ghosts eaten)
+            // Combo counter overlay (shown once ≥ 2 ghosts eaten, i.e. first milestone of 2x)
             if (this.comboDisplayTimer > 0 && this.ghostsEaten >= 2) {
                 const comboMult = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
                 const alpha = this.comboDisplayTimer < 30 ? this.comboDisplayTimer / 30 : 1;

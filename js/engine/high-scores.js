@@ -60,7 +60,7 @@ class HighScoreManager {
             name: name.trim().substring(0, 3).toUpperCase() || 'AAA',
             score: score,
             level: level,
-            combo: (typeof combo === 'number' && combo > 0 && combo <= 8) ? combo : 0,
+            combo: (typeof combo === 'number' && combo > 0 && combo <= Math.max(...COMBO_MILESTONES)) ? combo : 0,
             date: new Date().toISOString()
         };
 
