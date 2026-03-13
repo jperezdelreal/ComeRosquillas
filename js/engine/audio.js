@@ -15,6 +15,13 @@ class SoundManager {
             this.ctx = null;
         }
         this._chompVariant = 0;
+        this._chompStreak = 0;
+        this._lastChompTime = 0;
+        this._frightActive = false;
+        this._musicTempo = 1.0;
+        this._duckTimer = null;
+        this._powerHumNodes = null;
+        this._spatialGhostNodes = [];
     }
 
     _initBuses() {
@@ -38,6 +45,13 @@ class SoundManager {
         this._musicBus = this.ctx.createGain();
         this._musicBus.gain.value = 0.07;
         this._musicBus.connect(this._masterGain);
+
+        // Spatial SFX bus for ghost proximity sounds
+        this._spatialBus = this.ctx.createGain();
+        this._spatialBus.gain.value = 0.8;
+        this._spatialBus.connect(this._masterGain);
+
+        this._nominalMusicVol = 0.07;
     }
 
     play(type, data) {
@@ -46,25 +60,25 @@ class SoundManager {
 
         switch (type) {
             case 'chomp': this._chomp(now); break;
-            case 'power': this._powerUp(now); break;
-            case 'eatGhost': this._eatGhost(now, data || 1); break;
-            case 'comboMilestone': this._comboMilestone(now, data || 2); break;
-            case 'die': this._doh(now); break;
+            case 'power': this._powerUp(now); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'eatGhost': this._eatGhost(now, data || 1); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'comboMilestone': this._comboMilestone(now, data || 2); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'die': this._doh(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
             case 'start': this._simpsonsJingle(now); break;
-            case 'levelComplete': this._levelComplete(now); break;
-            case 'extraLife': this._extraLife(now); break;
-            case 'gameOver': this._gameOver(now); break;
+            case 'levelComplete': this._levelComplete(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
+            case 'extraLife': this._extraLife(now); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'gameOver': this._gameOver(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
         }
     }
 
     // ==================== OSCILLATOR HELPERS ====================
 
-    _osc(type, freq, start, end, vol) {
+    _osc(type, freq, start, end, vol, bus) {
         const o = this.ctx.createOscillator();
         const g = this.ctx.createGain();
         o.type = type;
         o.connect(g);
-        g.connect(this._sfxBus);
+        g.connect(bus || this._sfxBus);
         g.gain.value = vol || 0.12;
         if (typeof freq === 'number') {
             o.frequency.value = freq;
@@ -75,9 +89,10 @@ class SoundManager {
         g.gain.linearRampToValueAtTime(0, end);
         o.start(start);
         o.stop(end + 0.05);
+        return o;
     }
 
-    _noise(start, duration, vol, filterFreq, filterType) {
+    _noise(start, duration, vol, filterFreq, filterType, bus) {
         const len = Math.max(1, Math.floor(this.ctx.sampleRate * duration));
         const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
         const d = buf.getChannelData(0);
@@ -93,31 +108,46 @@ class SoundManager {
 
         src.connect(flt);
         flt.connect(g);
-        g.connect(this._sfxBus);
+        g.connect(bus || this._sfxBus);
         g.gain.setValueAtTime(vol || 0.05, start + duration - 0.02);
         g.gain.linearRampToValueAtTime(0, start + duration);
         src.start(start);
         src.stop(start + duration + 0.05);
     }
 
-    // ==================== SFX: COMBO MILESTONE (ascending tones per multiplier) ====================
+    // ==================== AUDIO DUCKING ====================
+
+    _duckMusic(duration) {
+        if (!this.ctx || !this._musicBus || this._musicMuted) return;
+        const now = this.ctx.currentTime;
+        const duckedVol = this._nominalMusicVol * AUDIO_JUICE.duckAmount;
+
+        this._musicBus.gain.cancelScheduledValues(now);
+        this._musicBus.gain.setValueAtTime(this._musicBus.gain.value, now);
+        this._musicBus.gain.linearRampToValueAtTime(duckedVol, now + AUDIO_JUICE.duckFadeIn);
+        this._musicBus.gain.linearRampToValueAtTime(this._nominalMusicVol, now + duration + AUDIO_JUICE.duckFadeOut);
+    }
+
+    // ==================== SFX: COMBO MILESTONE ====================
 
     _comboMilestone(t, multiplier) {
-        // 2x = C4 (262 Hz), 4x = E4 (330 Hz), 8x = G4 (392 Hz)
         const freqMap = { 2: 262, 4: 330, 8: 392 };
         const root = freqMap[multiplier] || 262;
-        // Ascending chord arpeggio
         this._osc('sine', [
             [root, 0], [root * 1.25, 0.07], [root * 1.5, 0.14]
         ], t, t + 0.35, 0.1);
         this._osc('triangle', [[root * 0.5, 0], [root, 0.1]], t, t + 0.3, 0.06);
-        // High sparkle tail
         this._noise(t + 0.05, 0.25, 0.03, 5000, 'highpass');
     }
 
-    // ==================== SFX: CHOMP (4 waka-waka variations) ====================
+    // ==================== SFX: CHOMP (pitch progression + random variation) ====================
 
     _chomp(t) {
+        // Reset streak if too much time has passed
+        const elapsed = (t - this._lastChompTime) * 1000;
+        if (elapsed > AUDIO_JUICE.chompStreakDecayMs) this._chompStreak = 0;
+        this._lastChompTime = t;
+
         const variant = this._chompVariant % 4;
         this._chompVariant++;
         const patterns = [
@@ -126,39 +156,41 @@ class SoundManager {
             [[260, 0], [130, 0.04], [220, 0.07]],
             [[320, 0], [160, 0.03], [270, 0.05]],
         ];
-        // ±8% random pitch spread to prevent repetition fatigue
-        const spread = 0.92 + Math.random() * 0.16;
-        const freqs = patterns[variant].map(([f, time]) => [f * spread, time]);
+
+        // Musical progression: pitch rises with consecutive chomps
+        const streakPitch = Math.pow(2, (this._chompStreak * AUDIO_JUICE.chompStreakSemitones) / 12);
+        const spread = (1 - AUDIO_JUICE.chompRandomSpread / 2) + Math.random() * AUDIO_JUICE.chompRandomSpread;
+        const pitchMult = streakPitch * spread;
+
+        const freqs = patterns[variant].map(([f, time]) => [f * pitchMult, time]);
         this._osc('sawtooth', freqs, t, t + 0.1, 0.1);
-        this._noise(t, 0.06, 0.02, 2000, 'bandpass');
+        this._noise(t, 0.06, 0.02, 2000 * pitchMult, 'bandpass');
+
+        this._chompStreak = Math.min(this._chompStreak + 1, AUDIO_JUICE.chompStreakMax);
     }
 
-    // ==================== SFX: POWER PELLET (Duff beer gulp + sparkle) ====================
+    // ==================== SFX: POWER PELLET (Duff beer gulp + rising tone) ====================
 
     _powerUp(t) {
-        // Beer gulp
         this._osc('sine', [[120, 0], [80, 0.1], [60, 0.2]], t, t + 0.3, 0.12);
         this._osc('sawtooth', [[80, 0], [40, 0.15]], t + 0.25, t + 0.5, 0.06);
-        // Power-up sparkle ascending
-        this._osc('sine', [[800, 0], [1000, 0.05], [1200, 0.1], [1600, 0.15]], t + 0.15, t + 0.45, 0.06);
-        this._osc('triangle', [[400, 0], [600, 0.08], [800, 0.16]], t + 0.1, t + 0.4, 0.04);
-        // Fizz noise
+        // Distinct rising tone sweep
+        this._osc('sine', [[200, 0], [400, 0.08], [800, 0.16], [1200, 0.24], [1600, 0.3]], t + 0.1, t + 0.55, 0.08);
+        this._osc('triangle', [[400, 0], [600, 0.08], [800, 0.16], [1200, 0.24]], t + 0.1, t + 0.5, 0.04);
         this._noise(t + 0.05, 0.35, 0.03, 4000, 'highpass');
     }
 
-    // ==================== SFX: EAT GHOST (pitch escalates with combo) ====================
+    // ==================== SFX: EAT GHOST (pitch escalates with combo chain) ====================
 
     _eatGhost(t, combo) {
-        const base = 400 + (combo - 1) * 150;
+        const base = 400 + (combo - 1) * 200;
         this._osc('square', [
             [base, 0], [base * 1.25, 0.04],
             [base * 1.5, 0.08], [base * 2, 0.12]
         ], t, t + 0.25, 0.1);
-        // Impact thud
-        this._osc('sine', [[80, 0], [40, 0.1]], t, t + 0.15, 0.08);
-        // Combo sparkle
-        this._osc('sine', [[1200 + combo * 200, 0], [1600 + combo * 200, 0.05]], t + 0.05, t + 0.2, 0.04);
-        this._noise(t, 0.08, 0.04, 1500, 'bandpass');
+        this._osc('sine', [[80 + combo * 20, 0], [40 + combo * 10, 0.1]], t, t + 0.15, 0.08);
+        this._osc('sine', [[1200 + combo * 300, 0], [1600 + combo * 300, 0.05]], t + 0.05, t + 0.2, 0.04 + combo * 0.01);
+        this._noise(t, 0.08, 0.04, 1500 + combo * 500, 'bandpass');
     }
 
     // ==================== SFX: DEATH (3 D'oh variations) ====================
@@ -166,23 +198,20 @@ class SoundManager {
     _doh(t) {
         const v = Math.floor(Math.random() * 3);
         if (v === 0) {
-            // Classic D'oh
             this._osc('sawtooth', [[400, 0], [350, 0.1], [200, 0.4], [100, 0.8]], t, t + 1.2, 0.15);
             this._osc('square', [[300, 0], [250, 0.15], [150, 0.5]], t + 0.05, t + 1.0, 0.04);
         } else if (v === 1) {
-            // Exasperated D'oh — higher, sharper
             this._osc('sawtooth', [[500, 0], [420, 0.08], [280, 0.3], [120, 0.7]], t, t + 1.0, 0.14);
             this._osc('triangle', [[350, 0], [280, 0.1], [180, 0.4]], t + 0.03, t + 0.8, 0.05);
             this._noise(t, 0.15, 0.03, 600, 'bandpass');
         } else {
-            // Defeated D'oh — low, drawn out
             this._osc('sawtooth', [[350, 0], [300, 0.15], [180, 0.5], [80, 1.0]], t, t + 1.4, 0.13);
             this._osc('sine', [[200, 0], [150, 0.2], [80, 0.6]], t + 0.1, t + 1.2, 0.06);
             this._osc('square', [[250, 0], [200, 0.3]], t + 0.05, t + 0.8, 0.03);
         }
     }
 
-    // ==================== SFX: GAME START (Simpsons jingle + harmony) ====================
+    // ==================== SFX: GAME START ====================
 
     _simpsonsJingle(t) {
         const melody = [
@@ -193,7 +222,6 @@ class SoundManager {
             [587, 1.35], [523, 1.5]
         ];
         this._osc('square', melody, t, t + 1.8, 0.1);
-        // Harmony voice (thirds)
         const harmony = [
             [523, 0], [523, 0.15], [523, 0.3],
             [494, 0.45], [523, 0.55],
@@ -205,7 +233,7 @@ class SoundManager {
         this._osc('sine', [[131, 0], [147, 0.45], [165, 0.7], [147, 1.0], [131, 1.35]], t, t + 1.8, 0.08);
     }
 
-    // ==================== SFX: LEVEL COMPLETE (triumphant fanfare) ====================
+    // ==================== SFX: LEVEL COMPLETE ====================
 
     _levelComplete(t) {
         this._osc('square', [
@@ -223,7 +251,7 @@ class SoundManager {
         this._noise(t + 0.6, 0.5, 0.03, 5000, 'highpass');
     }
 
-    // ==================== SFX: EXTRA LIFE (shimmer arpeggio) ====================
+    // ==================== SFX: EXTRA LIFE ====================
 
     _extraLife(t) {
         this._osc('sine', [
@@ -234,14 +262,12 @@ class SoundManager {
         this._noise(t + 0.2, 0.3, 0.02, 6000, 'highpass');
     }
 
-    // ==================== SFX: GAME OVER (sad trombone) ====================
+    // ==================== SFX: GAME OVER ====================
 
     _gameOver(t) {
-        // Descending sad notes
         this._osc('sawtooth', [
             [494, 0], [466, 0.4], [440, 0.8], [370, 1.2]
         ], t, t + 2.0, 0.12);
-        // Vibrato sustained wah on final note
         const lfo = this.ctx.createOscillator();
         const lfoG = this.ctx.createGain();
         lfo.type = 'sine';
@@ -262,8 +288,134 @@ class SoundManager {
         wah.start(t + 1.2);
         lfo.stop(t + 3.1);
         wah.stop(t + 3.1);
-        // Sub bass
         this._osc('sine', [[100, 0], [80, 0.8], [60, 1.5]], t, t + 2.5, 0.06);
+    }
+
+    // ==================== SPATIAL AUDIO ====================
+
+    updateSpatial(homerX, homerY, ghosts) {
+        if (!this.ctx || !this._spatialBus) return;
+        const tileSize = typeof TILE !== 'undefined' ? TILE : 24;
+        const maxDist = AUDIO_JUICE.spatialMaxDistance * tileSize;
+
+        // Lazily create one spatial node per ghost
+        while (this._spatialGhostNodes.length < ghosts.length) {
+            const panner = this.ctx.createStereoPanner();
+            const gain = this.ctx.createGain();
+            const osc = this.ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = 80 + this._spatialGhostNodes.length * 15;
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(panner);
+            panner.connect(this._spatialBus);
+            osc.start();
+            this._spatialGhostNodes.push({ osc, gain, panner });
+        }
+
+        const half = tileSize / 2;
+        for (let i = 0; i < ghosts.length; i++) {
+            const g = ghosts[i];
+            const node = this._spatialGhostNodes[i];
+            const dx = (g.x + half) - (homerX + half);
+            const dy = (g.y + half) - (homerY + half);
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            const audible = !g.inHouse && g.mode !== GM_EATEN;
+            if (!audible || dist > maxDist) {
+                node.gain.gain.value = 0;
+                continue;
+            }
+
+            const normalDist = Math.min(1, dist / maxDist);
+            const vol = AUDIO_JUICE.spatialMaxVolume * (1 - normalDist);
+            const frightMult = g.mode === GM_FRIGHTENED ? 0.4 : 1.0;
+            node.gain.gain.value = vol * frightMult;
+
+            // Stereo panning based on horizontal offset
+            node.panner.pan.value = Math.max(-1, Math.min(1, dx / maxDist));
+
+            // Closer ghosts have higher pitch
+            node.osc.frequency.value = 60 + (1 - normalDist) * 80 + i * 15;
+        }
+    }
+
+    stopSpatial() {
+        for (const node of this._spatialGhostNodes) {
+            try { node.osc.stop(); } catch (e) {}
+        }
+        this._spatialGhostNodes = [];
+    }
+
+    // ==================== POWER PELLET AMBIENT HUM ====================
+
+    startPowerHum() {
+        if (!this.ctx || this._powerHumNodes) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const lfo = this.ctx.createOscillator();
+        const lfoGain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = AUDIO_JUICE.powerHumFreq;
+        lfo.type = 'sine';
+        lfo.frequency.value = 3;
+        lfoGain.gain.value = 8;
+
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        osc.connect(gain);
+        gain.connect(this._sfxBus);
+
+        gain.gain.value = 0;
+        gain.gain.linearRampToValueAtTime(AUDIO_JUICE.powerHumVolume, this.ctx.currentTime + 0.15);
+
+        osc.start();
+        lfo.start();
+        this._powerHumNodes = { osc, gain, lfo, lfoGain };
+    }
+
+    stopPowerHum() {
+        if (!this._powerHumNodes || !this.ctx) return;
+        const { osc, gain, lfo } = this._powerHumNodes;
+        try {
+            const now = this.ctx.currentTime;
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.setValueAtTime(gain.gain.value, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.2);
+            setTimeout(() => {
+                try { osc.stop(); lfo.stop(); } catch (e) {}
+            }, 300);
+        } catch (e) {}
+        this._powerHumNodes = null;
+    }
+
+    // ==================== DYNAMIC MUSIC TEMPO ====================
+
+    setMusicTempo(tempo) {
+        this._musicTempo = Math.max(0.8, Math.min(1.5, tempo));
+    }
+
+    setFrightMode(active) {
+        if (!this.ctx) return;
+        this._frightActive = active;
+        if (active) {
+            this.setMusicTempo(AUDIO_JUICE.frightMusicTempo);
+            this.startPowerHum();
+        } else {
+            this.setMusicTempo(this._baseLevelTempo || 1.0);
+            this.stopPowerHum();
+        }
+    }
+
+    setLevelTempo(level) {
+        this._baseLevelTempo = Math.min(
+            AUDIO_JUICE.maxLevelTempo,
+            AUDIO_JUICE.baseMusicTempo + (level - 1) * AUDIO_JUICE.tempoPerLevel
+        );
+        if (!this._frightActive) {
+            this.setMusicTempo(this._baseLevelTempo);
+        }
     }
 
     // ==================== BACKGROUND MUSIC ====================
@@ -273,9 +425,8 @@ class SoundManager {
         this._musicPlaying = true;
         this._musicMuted = false;
         this._musicPattern = 0;
-        // Restore bus volume (may have been faded by stopMusic)
         this._musicBus.gain.cancelScheduledValues(this.ctx.currentTime);
-        this._musicBus.gain.value = 0.07;
+        this._musicBus.gain.value = this._nominalMusicVol;
         this._scheduleMusic();
     }
 
@@ -285,10 +436,27 @@ class SoundManager {
         const pat = this._musicPattern % 2;
         this._musicPattern++;
 
-        const loopDur = 4.0;
+        const tempo = this._musicTempo || 1.0;
+        const loopDur = 4.0 / tempo;
+        const detune = this._frightActive ? AUDIO_JUICE.frightDetune : 0;
 
-        // Two alternating patterns for variety
-        const melodies = [
+        // Fright mode uses darker, lower patterns
+        const melodies = this._frightActive ? [
+            [
+                [220, 0], [233, 0.2], [220, 0.4], [208, 0.6],
+                [196, 0.8], [208, 1.0], [220, 1.2], [196, 1.4],
+                [185, 1.6], [196, 1.8], [220, 2.0], [233, 2.2],
+                [220, 2.4], [208, 2.6], [196, 2.8], [185, 3.0],
+                [196, 3.2], [208, 3.4], [220, 3.6], [196, 3.8]
+            ],
+            [
+                [196, 0], [208, 0.2], [220, 0.4], [208, 0.6],
+                [185, 0.8], [175, 1.0], [185, 1.2], [196, 1.4],
+                [208, 1.6], [220, 1.8], [208, 2.0], [196, 2.2],
+                [185, 2.4], [175, 2.6], [165, 2.8], [175, 3.0],
+                [185, 3.2], [196, 3.4], [208, 3.6], [196, 3.8]
+            ]
+        ] : [
             [
                 [330, 0], [330, 0.2], [392, 0.4], [440, 0.6],
                 [392, 0.8], [330, 1.0], [294, 1.2], [262, 1.4],
@@ -304,7 +472,19 @@ class SoundManager {
                 [392, 3.2], [440, 3.4], [494, 3.6], [392, 3.8]
             ]
         ];
-        const basses = [
+
+        const basses = this._frightActive ? [
+            [
+                [55, 0], [55, 0.4], [58, 0.8], [55, 1.2],
+                [52, 1.6], [55, 2.0], [49, 2.4], [52, 2.8],
+                [55, 3.2], [49, 3.6]
+            ],
+            [
+                [49, 0], [52, 0.4], [55, 0.8], [49, 1.2],
+                [46, 1.6], [49, 2.0], [55, 2.4], [52, 2.8],
+                [49, 3.2], [46, 3.6]
+            ]
+        ] : [
             [
                 [131, 0], [131, 0.4], [147, 0.8], [165, 1.2],
                 [131, 1.6], [131, 2.0], [110, 2.4], [131, 2.8],
@@ -317,41 +497,47 @@ class SoundManager {
             ]
         ];
 
-        // Melody voice
+        // Scale note timings by tempo
+        const scaledMelody = melodies[pat].map(([f, t]) => [f, t / tempo]);
+        const scaledBass = basses[pat].map(([f, t]) => [f, t / tempo]);
+
+        // Melody voice — sawtooth during fright for eerier tone
         const oM = this.ctx.createOscillator();
         const gM = this.ctx.createGain();
-        oM.type = 'square';
+        oM.type = this._frightActive ? 'sawtooth' : 'square';
+        oM.detune.value = detune;
         oM.connect(gM);
         gM.connect(this._musicBus);
         gM.gain.value = 0.45;
-        melodies[pat].forEach(([f, t]) => oM.frequency.setValueAtTime(f, now + t));
+        scaledMelody.forEach(([f, t]) => oM.frequency.setValueAtTime(f, now + t));
         gM.gain.setValueAtTime(0.45, now + loopDur - 0.05);
         gM.gain.linearRampToValueAtTime(0, now + loopDur);
         oM.start(now);
         oM.stop(now + loopDur);
 
-        // Harmony voice (roughly a third below)
+        // Harmony voice
         const oH = this.ctx.createOscillator();
         const gH = this.ctx.createGain();
         oH.type = 'triangle';
+        oH.detune.value = detune;
         oH.connect(gH);
         gH.connect(this._musicBus);
-        gH.gain.value = 0.2;
-        melodies[pat].forEach(([f, t]) => oH.frequency.setValueAtTime(f * 0.8, now + t));
-        gH.gain.setValueAtTime(0.2, now + loopDur - 0.05);
+        gH.gain.value = this._frightActive ? 0.15 : 0.2;
+        scaledMelody.forEach(([f, t]) => oH.frequency.setValueAtTime(f * 0.8, now + t));
+        gH.gain.setValueAtTime(gH.gain.value, now + loopDur - 0.05);
         gH.gain.linearRampToValueAtTime(0, now + loopDur);
         oH.start(now);
         oH.stop(now + loopDur);
 
-        // Bass voice
+        // Bass voice — heavier during fright
         const oB = this.ctx.createOscillator();
         const gB = this.ctx.createGain();
         oB.type = 'sine';
         oB.connect(gB);
         gB.connect(this._musicBus);
-        gB.gain.value = 0.55;
-        basses[pat].forEach(([f, t]) => oB.frequency.setValueAtTime(f, now + t));
-        gB.gain.setValueAtTime(0.55, now + loopDur - 0.05);
+        gB.gain.value = this._frightActive ? 0.7 : 0.55;
+        scaledBass.forEach(([f, t]) => oB.frequency.setValueAtTime(f, now + t));
+        gB.gain.setValueAtTime(gB.gain.value, now + loopDur - 0.05);
         gB.gain.linearRampToValueAtTime(0, now + loopDur);
         oB.start(now);
         oB.stop(now + loopDur);
@@ -361,10 +547,12 @@ class SoundManager {
 
     stopMusic() {
         this._musicPlaying = false;
+        this._frightActive = false;
         if (this._musicTimeout) { clearTimeout(this._musicTimeout); this._musicTimeout = null; }
         if (this._musicBus) {
             try { this._musicBus.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.15); } catch (e) {}
         }
+        this.stopPowerHum();
     }
 
     toggleMute() {
@@ -373,7 +561,13 @@ class SoundManager {
         const now = this.ctx.currentTime;
         this._musicBus.gain.cancelScheduledValues(now);
         this._musicBus.gain.setValueAtTime(this._musicBus.gain.value, now);
-        this._musicBus.gain.linearRampToValueAtTime(this._musicMuted ? 0 : 0.07, now + 0.1);
+        this._musicBus.gain.linearRampToValueAtTime(this._musicMuted ? 0 : this._nominalMusicVol, now + 0.1);
+
+        // Also mute/unmute spatial bus
+        if (this._spatialBus) {
+            this._spatialBus.gain.linearRampToValueAtTime(this._musicMuted ? 0 : 0.8, now + 0.1);
+        }
+
         return this._musicMuted;
     }
 

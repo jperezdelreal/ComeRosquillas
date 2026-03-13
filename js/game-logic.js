@@ -581,7 +581,7 @@
             this.checkCollisions();
 
             // Spatial audio update (throttled for performance)
-            if (this.animFrame % (typeof AUDIO_JUICE !== 'undefined' ? AUDIO_JUICE.spatialUpdateInterval : 6) === 0) {
+            if (this.animFrame % AUDIO_JUICE.spatialUpdateInterval === 0) {
                 this.sound.updateSpatial(this.homer.x, this.homer.y, this.ghosts);
             }
 
