@@ -1,6 +1,6 @@
 // Sprint 1 Regression: Difficulty System
 // Validates Easy/Normal/Hard presets, persistence, and speed multipliers
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   TILE, BASE_SPEED, FRIGHT_TIME, MODE_TIMERS,
   GHOST_CFG,
@@ -133,6 +133,7 @@ describe('Difficulty — localStorage Persistence', () => {
 
   it('should survive page reload (localStorage persists)', () => {
     setDifficulty('hard')
+    // Simulate "reload" — just read again
     const fresh = getCurrentDifficulty()
     expect(fresh).toBe('hard')
   })
@@ -148,7 +149,7 @@ describe('Difficulty — localStorage Persistence', () => {
 
 describe('Difficulty — Speed Multiplier Effects', () => {
   it('should make Easy ghosts 20% slower', () => {
-    const baseGhostSpeed = BASE_SPEED * 0.9
+    const baseGhostSpeed = BASE_SPEED * 0.9 // Level 1 ghost speed
     const easySpeed = baseGhostSpeed * DIFFICULTY_PRESETS.easy.ghostSpeedMultiplier
     const normalSpeed = baseGhostSpeed * DIFFICULTY_PRESETS.normal.ghostSpeedMultiplier
     expect(easySpeed).toBeLessThan(normalSpeed)
@@ -164,7 +165,8 @@ describe('Difficulty — Speed Multiplier Effects', () => {
   })
 
   it('should not affect Homer speed (no Homer multiplier)', () => {
-    const homerSpeed = BASE_SPEED * (1 + 0 * 0.05)
+    // Homer speed formula: BASE_SPEED * (1 + (lvl-1) * 0.05) — no difficulty multiplier
+    const homerSpeed = BASE_SPEED * (1 + 0 * 0.05) // Level 1
     expect(homerSpeed).toBe(BASE_SPEED)
   })
 })
@@ -208,6 +210,7 @@ describe('Difficulty — Extra Life Thresholds', () => {
     let lives = 3
     const threshold = DIFFICULTY_PRESETS.normal.extraLifeThreshold
 
+    // Score passes threshold
     const score = 15000
     if (!extraLifeGiven && score >= threshold) {
       extraLifeGiven = true
@@ -215,6 +218,7 @@ describe('Difficulty — Extra Life Thresholds', () => {
     }
     expect(lives).toBe(4)
 
+    // Score stays above threshold — no second life
     if (!extraLifeGiven && score >= threshold) {
       lives++
     }
