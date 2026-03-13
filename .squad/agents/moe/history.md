@@ -218,3 +218,41 @@ Feature lists are easy. Strategic roadmaps require understanding **player psycho
 **Sprint 3 Preview:** Deep Engagement pillar — Endless Mode, Audio Upgrade, Social Sharing. Builds on Sprint 2's "Immediate Fun" foundation.
 
 **Decision Document:** `.squad/decisions/inbox/moe-sprint2-plan.md`
+
+### Sprint 3 Planning Ceremony (2026-07-24)
+
+**Context:** Sprint 2 fully shipped — Tutorial (#42), Combo Multiplier (#43), Mobile Polish (#44), QA with 289 tests and 0 failures (#45). "Immediate Fun" pillar complete. Board cleared (closed #52 and duplicate #53).
+
+**Sprint 3 Scope — "Deep Engagement" Pillar:**
+
+| Issue | Feature | Owner | Priority |
+|-------|---------|-------|----------|
+| #54 | Progressive Difficulty & Endless Mode | Barney | P0 |
+| #55 | Audio Feedback & Juice Upgrade | Barney | P1 |
+| #56 | Leaderboard & Stats Dashboard | Lenny | P1 |
+| #57 | Sprint 3 QA & Regression Testing | Nelson | P1 |
+
+**Strategic Rationale:**
+- Sprint 2 hooks players in 60 seconds. Sprint 3 keeps them for 60 sessions.
+- Engagement loop: Play → Improve (endless mode) → Feel (audio) → Track (leaderboard) → Repeat
+- Barney gets two issues (endless mode + audio) because they're deeply coupled — audio intensity responds to difficulty escalation
+- Social Sharing deferred: need something worth sharing first (endless mode high scores, rank badges)
+
+**What We Deliberately Cut:**
+- Social Sharing — highest value after Sprint 3 gives players achievements to share
+- Daily Challenges — requires stable endless mode as foundation
+- Ghost Debug Mode — nice-to-have, not engagement-critical
+- Performance Optimization — no evidence of problems; Nelson includes perf smoke tests in QA
+
+**Key Architectural Notes:**
+- Endless mode extends game-logic.js level progression with cycling and caps
+- Audio upgrade extends SoundManager with pitch variation, spatial PannerNodes, gain ducking
+- Leaderboard creates new js/ui/stats-dashboard.js following established js/ui/ pattern
+- All difficulty curve parameters go in config.js as tunable constants
+- localStorage schema migration: existing high score data must be preserved
+
+**Dependency Graph:** All 3 feature issues parallel → QA after all land
+
+**Sprint 4 Preview:** Social Virality pillar — Social Sharing, Daily Challenges. Builds on Sprint 3's engagement foundation.
+
+**Decision Document:** `.squad/decisions/inbox/moe-sprint3-plan.md`
