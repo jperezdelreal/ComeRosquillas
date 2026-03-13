@@ -295,6 +295,17 @@ const DIFFICULTY_PRESETS = {
 // Difficulty storage key
 const DIFFICULTY_STORAGE_KEY = 'comeRosquillas_difficulty';
 
+// ==================== LEADERBOARD & STATS ====================
+const STATS_STORAGE_KEY = 'comeRosquillas_lifetimeStats';
+const MAX_HIGH_SCORES = 50;
+
+const RANK_BADGES = [
+    { id: 'master',   name: 'Master',   emoji: '👑', minDonuts: 20000 },
+    { id: 'expert',   name: 'Expert',   emoji: '🏆', minDonuts: 5000 },
+    { id: 'regular',  name: 'Regular',  emoji: '🍕', minDonuts: 1000 },
+    { id: 'beginner', name: 'Beginner', emoji: '🍩', minDonuts: 0 }
+];
+
 // Get current difficulty settings from localStorage (defaults to 'normal')
 function getDifficultySettings() {
     try {
@@ -333,10 +344,10 @@ const AUDIO_JUICE = {
     chompStreakSemitones: 0.5,           // semitone increase per consecutive chomp
     chompStreakMax: 12,                  // max streak before pitch resets
     chompStreakDecayMs: 600,             // ms of silence before streak resets
-    chompRandomSpread: 0.16,            // +/-8% random pitch spread
+    chompRandomSpread: 0.16,            // ±8% random pitch spread
 
     // Ghost spatial audio
-    spatialMaxDistance: 14,              // tiles beyond which ghost audio is silent
+    spatialMaxDistance: 14,              // tiles — beyond this, ghost audio is silent
     spatialMinVolume: 0.0,              // volume at max distance
     spatialMaxVolume: 0.12,             // volume when ghost is on top of player
     spatialUpdateInterval: 6,           // update spatial every N frames (performance)
@@ -349,8 +360,8 @@ const AUDIO_JUICE = {
     duckAmount: 0.25,                   // music volume multiplier during ducking (25%)
     duckFadeIn: 0.05,                   // seconds to duck down
     duckFadeOut: 0.3,                   // seconds to restore music
-    duckDurationSfx: 0.4,              // seconds for short SFX duck (power, eatGhost)
-    duckDurationStinger: 2.5,          // seconds for long stinger duck (levelComplete, gameOver)
+    duckDurationSfx: 0.4,              // seconds — short duck for SFX (power, eatGhost)
+    duckDurationStinger: 2.5,          // seconds — long duck for stingers (levelComplete, gameOver)
 
     // Dynamic music tempo
     baseMusicTempo: 1.0,                // normal tempo multiplier
