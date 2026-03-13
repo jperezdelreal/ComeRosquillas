@@ -133,6 +133,17 @@ class SettingsMenu {
                             </div>
                         </div>
                     </section>
+                    
+                    <!-- Tutorial -->
+                    <section class="settings-section">
+                        <h3>📖 Tutorial</h3>
+                        <div class="setting-row">
+                            <label>Learn the game basics</label>
+                            <button class="settings-button settings-tutorial-btn" style="flex: 0; padding: 8px 16px; font-size: 16px;">
+                                Show Tutorial
+                            </button>
+                        </div>
+                    </section>
                 </div>
                 
                 <div class="settings-footer">
@@ -157,6 +168,21 @@ class SettingsMenu {
         // Reset button
         const resetBtn = this.overlay.querySelector('.settings-reset');
         resetBtn.addEventListener('click', () => this.resetToDefaults());
+        
+        // Show Tutorial button
+        const tutorialBtn = this.overlay.querySelector('.settings-tutorial-btn');
+        if (tutorialBtn) {
+            tutorialBtn.addEventListener('click', () => {
+                this.close();
+                // Access tutorial via the global Game instance
+                if (typeof Tutorial !== 'undefined') {
+                    const game = this._game;
+                    if (game && game.tutorial) {
+                        game.tutorial.reset();
+                    }
+                }
+            });
+        }
         
         // Click outside to close
         this.overlay.addEventListener('click', (e) => {
