@@ -7,8 +7,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['js/game-logic.js', 'js/config.js'],
-      exclude: ['js/engine/**', 'js/main.js'],
+      include: ['js/game-logic.js', 'js/config.js', 'js/engine/high-scores.js'],
+      exclude: ['js/main.js'],
     },
   },
 });
