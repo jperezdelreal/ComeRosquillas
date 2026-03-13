@@ -286,7 +286,8 @@
         // Fright time shrinks as levels increase (360 → 120 frames)
         getLevelFrightTime() {
             const ramp = this.getDifficultyRamp();
-            return Math.round(FRIGHT_TIME * (1 - ramp * 0.67));
+            const difficulty = getDifficultySettings();
+            return Math.round(FRIGHT_TIME * (1 - ramp * 0.67) * difficulty.frightTimeMultiplier);
         }
 
         // Scatter durations shrink, chase durations grow per level
@@ -304,9 +305,11 @@
         getSpeed(type, ghost) {
             const lvl = this.level;
             const ramp = this.getDifficultyRamp();
+            const difficulty = getDifficultySettings();
+            
             if (type === 'homer') return BASE_SPEED * (1 + (lvl - 1) * 0.05);
             if (type === 'ghost') {
-                let base = BASE_SPEED * (0.9 + (lvl - 1) * 0.06);
+                let base = BASE_SPEED * (0.9 + (lvl - 1) * 0.06) * difficulty.ghostSpeedMultiplier;
                 if (ghost) {
                     // Bob Patiño is slightly faster (aggressive chaser)
                     if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
@@ -315,7 +318,7 @@
                 }
                 return base;
             }
-            if (type === 'frightGhost') return BASE_SPEED * (0.5 + ramp * 0.15);
+            if (type === 'frightGhost') return BASE_SPEED * (0.5 + ramp * 0.15) * difficulty.ghostSpeedMultiplier;
             if (type === 'eatenGhost') return BASE_SPEED * 2;
             return BASE_SPEED;
         }
@@ -605,7 +608,8 @@
         }
 
         checkExtraLife() {
-            if (!this.extraLifeGiven && this.score >= 10000) {
+            const difficulty = getDifficultySettings();
+            if (!this.extraLifeGiven && this.score >= difficulty.extraLifeThreshold) {
                 this.extraLifeGiven = true;
                 this.lives++;
                 this.sound.play('extraLife');
@@ -614,7 +618,7 @@
             }
         }
 
-        // ---- GHOST AI ----
+        // ---- GHOST AI WITH BFS PATHFINDING ----
         moveGhost(g) {
             if (g.inHouse) {
                 g.exitTimer--;
@@ -687,10 +691,12 @@
                 } else if (g.mode === GM_FRIGHTENED) {
                     g.dir = possible[Math.floor(Math.random() * possible.length)];
                 } else if (target) {
-                    // Snake (idx 3) has a chance to ignore the target and pick randomly
-                    if (g.idx === 3 && Math.random() < 0.3) {
-                        g.dir = possible[Math.floor(Math.random() * possible.length)];
+                    // Use BFS pathfinding to determine best direction
+                    const nextDir = this.bfsNextDirection(tile.col, tile.row, target.x, target.y, possible, g.mode === GM_EATEN);
+                    if (nextDir !== null) {
+                        g.dir = nextDir;
                     } else {
+                        // Fallback to direct targeting if BFS fails
                         let bestDist = Infinity, bestDir = possible[0];
                         for (const d of possible) {
                             const nc = tile.col + DX[d];
@@ -709,6 +715,59 @@
             g.y += DY[g.dir] * g.speed;
             if (g.x < -TILE) g.x = COLS * TILE;
             if (g.x > COLS * TILE) g.x = -TILE;
+        }
+
+        // BFS pathfinding to find optimal next direction
+        bfsNextDirection(startCol, startRow, targetCol, targetRow, possibleDirs, canPassDoors) {
+            // Limit search depth for performance
+            const MAX_SEARCH_DEPTH = 20;
+            const queue = [];
+            const visited = new Set();
+            const parent = new Map();
+
+            const startKey = startCol + startRow * COLS;
+            queue.push({ col: startCol, row: startRow, depth: 0 });
+            visited.add(startKey);
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+                
+                if (current.col === targetCol && current.row === targetRow) {
+                    // Backtrack to find first move
+                    let node = current.col + current.row * COLS;
+                    while (parent.has(node)) {
+                        const parentNode = parent.get(node);
+                        if (parentNode === startKey) {
+                            // Found the first step
+                            const col = node % COLS;
+                            const row = Math.floor(node / COLS);
+                            for (const d of possibleDirs) {
+                                if (startCol + DX[d] === col && startRow + DY[d] === row) {
+                                    return d;
+                                }
+                            }
+                        }
+                        node = parentNode;
+                    }
+                    break;
+                }
+
+                if (current.depth >= MAX_SEARCH_DEPTH) continue;
+
+                for (let d = 0; d < 4; d++) {
+                    const nc = current.col + DX[d];
+                    const nr = current.row + DY[d];
+                    const key = nc + nr * COLS;
+                    
+                    if (!visited.has(key) && this.isWalkable(nc, nr, canPassDoors)) {
+                        visited.add(key);
+                        parent.set(key, current.col + current.row * COLS);
+                        queue.push({ col: nc, row: nr, depth: current.depth + 1 });
+                    }
+                }
+            }
+
+            return null; // No path found
         }
 
         // ---- GHOST PERSONALITY AI ----
