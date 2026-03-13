@@ -241,6 +241,66 @@ const FRIGHT_TIME = 360;
 const FRIGHT_FLASH_TIME = 120;
 const BASE_SPEED = 1.8;
 
+// ==================== DIFFICULTY SYSTEM ====================
+const DIFFICULTY_PRESETS = {
+    easy: {
+        name: 'Easy',
+        ghostSpeedMultiplier: 0.8,      // Ghosts 20% slower
+        frightTimeMultiplier: 1.5,       // Power pellets last 50% longer
+        extraLifeThreshold: 5000,        // Extra life every 5000 points
+        description: 'Slower ghosts, longer power-ups'
+    },
+    normal: {
+        name: 'Normal',
+        ghostSpeedMultiplier: 1.0,       // Default speed
+        frightTimeMultiplier: 1.0,        // Default duration
+        extraLifeThreshold: 10000,        // Extra life every 10000 points (current)
+        description: 'Balanced gameplay'
+    },
+    hard: {
+        name: 'Hard',
+        ghostSpeedMultiplier: 1.2,       // Ghosts 20% faster
+        frightTimeMultiplier: 0.7,        // Power pellets 30% shorter
+        extraLifeThreshold: 20000,        // Extra life every 20000 points
+        description: 'Faster ghosts, shorter power-ups'
+    }
+};
+
+// Difficulty storage key
+const DIFFICULTY_STORAGE_KEY = 'comeRosquillas_difficulty';
+
+// Get current difficulty settings from localStorage (defaults to 'normal')
+function getDifficultySettings() {
+    try {
+        const saved = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+        const level = saved && DIFFICULTY_PRESETS[saved] ? saved : 'normal';
+        return DIFFICULTY_PRESETS[level];
+    } catch (e) {
+        console.warn('Failed to load difficulty:', e);
+        return DIFFICULTY_PRESETS.normal;
+    }
+}
+
+// Get current difficulty level name
+function getCurrentDifficulty() {
+    const saved = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+    return saved && DIFFICULTY_PRESETS[saved] ? saved : 'normal';
+}
+
+// Set difficulty level and persist to localStorage
+function setDifficulty(level) {
+    if (!DIFFICULTY_PRESETS[level]) {
+        console.warn(`Invalid difficulty level: ${level}. Using 'normal'.`);
+        level = 'normal';
+    }
+    try {
+        localStorage.setItem(DIFFICULTY_STORAGE_KEY, level);
+    } catch (e) {
+        console.warn('Failed to save difficulty:', e);
+    }
+    return DIFFICULTY_PRESETS[level];
+}
+
 // ==================== SIMPSONS COLOR PALETTE ====================
 const COLORS = {
     simpsonYellow: '#ffd800',

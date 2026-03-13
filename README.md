@@ -66,6 +66,34 @@ npx http-server
 ```
 Then visit `http://localhost:8000` in your browser.
 
+### Running Tests
+The project includes a comprehensive test suite covering core game logic:
+```bash
+# Install dependencies
+npm install
+
+# Run tests once
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Open interactive test UI
+npm run test:ui
+```
+
+**Test Coverage:**
+- ✅ Collision detection (donut collection, ghost encounters)
+- ✅ Score calculation (dots, power pellets, ghost eating, extra lives)
+- ✅ Game state transitions (start → playing → game over)
+- ✅ Power-up system (fright mode, timer logic)
+- ✅ Configuration validation (constants, maze layouts, directions)
+
+Tests are written using [Vitest](https://vitest.dev/) and run in a jsdom environment to simulate browser APIs.
+
 ---
 
 ## Play Online
