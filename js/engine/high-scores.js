@@ -50,7 +50,7 @@ class HighScoreManager {
         return score > this.scores[this.scores.length - 1].score;
     }
 
-    addScore(name, score, level) {
+    addScore(name, score, level, combo) {
         // Validate score input
         if (typeof score !== 'number' || !isFinite(score) || score < 0) {
             return false;
@@ -60,6 +60,7 @@ class HighScoreManager {
             name: name.trim().substring(0, 3).toUpperCase() || 'AAA',
             score: score,
             level: level,
+            combo: (typeof combo === 'number' && combo > 0 && combo <= Math.max(...COMBO_MILESTONES)) ? combo : 0,
             date: new Date().toISOString()
         };
 
