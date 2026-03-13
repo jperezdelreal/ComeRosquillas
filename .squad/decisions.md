@@ -289,6 +289,73 @@ gh issue create --title "📋 Define next roadmap" --label roadmap --label "squa
 
 **Status:** Active for sprint cycle
 
+### User Directive — 2026-03-13T20:57Z
+
+**Date:** 2026-03-13T20:57Z  
+**Captured by:** joperezd (via Copilot)  
+**For:** Team
+
+**Directive:** Blanket merge approval for this session — the team has OK to merge all PRs without individual user approval.
+
+**Status:** Active for session
+
+### Roadmap Strategy Decision
+
+**Date:** 2026-07-24  
+**Decided by:** Moe (Lead)  
+**Context:** Issue #37 — Define next roadmap after Sprint 1 completion
+
+#### Decision: Player Journey-Driven Roadmap
+
+**Strategic Framework**
+
+The new roadmap is organized around **three phases of player engagement**, not just feature lists:
+
+1. **Immediate Fun (Items 1-3):** Hook players in first 60 seconds
+2. **Deep Engagement (Items 4-6):** Create mastery progression loop
+3. **Social Virality (Items 7-10):** Turn players into evangelists
+
+This structure ensures every feature serves a clear purpose in the player journey from first-time visitor → engaged player → returning champion → viral advocate.
+
+**Phase 1: Immediate Fun**
+
+- **Item 1: Tutorial & Onboarding** — Without this, all other features are wasted. Non-patronizing, skippable, fast. Each step interactive and rewarding.
+- **Item 2: Combo Multiplier** — Hook for skilled play. Risk-reward loop for ghost-chasing with visual/audio feedback.
+- **Item 3: Mobile-First Polish** — 70%+ traffic is mobile. Haptic feedback, larger hit zones, full-screen mode, portrait warnings.
+
+**Phase 2: Deep Engagement**
+
+- **Item 4: Progressive Difficulty & Endless Mode** — Clear progression = player motivation. After level 8, shift to Endless Mode. "One more try" sweet spot.
+- **Item 5: Social Sharing** — Web Share API on mobile = one tap. No login, no forms.
+- **Item 6: Audio Upgrade** — Delightful audio is 50% of arcade feel. Pitch-varied chomps, spatial sounds, dynamic music tempo.
+
+**Phase 3: Social Virality**
+
+- **Item 7: Ghost AI Debug Mode** — Advanced players understand the system. Shows why ghosts caught them.
+- **Item 8: Daily Challenge Mode** — Habit formation via appointment mechanics. Fixed seeds enable fair competition.
+- **Item 9: Performance Optimization** — 60fps is foundation. Frame drops destroy arcade immersion.
+- **Item 10: Leaderboard & Stats** — Endgame meta-progression. Even localStorage leaderboards create social competition.
+
+**Team Assignment:**
+- **Barney (Game Dev):** Combo (#2), Progressive Difficulty (#4), Daily Challenge logic (#8)
+- **Lenny (UI Dev):** Tutorial (#1), Mobile polish (#3), Social sharing (#5), Stats dashboard (#10)
+- **Nelson (Tester):** Performance (#9), cross-browser testing, metrics validation
+- **Moe (Lead):** Audio upgrade (#6), AI debug mode (#7), code review
+
+**Success Metrics:**
+- Tutorial: 60%+ Level 1 completion rate
+- Combo: 40%+ ghost-chasing increase
+- Mobile: 30%+ session length increase
+- Endless: 20%+ reach level 10+
+- Sharing: 10%+ share rate
+- AI Debug: 5%+ usage
+- Daily: 25%+ weekly attempts
+- Performance: 60fps on iPhone SE
+- Leaderboard: 2+ checks per session
+
+**Status:** Active — ready for team execution
+**Next Review:** End of Sprint 2
+
 ## Governance
 
 - All meaningful changes require team consensus
