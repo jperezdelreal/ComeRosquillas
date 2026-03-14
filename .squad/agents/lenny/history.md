@@ -390,3 +390,44 @@
 - Duplicate HTML sections can sneak in when prior commits add content and new edits add more — grep for section headers after editing
 - `_setupA11yHandlers()` must be called exactly once in `setupEventHandlers()` — duplicate calls cause double event binding
 - Score announcements should only fire when score increases (prevScore comparison) to avoid noise on HUD refreshes
+
+### Localization Support (Issue #95)
+
+**Architecture decisions:**
+- i18n system uses IIFE module pattern (`I18n`) with global `t(key, ...args)` shorthand function
+- `js/i18n/translations.js` loaded FIRST in script order (before config.js) — all other modules can use `t()` immediately
+- Translation data uses flat key-value maps per language with dot-namespace convention: `'game.title'`, `'settings.easy_desc'`
+- `tNamed(key, params)` for named placeholders `{name}`, `t(key, ...args)` for positional `{0}`, `{1}`
+- Fallback chain: current language → English → raw key string (never crashes on missing translation)
+- `I18n.getMazeName(originalName)` maps English maze names to translation keys via MAZE_NAME_KEYS lookup
+- Quote helpers (`getDeathQuotes()`, `getWinQuotes()`, etc.) return localized arrays for random selection
+- Language saved to localStorage key: `comerosquillas_language`
+- Browser language auto-detected on first visit via `navigator.language` with prefix matching
+
+**Runtime switching architecture:**
+- `I18n.onChange(fn)` listener pattern — game-logic.js registers to re-render start screen and HUD
+- Settings menu uses `_rebuildOverlay()` — tears down and recreates entire DOM overlay on language change
+- No page reload required — all strings re-evaluated through `t()` on next render
+
+**Integration scope (150+ t() calls):**
+- game-logic.js: 28 calls — start screen, game over, high score entry, pause, death, boss, HUD
+- settings-menu.js: 62 calls — all labels, toggles, accessibility, language selector
+- stats-dashboard.js: 29 calls — tabs, leaderboard, lifetime stats, confirmations
+- daily-challenge.js: 26 calls — challenge rules, share text, toasts, leaderboard
+
+**Language selector in Settings:**
+- `_buildLanguageOptions()` generates `<option>` elements from `I18n.getSupportedLanguages()`
+- Shows flag emoji + native name (e.g. 🇪🇸 Español)
+- Select element with id `languageSelect`, placed between Camera Effects and Ghost AI Debug sections
+
+**Translation coverage:**
+- English + Spanish: 100% of all UI strings (250+ keys)
+- French, German, Portuguese (BR): core strings translated, new stats/daily keys fall back to English
+
+**Key learnings for future work:**
+- Load order matters critically — translations.js MUST be first script tag, before config.js
+- Settings overlay `_rebuildOverlay()` pattern is the cleanest way to handle DOM-based i18n (rebuild vs. in-place DOM text replacement)
+- `I18n.onChange()` listeners need defensive state checks (e.g., `if (this.state === ST_START)`) to avoid rendering during wrong game states
+- When adding new translation keys, EN must always have the full set — other languages fall back to EN gracefully
+- Canvas-rendered text (renderer.js) uses `t()` calls that get evaluated each frame — no caching needed
+- Emoji prefixes (🍩, 🔊, etc.) are part of translation values, not hardcoded in UI code — allows per-language emoji customization

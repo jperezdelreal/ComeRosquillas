@@ -271,7 +271,7 @@ class DailyChallenge {
     this.overlay.innerHTML = `
       <div class="daily-modal">
         <div class="daily-header">
-          <span class="daily-title">📅 Daily Challenge</span>
+          <span class="daily-title">${t('daily.title')}</span>
           <button class="daily-close" aria-label="Close">&times;</button>
         </div>
         <div class="daily-content">
@@ -280,8 +280,8 @@ class DailyChallenge {
           <div class="daily-yesterday" id="dailyYesterday"></div>
           <div class="daily-leaderboard" id="dailyLeaderboard"></div>
           <div class="daily-actions">
-            <button class="daily-btn daily-btn-play" id="dailyPlayBtn">🎮 Play Today's Challenge</button>
-            <button class="daily-btn daily-btn-share" id="dailyShareBtn" style="display:none">📤 Share Result</button>
+            <button class="daily-btn daily-btn-play" id="dailyPlayBtn">${t('daily.play_today')}</button>
+            <button class="daily-btn daily-btn-share" id="dailyShareBtn" style="display:none">${t('daily.share_result')}</button>
           </div>
           <div class="daily-streak" id="dailyStreak"></div>
         </div>
@@ -346,19 +346,19 @@ class DailyChallenge {
     const card = this.overlay.querySelector('#dailyCard')
     const completed = this.hasCompletedToday()
     const completedBadge = completed
-      ? '<div class="daily-completed-badge">✅ Completed</div>'
+      ? ('<div class="daily-completed-badge">' + t('daily.completed') + '</div>')
       : ''
 
     let rulesHtml = ''
     const r = challenge.rules
-    if (r.timeLimit) rulesHtml += `<span class="daily-rule">⏱️ ${r.timeLimit}s time limit</span>`
-    if (r.ghostTarget) rulesHtml += `<span class="daily-rule">👻 Eat ${r.ghostTarget}+ ghosts</span>`
-    if (r.perfectRun) rulesHtml += `<span class="daily-rule">✨ No deaths allowed</span>`
-    if (!r.powerUpsEnabled) rulesHtml += `<span class="daily-rule">🚫 Power-ups disabled</span>`
-    if (r.donutSpawnMultiplier > 1) rulesHtml += `<span class="daily-rule">🍩 ${r.donutSpawnMultiplier}x donut spawns</span>`
-    if (r.scoreMultiplier > 1) rulesHtml += `<span class="daily-rule">🏆 ${r.scoreMultiplier}x score multiplier</span>`
-    if (r.lives === 1) rulesHtml += `<span class="daily-rule">💀 1 life only</span>`
-    if (r.ghostSpeedBonus > 0) rulesHtml += `<span class="daily-rule">👻 Ghosts ${Math.round(r.ghostSpeedBonus * 100)}% faster</span>`
+    if (r.timeLimit) rulesHtml += `<span class="daily-rule">${t('daily.time_limit', r.timeLimit)}</span>`
+    if (r.ghostTarget) rulesHtml += `<span class="daily-rule">${t('daily.ghost_target', r.ghostTarget)}</span>`
+    if (r.perfectRun) rulesHtml += `<span class="daily-rule">${t('daily.no_deaths')}</span>`
+    if (!r.powerUpsEnabled) rulesHtml += `<span class="daily-rule">${t('daily.no_powerups')}</span>`
+    if (r.donutSpawnMultiplier > 1) rulesHtml += `<span class="daily-rule">${t('daily.donut_spawns', r.donutSpawnMultiplier)}</span>`
+    if (r.scoreMultiplier > 1) rulesHtml += `<span class="daily-rule">${t('daily.score_mult', r.scoreMultiplier)}</span>`
+    if (r.lives === 1) rulesHtml += `<span class="daily-rule">${t('daily.one_life')}</span>`
+    if (r.ghostSpeedBonus > 0) rulesHtml += `<span class="daily-rule">${t('daily.ghosts_faster', Math.round(r.ghostSpeedBonus * 100))}</span>`
 
     card.innerHTML = `
       <div class="daily-card-inner" style="border-color: ${challenge.color}">
@@ -377,11 +377,11 @@ class DailyChallenge {
     const container = this.overlay.querySelector('#dailyYesterday')
     const scores = this._getYesterdayScores()
     if (scores.length === 0) {
-      container.innerHTML = '<div class="daily-section-title">📊 Yesterday\'s Results</div><div class="daily-empty">No results from yesterday</div>'
+      container.innerHTML = '<div class="daily-section-title">' + t('daily.yesterday') + '</div><div class="daily-empty">' + t('daily.no_yesterday') + '</div>'
       return
     }
 
-    let html = '<div class="daily-section-title">📊 Yesterday\'s Results</div><div class="daily-scores-mini">'
+    let html = '<div class="daily-section-title">' + t('daily.yesterday') + '</div><div class="daily-scores-mini">'
     const medals = ['🥇', '🥈', '🥉']
     scores.slice(0, 5).forEach((s, i) => {
       const medal = medals[i] || `${i + 1}.`
@@ -397,12 +397,12 @@ class DailyChallenge {
     const container = this.overlay.querySelector('#dailyLeaderboard')
     const scores = this._getTodayScores()
     if (scores.length === 0) {
-      container.innerHTML = '<div class="daily-section-title">🏅 Today\'s Leaderboard</div><div class="daily-empty">Be the first to play!</div>'
+      container.innerHTML = '<div class="daily-section-title">' + t('daily.today_leaderboard') + '</div><div class="daily-empty">' + t('daily.be_first') + '</div>'
       return
     }
 
     const medals = ['🥇', '🥈', '🥉']
-    let html = '<div class="daily-section-title">🏅 Today\'s Leaderboard</div><table class="daily-table"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Lvl</th></tr></thead><tbody>'
+    let html = '<div class="daily-section-title">' + t('daily.today_leaderboard') + '</div><table class="daily-table"><thead><tr><th>' + t('stats.rank_header') + '</th><th>' + t('stats.name_header') + '</th><th>' + t('stats.score_header') + '</th><th>' + t('stats.level_header') + '</th></tr></thead><tbody>'
     scores.forEach((s, i) => {
       const medal = medals[i] || `${i + 1}`
       html += `<tr><td>${medal}</td><td>${s.name}</td><td>${s.score.toLocaleString()}</td><td>${s.level || '-'}</td></tr>`
@@ -418,7 +418,7 @@ class DailyChallenge {
     const ms = DailyChallenge._msUntilMidnight()
     const hours = Math.floor(ms / 3600000)
     const mins = Math.floor((ms % 3600000) / 60000)
-    container.innerHTML = `<span class="daily-countdown-label">Next challenge in</span> <span class="daily-countdown-time">${hours}h ${mins}m</span>`
+    container.innerHTML = `<span class="daily-countdown-label">${t('daily.next_challenge')}</span> <span class="daily-countdown-time">${hours}h ${mins}m</span>`
   }
 
   // ==================== RENDER: STREAK ====================
@@ -429,7 +429,7 @@ class DailyChallenge {
     const badge = DailyChallenge.getChallengeBadge()
     let html = ''
     if (streak > 0) {
-      html += `<span class="daily-streak-fire">🔥 ${streak} day streak!</span>`
+      html += `<span class="daily-streak-fire">${t('daily.streak', streak)}</span>`
     }
     if (badge) {
       html += `<span class="daily-streak-badge">${badge.emoji} ${badge.name}</span>`
@@ -444,7 +444,7 @@ class DailyChallenge {
     const shareBtn = this.overlay.querySelector('#dailyShareBtn')
     const completed = this.hasCompletedToday()
 
-    playBtn.textContent = completed ? '🔄 Play Again' : '🎮 Play Today\'s Challenge'
+    playBtn.textContent = completed ? t('daily.play_again') : t('daily.play_today')
     shareBtn.style.display = completed ? '' : 'none'
   }
 
@@ -456,20 +456,20 @@ class DailyChallenge {
     const rank = scores.length > 0 ? 1 : 0
     const topScore = scores.length > 0 ? scores[0].score : 0
 
-    let text = `${challenge.emoji} ComeRosquillas Daily Challenge: ${challenge.name}\n`
+    let text = t('daily.share_text', challenge.emoji, challenge.name) + '\n'
     if (rank === 1) {
-      text += `🥇 I got 1st place on today's challenge!\n`
+      text += t('daily.share_first') + '\n'
     }
-    text += `🏆 Score: ${topScore.toLocaleString()}\n`
-    text += `🔥 Streak: ${this.getChallengeStreak()} days\n`
+    text += t('daily.share_score', topScore.toLocaleString()) + '\n'
+    text += t('daily.share_streak', this.getChallengeStreak()) + '\n'
 
     const base = window.location.origin + window.location.pathname
     const url = `${base}?ref=daily&date=${challenge.dateKey}`
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'ComeRosquillas Daily Challenge', text, url })
-        this._showToast('Shared! 🎉')
+        await navigator.share({ title: t('daily.share_title'), text, url })
+        this._showToast(t('daily.shared'))
         return
       } catch (e) {
         if (e.name === 'AbortError') return
@@ -487,7 +487,7 @@ class DailyChallenge {
       document.execCommand('copy')
       document.body.removeChild(ta)
     }
-    this._showToast('Result copied! 📋')
+    this._showToast(t('daily.result_copied'))
   }
 
   // ==================== TOAST ====================
