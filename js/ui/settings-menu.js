@@ -658,6 +658,15 @@ class SettingsMenu {
         this.overlay.style.display = 'flex';
         this.focusIndex = 0;
         
+        // Auto-pause the game when settings opens
+        if (this._game && this._game.state === ST_PLAYING) {
+            this._wasPlayingBeforeOpen = true;
+            this._game.state = ST_PAUSED;
+            this._game.sound.stopMusic();
+        } else {
+            this._wasPlayingBeforeOpen = false;
+        }
+        
         // Focus first focusable element
         setTimeout(() => {
             this.focusableElements = Array.from(this.overlay.querySelectorAll(
@@ -674,6 +683,14 @@ class SettingsMenu {
         this.isOpen = false;
         this.overlay.style.display = 'none';
         this.saveSettings();
+        
+        // Resume the game if it was playing before settings opened
+        if (this._game && this._wasPlayingBeforeOpen && this._game.state === ST_PAUSED) {
+            this._game.state = ST_PLAYING;
+            this._game.sound.startMusic();
+            this._game.hideMessage();
+        }
+        this._wasPlayingBeforeOpen = false;
     }
     
     toggle() {
