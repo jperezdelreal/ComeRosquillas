@@ -63,6 +63,7 @@ Game.prototype.checkDots = function() {
         this.updateHUD();
         this._noPowerPelletFrames = 0;
         if (this.achievements) this.achievements.notify('power_pellet', this);
+        if (typeof a11y !== 'undefined') a11y.onFrightened();
     } else if (typeof SPECIAL_ITEM !== 'undefined' && cell === SPECIAL_ITEM) {
         this.checkSpecialItemCollection();
     }
@@ -112,6 +113,7 @@ Game.prototype.checkCollisions = function() {
                 g.speed = this.getSpeed('eatenGhost');
                 this.ghostsEaten++;
                 this._gameGhostsEaten++;
+                if (typeof a11y !== 'undefined') a11y.onGhostEaten(GHOST_NAMES[g.idx] || 'Ghost');
                 // Combo multiplier: 1x → 2x → 4x → 8x
                 const comboMultiplier = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
                 const _dcMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
@@ -129,6 +131,7 @@ Game.prototype.checkCollisions = function() {
                     // Screen shake scales with milestone tier
                     const shakePreset = comboMultiplier <= 2 ? 'comboLight' : comboMultiplier <= 4 ? 'comboMedium' : 'comboHeavy';
                     this.triggerShake(shakePreset);
+                    if (typeof a11y !== 'undefined') a11y.onCombo(comboMultiplier);
                 }
                 this.comboDisplayTimer = 120;
 
@@ -172,6 +175,7 @@ Game.prototype.checkCollisions = function() {
                 this.stateTimer = 90;
                 this.sound.stopMusic();
                 this.sound.play('die');
+                if (typeof a11y !== 'undefined') a11y.onDeath(this.lives);
                 // Camera: medium shake + zoom on death
                 this.triggerShake('ghostCollision');
                 if (typeof CAMERA_CONFIG !== 'undefined') {

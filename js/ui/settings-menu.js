@@ -230,69 +230,6 @@ class SettingsMenu {
                         </div>
                     </section>
                     
-                    <!-- Accessibility -->
-                    <section class="settings-section">
-                        <h3>♿ Accessibility</h3>
-                        
-                        <div class="setting-row">
-                            <label for="colorblindMode">Colorblind Mode</label>
-                            <select id="colorblindMode" class="settings-select" aria-label="Colorblind mode selector">
-                                <option value="none">Off</option>
-                                <option value="protanopia">Protanopia (Red-blind)</option>
-                                <option value="deuteranopia">Deuteranopia (Green-blind)</option>
-                                <option value="tritanopia">Tritanopia (Blue-blind)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <label for="highContrast">High Contrast</label>
-                            <div class="toggle-container">
-                                <input type="checkbox" id="highContrast" />
-                                <span class="toggle-label">OFF</span>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <label for="reduceMotion">Reduce Motion</label>
-                            <div class="toggle-container">
-                                <input type="checkbox" id="reduceMotion" />
-                                <span class="toggle-label">OFF</span>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <label for="largeText">Large Text (120%)</label>
-                            <div class="toggle-container">
-                                <input type="checkbox" id="largeText" />
-                                <span class="toggle-label">OFF</span>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <label for="eventSubtitles">Event Subtitles</label>
-                            <div class="toggle-container">
-                                <input type="checkbox" id="eventSubtitles" checked />
-                                <span class="toggle-label">ON</span>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <label for="visualAudioIndicators">Ghost Proximity Warning</label>
-                            <div class="toggle-container">
-                                <input type="checkbox" id="visualAudioIndicators" checked />
-                                <span class="toggle-label">ON</span>
-                            </div>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <label for="screenReaderAnnouncements">Screen Reader Announcements</label>
-                            <div class="toggle-container">
-                                <input type="checkbox" id="screenReaderAnnouncements" checked />
-                                <span class="toggle-label">ON</span>
-                            </div>
-                        </div>
-                    </section>
-                    
                     <!-- Ghost AI Debug -->
                     <section class="settings-section">
                         <h3>🔍 Ghost AI Debug</h3>
@@ -510,9 +447,6 @@ class SettingsMenu {
                 }
             }
         });
-        
-        // Accessibility controls
-        this._setupA11yHandlers();
     }
     
     handleTabNavigation(reverse) {

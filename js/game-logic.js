@@ -361,6 +361,7 @@
                 }
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
+                if (typeof a11y !== 'undefined') a11y.onGameOver(this.score);
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
                 this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
                 if (this.achievements) this.achievements.notify('game_over', this);
@@ -537,6 +538,7 @@
         }
 
         addParticles(x, y, color, count) {
+            if (typeof a11y !== 'undefined' && a11y.shouldReduceMotion()) return;
             for (let i = 0; i < count; i++) {
                 // Find inactive particle from pool
                 let p = null;
@@ -641,6 +643,7 @@
 
         triggerShake(preset) {
             if (!this._isCameraEnabled()) return;
+            if (typeof a11y !== 'undefined' && a11y.shouldReduceMotion()) return;
             const cfg = CAMERA_CONFIG.shake[preset];
             if (!cfg) return;
             this.screenShakeTimer = cfg.duration;
@@ -850,7 +853,20 @@
             this.checkCollisions();
             this.checkBossTraps();
 
-            // Rake slow timer: restore Homer's speed after penalty expires
+            // Accessibility: ghost proximity visual indicator (throttled)
+            if (typeof a11y !== 'undefined' && this.animFrame % 15 === 0) {
+                const hx = this.homer.x + TILE / 2;
+                const hy = this.homer.y + TILE / 2;
+                const nearby = this.ghosts.some(g => {
+                    if (g.mode === GM_EATEN || g.mode === GM_FRIGHTENED || g.inHouse) return false;
+                    const dx = hx - (g.x + TILE / 2);
+                    const dy = hy - (g.y + TILE / 2);
+                    return Math.sqrt(dx * dx + dy * dy) < TILE * 5;
+                });
+                a11y.updateProximity(nearby);
+            }
+
+            // Rake slow timer:restore Homer's speed after penalty expires
             if (this._rakeSlowTimer > 0) {
                 this._rakeSlowTimer--;
                 if (this._rakeSlowTimer <= 0) {
