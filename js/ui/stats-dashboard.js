@@ -28,13 +28,13 @@ class StatsDashboard {
         this.overlay.innerHTML = `
             <div class="stats-modal" role="dialog" aria-labelledby="statsTitle">
                 <div class="stats-header">
-                    <h2 id="statsTitle">\U0001f3c6 Leaderboard</h2>
-                    <button class="stats-close" aria-label="Close dashboard">\u2715</button>
+                    <h2 id="statsTitle">${t('stats.leaderboard')}</h2>
+                    <button class="stats-close" aria-label="${t('stats.close')}">\u2715</button>
                 </div>
                 <div class="stats-tabs" role="tablist">
-                    <button class="stats-tab stats-tab-active" role="tab" data-tab="leaderboard" aria-selected="true">\U0001f3c6 Leaderboard</button>
-                    <button class="stats-tab" role="tab" data-tab="stats" aria-selected="false">\U0001f4ca Stats</button>
-                    <button class="stats-tab" role="tab" data-tab="achievements" aria-selected="false">\U0001f3c5 Achievements</button>
+                    <button class="stats-tab stats-tab-active" role="tab" data-tab="leaderboard" aria-selected="true">${t('stats.leaderboard')}</button>
+                    <button class="stats-tab" role="tab" data-tab="stats" aria-selected="false">${t('stats.stats')}</button>
+                    <button class="stats-tab" role="tab" data-tab="achievements" aria-selected="false">${t('stats.achievements_tab')}</button>
                 </div>
                 <div class="stats-content">
                     <div class="stats-panel" id="panelLeaderboard"></div>
@@ -42,8 +42,8 @@ class StatsDashboard {
                     <div class="stats-panel" id="panelAchievements" style="display:none"></div>
                 </div>
                 <div class="stats-footer">
-                    <button class="stats-button stats-clear-btn">\U0001f5d1\ufe0f Clear Data</button>
-                    <button class="stats-button stats-done-btn">Done</button>
+                    <button class="stats-button stats-clear-btn">${t('stats.clear_data')}</button>
+                    <button class="stats-button stats-done-btn">${t('stats.done')}</button>
                 </div>
             </div>
         `;
@@ -93,13 +93,13 @@ class StatsDashboard {
         stPanel.style.display = 'none';
         if (achPanel) achPanel.style.display = 'none';
         if (tabName === 'leaderboard') {
-            titleEl.textContent = '\U0001f3c6 Leaderboard';
+            titleEl.textContent = t('stats.leaderboard');
             lbPanel.style.display = '';
         } else if (tabName === 'achievements') {
-            titleEl.textContent = '\U0001f3c5 Achievements';
+            titleEl.textContent = t('stats.achievements_tab');
             if (achPanel) achPanel.style.display = '';
         } else {
-            titleEl.textContent = '\U0001f4ca Stats';
+            titleEl.textContent = t('stats.stats');
             stPanel.style.display = '';
         }
     }
@@ -108,14 +108,14 @@ class StatsDashboard {
         const panel = this.overlay.querySelector('#panelLeaderboard');
         const scores = this.highScores.getScores();
         if (scores.length === 0) {
-            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">\U0001f369</div><div style="color:#ffd800;font-size:20px;">No scores yet!</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">Play a game to see your scores here.</div></div>';
+            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">\U0001f369</div><div style="color:#ffd800;font-size:20px;">' + t('stats.no_scores') + '</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">' + t('stats.play_to_see') + '</div></div>';
             return;
         }
         const rank = this.highScores.getRank();
         const challengeBadge = typeof DailyChallenge !== 'undefined' ? DailyChallenge.getChallengeBadge() : null;
         const challengeStr = challengeBadge ? ' \u2022 ' + challengeBadge.emoji + ' ' + challengeBadge.name : '';
-        let html = '<div class="lb-rank-banner">' + rank.emoji + ' ' + rank.name + ' \u2014 ' + this.highScores.lifetimeStats.totalDonutsEaten.toLocaleString() + ' donuts lifetime' + challengeStr + '</div>';
-        html += '<div class="lb-scroll"><table class="lb-table" role="grid"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Lvl</th><th>Combo</th><th>Diff</th><th>Date</th></tr></thead><tbody>';
+        let html = '<div class="lb-rank-banner">' + rank.emoji + ' ' + rank.name + ' \u2014 ' + t('stats.donuts_lifetime', this.highScores.lifetimeStats.totalDonutsEaten.toLocaleString()) + challengeStr + '</div>';
+        html += '<div class="lb-scroll"><table class="lb-table" role="grid"><thead><tr><th>' + t('stats.rank_header') + '</th><th>' + t('stats.name_header') + '</th><th>' + t('stats.score_header') + '</th><th>' + t('stats.level_header') + '</th><th>' + t('stats.combo_header') + '</th><th>' + t('stats.diff_header') + '</th><th>' + t('stats.date_header') + '</th></tr></thead><tbody>';
         scores.forEach((s, i) => {
             const pos = i + 1;
             const isTop3 = pos <= 3;
@@ -148,9 +148,9 @@ class StatsDashboard {
         if (currentIdx > 0) {
             const nextRank = RANK_BADGES[currentIdx - 1];
             const remaining = nextRank.minDonuts - stats.totalDonutsEaten;
-            nextRankHtml = '<div class="stats-next-rank">Next: ' + nextRank.emoji + ' ' + nextRank.name + ' \u2014 ' + remaining.toLocaleString() + ' donuts to go</div>';
+            nextRankHtml = '<div class="stats-next-rank">' + t('stats.next_rank', nextRank.emoji + ' ' + nextRank.name, remaining.toLocaleString()) + '</div>';
         } else {
-            nextRankHtml = '<div class="stats-next-rank" style="color:#ffd800;">Max rank achieved! \U0001f451</div>';
+            nextRankHtml = '<div class="stats-next-rank" style="color:#ffd800;">' + t('stats.max_rank') + '</div>';
         }
         const playTime = this._formatTime(stats.totalPlayTimeMs);
         let bestByDiff = '';
@@ -160,7 +160,7 @@ class StatsDashboard {
                 bestByDiff += '<div class="stat-row"><span class="stat-label">' + this._capFirst(diff) + '</span><span class="stat-value">' + best.toLocaleString() + '</span></div>';
             }
         }
-        if (!bestByDiff) bestByDiff = '<div class="stat-row"><span class="stat-label" style="color:#888;">No games played yet</span></div>';
+        if (!bestByDiff) bestByDiff = '<div class="stat-row"><span class="stat-label" style="color:#888;">' + t('stats.no_games') + '</span></div>';
         let progressHtml = '';
         if (currentIdx > 0) {
             const nextRank = RANK_BADGES[currentIdx - 1];
@@ -172,19 +172,19 @@ class StatsDashboard {
         const comboDisplay = stats.highestCombo > 1 ? '\U0001f525 ' + stats.highestCombo + 'x' : '\u2014';
         const badgesHtml = RANK_BADGES.slice().reverse().map(b => {
             const earned = stats.totalDonutsEaten >= b.minDonuts;
-            return '<div class="stats-badge ' + (earned ? 'stats-badge-earned' : 'stats-badge-locked') + '"><span class="stats-badge-emoji">' + (earned ? b.emoji : '\U0001f512') + '</span><span class="stats-badge-name">' + b.name + '</span><span class="stats-badge-req">' + b.minDonuts.toLocaleString() + ' donuts</span></div>';
+            return '<div class="stats-badge ' + (earned ? 'stats-badge-earned' : 'stats-badge-locked') + '"><span class="stats-badge-emoji">' + (earned ? b.emoji : '\U0001f512') + '</span><span class="stats-badge-name">' + b.name + '</span><span class="stats-badge-req">' + t('stats.donuts_req', b.minDonuts.toLocaleString()) + '</span></div>';
         }).join('');
         panel.innerHTML = '<div class="stats-rank-section"><div class="stats-rank-badge">' + rank.emoji + '</div><div class="stats-rank-name">' + rank.name + '</div>' + progressHtml + nextRankHtml + '</div>' +
-            '<section class="stats-section"><h3>\U0001f4c8 Lifetime Stats</h3>' +
-            '<div class="stat-row"><span class="stat-label">Games Played</span><span class="stat-value">' + stats.totalGames + '</span></div>' +
-            '<div class="stat-row"><span class="stat-label">Donuts Eaten</span><span class="stat-value">' + stats.totalDonutsEaten.toLocaleString() + '</span></div>' +
-            '<div class="stat-row"><span class="stat-label">Ghosts Eaten</span><span class="stat-value">' + stats.totalGhostsEaten.toLocaleString() + '</span></div>' +
-            '<div class="stat-row"><span class="stat-label">Highest Combo</span><span class="stat-value">' + comboDisplay + '</span></div>' +
-            '<div class="stat-row"><span class="stat-label">Highest Level</span><span class="stat-value">' + (stats.highestLevel || '\u2014') + '</span></div>' +
-            '<div class="stat-row"><span class="stat-label">Play Time</span><span class="stat-value">' + playTime + '</span></div>' +
+            '<section class="stats-section"><h3>' + t('stats.lifetime_stats') + '</h3>' +
+            '<div class="stat-row"><span class="stat-label">' + t('stats.games_played') + '</span><span class="stat-value">' + stats.totalGames + '</span></div>' +
+            '<div class="stat-row"><span class="stat-label">' + t('stats.donuts_eaten') + '</span><span class="stat-value">' + stats.totalDonutsEaten.toLocaleString() + '</span></div>' +
+            '<div class="stat-row"><span class="stat-label">' + t('stats.ghosts_eaten') + '</span><span class="stat-value">' + stats.totalGhostsEaten.toLocaleString() + '</span></div>' +
+            '<div class="stat-row"><span class="stat-label">' + t('stats.highest_combo') + '</span><span class="stat-value">' + comboDisplay + '</span></div>' +
+            '<div class="stat-row"><span class="stat-label">' + t('stats.highest_level') + '</span><span class="stat-value">' + (stats.highestLevel || '\u2014') + '</span></div>' +
+            '<div class="stat-row"><span class="stat-label">' + t('stats.play_time') + '</span><span class="stat-value">' + playTime + '</span></div>' +
             '</section>' +
-            '<section class="stats-section"><h3>\U0001f3c5 Best Score by Difficulty</h3>' + bestByDiff + '</section>' +
-            '<section class="stats-section"><h3>\U0001f396\ufe0f Rank Progression</h3><div class="stats-badges-grid">' + badgesHtml + '</div></section>';
+            '<section class="stats-section"><h3>' + t('stats.best_by_difficulty') + '</h3>' + bestByDiff + '</section>' +
+            '<section class="stats-section"><h3>' + t('stats.rank_progression') + '</h3><div class="stats-badges-grid">' + badgesHtml + '</div></section>';
     }
 
     renderAchievements() {
@@ -193,14 +193,14 @@ class StatsDashboard {
         if (typeof AchievementManager !== 'undefined' && window._game && window._game.achievements) {
             window._game.achievements.renderAchievementsPanel(panel);
         } else {
-            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">🏅</div><div style="color:#ffd800;font-size:20px;">Achievements</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">Play to unlock achievements!</div></div>';
+            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">🏅</div><div style="color:#ffd800;font-size:20px;">' + t('stats.achievements_tab') + '</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">' + t('stats.play_to_unlock') + '</div></div>';
         }
     }
 
     showClearConfirm() {
         const footer = this.overlay.querySelector('.stats-footer');
         const what = this.activeTab === 'leaderboard' ? 'scores' : this.activeTab === 'achievements' ? 'achievements' : 'stats';
-        footer.innerHTML = '<div class="stats-confirm"><span style="color:#ff6b6b;">Clear all ' + what + '?</span><div style="display:flex;gap:8px;margin-top:8px;"><button class="stats-button stats-cancel-btn">Cancel</button><button class="stats-button stats-confirm-btn">Yes, Clear</button></div></div>';
+        footer.innerHTML = '<div class="stats-confirm"><span style="color:#ff6b6b;">' + t('stats.clear_confirm', what) + '</span><div style="display:flex;gap:8px;margin-top:8px;"><button class="stats-button stats-cancel-btn">' + t('stats.cancel') + '</button><button class="stats-button stats-confirm-btn">' + t('stats.yes_clear') + '</button></div></div>';
         footer.querySelector('.stats-cancel-btn').addEventListener('click', () => this.restoreFooter());
         footer.querySelector('.stats-confirm-btn').addEventListener('click', () => {
             if (this.activeTab === 'leaderboard') { this.highScores.clearScores(); this.renderLeaderboard(); }
@@ -214,7 +214,7 @@ class StatsDashboard {
 
     restoreFooter() {
         const footer = this.overlay.querySelector('.stats-footer');
-        footer.innerHTML = '<button class="stats-button stats-clear-btn">\U0001f5d1\ufe0f Clear Data</button><button class="stats-button stats-done-btn">Done</button>';
+        footer.innerHTML = '<button class="stats-button stats-clear-btn">' + t('stats.clear_data') + '</button><button class="stats-button stats-done-btn">' + t('stats.done') + '</button>';
         footer.querySelector('.stats-clear-btn').addEventListener('click', () => this.showClearConfirm());
         footer.querySelector('.stats-done-btn').addEventListener('click', () => this.close());
     }
