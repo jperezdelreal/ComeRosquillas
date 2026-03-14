@@ -406,6 +406,19 @@ class Sprites {
                 case 2: Sprites._drawNelson(ctx, cx, cy, r, eyeDir, animFrame); break;
                 case 3: Sprites._drawSnake(ctx, cx, cy, r, eyeDir, animFrame); break;
             }
+
+            // Draw persistent icon label for colorblind mode
+            if (typeof a11y !== 'undefined' && a11y.shouldDrawGhostIcon()) {
+                const icon = a11y.getGhostIcon(ghost.idx);
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2;
+                ctx.strokeText(icon, cx, cy - r - 2);
+                ctx.fillText(icon, cx, cy - r - 2);
+            }
         }
 
         // Compute fractional eye offset toward Homer for smooth eye tracking

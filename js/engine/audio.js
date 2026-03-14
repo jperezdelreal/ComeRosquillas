@@ -410,6 +410,19 @@ class SoundManager {
         this._osc('square', [[200, 0], [150, 0.05]], t + 0.35, t + 0.45, 0.05);
     }
 
+    _eventFanfare(t) {
+        // Dramatic ascending arpeggio for event announcement
+        const notes = [262, 330, 392, 523]
+        notes.forEach((freq, i) => {
+            this._osc('triangle', freq, t + i * 0.1, t + i * 0.1 + 0.12, 0.08)
+        })
+        // Shimmering high note sustain
+        this._osc('sine', 523, t + 0.4, t + 0.8, 0.06)
+        this._osc('sine', 659, t + 0.45, t + 0.85, 0.04)
+        // Dramatic low hit
+        this._osc('sawtooth', 131, t + 0.05, t + 0.5, 0.04)
+    }
+
     // ==================== SPATIAL AUDIO ====================
 
     updateSpatial(homerX, homerY, ghosts) {

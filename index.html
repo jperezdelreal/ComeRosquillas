@@ -501,6 +501,46 @@
             transform: scale(1.02);
         }
         
+        /* Accessibility: Focus indicators */
+        *:focus-visible {
+            outline: 2px solid #4da6ff;
+            outline-offset: 2px;
+        }
+        
+        .skip-link:focus {
+            left: 10px !important;
+            top: 10px !important;
+        }
+        
+        /* Accessibility: Colorblind mode dropdown */
+        .settings-select {
+            background: rgba(255, 216, 0, 0.15);
+            border: 1px solid rgba(255, 216, 0, 0.4);
+            color: #ffd800;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Bangers', Arial, sans-serif;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            min-width: 180px;
+        }
+        .settings-select:hover {
+            background: rgba(255, 216, 0, 0.25);
+        }
+        .settings-select option {
+            background: #1a0a2e;
+            color: #ffd800;
+        }
+        
+        /* Reduce motion: honor OS preference as baseline */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
         /* Responsive Settings Modal */
         @media (max-width: 700px) {
             .settings-modal {
@@ -1366,25 +1406,26 @@
     </style>
 </head>
 <body>
-    <button id="settingsBtn" aria-label="Settings">⚙️</button>
-    <div id="gameContainer">
-        <div id="hud">
-            <span class="score">&#127849; <span id="scoreDisplay">0</span></span>
-            <span class="level"><span id="levelDisplay">Level 1 — Springfield Streets</span></span>
-            <span class="high-score" style="color: #ffa500; font-size: 18px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000;">
+    <a href="#gameCanvas" class="skip-link" style="position:absolute;left:-9999px;top:0;z-index:9999;padding:8px 16px;background:#ffd800;color:#000;font-size:16px;text-decoration:none;">Skip to Game</a>
+    <button id="settingsBtn" aria-label="Open settings menu" tabindex="0">⚙️</button>
+    <div id="gameContainer" role="main" aria-label="Homer's Donut Quest game">
+        <div id="hud" role="status" aria-live="polite" aria-label="Game status bar">
+            <span class="score" aria-label="Score">&#127849; <span id="scoreDisplay">0</span></span>
+            <span class="level" aria-label="Level"><span id="levelDisplay">Level 1 — Springfield Streets</span></span>
+            <span class="high-score" aria-label="High score" style="color: #ffa500; font-size: 18px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000;">
                 Hi: <span id="highScoreDisplay">0</span>
             </span>
-            <span id="bestComboDisplay" style="color: #ff69b4; font-size: 16px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000; display: none;">
+            <span id="bestComboDisplay" aria-label="Best combo" style="color: #ff69b4; font-size: 16px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000; display: none;">
                 🔥 <span id="bestComboValue">0</span>x
             </span>
-            <span id="dailyTimerDisplay" style="color: #ffd800; font-size: 18px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000; display: none;">
+            <span id="dailyTimerDisplay" aria-label="Daily challenge timer" style="color: #ffd800; font-size: 18px; letter-spacing: 1px; text-shadow: 2px 2px 0 #000; display: none;">
             </span>
-            <span class="lives-container">
+            <span class="lives-container" aria-label="Lives remaining">
                 <span id="livesIcons"></span>
             </span>
         </div>
-        <canvas id="gameCanvas"></canvas>
-        <div id="bottomBar">
+        <canvas id="gameCanvas" role="img" aria-label="Game canvas — use arrow keys to move Homer, P to pause, ENTER to start" tabindex="0"></canvas>
+        <div id="bottomBar" role="navigation" aria-label="Keyboard controls">
             <span><span class="key">&#8592;&#8593;&#8595;&#8594;</span> Move</span>
             <span><span class="key">P</span> Pause</span>
             <span><span class="key">M</span> Music</span>
@@ -1395,11 +1436,12 @@
             <span><span class="key">A</span> Achievements</span>
             <span><span class="key">ENTER</span> Start</span>
         </div>
-        <div id="message"></div>
+        <div id="message" role="alert" aria-live="assertive"></div>
     </div>
     <!-- Load game modules in dependency order -->
     <script src="js/config.js"></script>
     <script src="js/engine/audio.js"></script>
+    <script src="js/ui/accessibility.js"></script>
     <script src="js/ui/settings-menu.js"></script>
     <script src="js/ui/tutorial.js"></script>
     <script src="js/ui/stats-dashboard.js"></script>
@@ -1415,6 +1457,7 @@
     <script src="js/engine/scoring-system.js"></script>
     <script src="js/engine/level-manager.js"></script>
     <script src="js/engine/ai-controller.js"></script>
+    <script src="js/engine/event-system.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

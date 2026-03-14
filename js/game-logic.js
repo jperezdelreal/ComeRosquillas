@@ -157,6 +157,11 @@
                     this._cameraEffectsEnabled = this.settingsMenu.settings.cameraEffects;
                 }
                 
+                // Apply accessibility settings on startup
+                if (typeof a11y !== 'undefined') {
+                    a11y.applyLargeText();
+                }
+                
                 // Hook up settings button
                 const settingsBtn = document.getElementById('settingsBtn');
                 if (settingsBtn) {
@@ -272,14 +277,18 @@
                     this.currentLayout = getMazeLayout(this.level);
                     this.maze = this.currentLayout.template.map(row => [...row]);
                     this.showStartScreen();
-                } else if (this.state === ST_PLAYING && e.code === 'KeyP') {
+                } else if (this.state === ST_PLAYING && (e.code === 'KeyP' || e.code === 'Space')) {
+                    e.preventDefault();
                     this.state = ST_PAUSED;
                     this.sound.stopMusic();
-                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P to continue');
-                } else if (this.state === ST_PAUSED && e.code === 'KeyP') {
+                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P or SPACE to continue');
+                    if (typeof a11y !== 'undefined') a11y.onPause();
+                } else if (this.state === ST_PAUSED && (e.code === 'KeyP' || e.code === 'Space')) {
+                    e.preventDefault();
                     this.state = ST_PLAYING;
                     this.sound.startMusic();
                     this.hideMessage();
+                    if (typeof a11y !== 'undefined') a11y.onResume();
                 } else if (this.state === ST_CUTSCENE) {
                     // Skip cutscene on any key press
                     this.skipCutscene();
@@ -352,6 +361,7 @@
                 }
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
+                if (typeof a11y !== 'undefined') a11y.onGameOver(this.score);
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
                 this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
                 if (this.achievements) this.achievements.notify('game_over', this);
@@ -501,6 +511,7 @@
                 : '';
             this.showMessage('&#127849; READY!', challengeBanner + this._levelTitle());
             this.updateHUD();
+            if (typeof a11y !== 'undefined') a11y.onGameStart();
         }
 
         // ---- MAZE HELPERS ----
@@ -527,6 +538,7 @@
         }
 
         addParticles(x, y, color, count) {
+            if (typeof a11y !== 'undefined' && a11y.shouldReduceMotion()) return;
             for (let i = 0; i < count; i++) {
                 // Find inactive particle from pool
                 let p = null;
@@ -631,6 +643,7 @@
 
         triggerShake(preset) {
             if (!this._isCameraEnabled()) return;
+            if (typeof a11y !== 'undefined' && a11y.shouldReduceMotion()) return;
             const cfg = CAMERA_CONFIG.shake[preset];
             if (!cfg) return;
             this.screenShakeTimer = cfg.duration;
@@ -758,6 +771,7 @@
                             }
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
+                            if (typeof a11y !== 'undefined') a11y.onGameOver(this.score);
                             const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
                             this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
                         }
@@ -838,6 +852,19 @@
             this.updateNelsonLaugh();
             this.checkCollisions();
             this.checkBossTraps();
+
+            // Accessibility: ghost proximity visual indicator (throttled)
+            if (typeof a11y !== 'undefined' && this.animFrame % 15 === 0) {
+                const hx = this.homer.x + TILE / 2;
+                const hy = this.homer.y + TILE / 2;
+                const nearby = this.ghosts.some(g => {
+                    if (g.mode === GM_EATEN || g.mode === GM_FRIGHTENED || g.inHouse) return false;
+                    const dx = hx - (g.x + TILE / 2);
+                    const dy = hy - (g.y + TILE / 2);
+                    return Math.sqrt(dx * dx + dy * dy) < TILE * 5;
+                });
+                a11y.updateProximity(nearby);
+            }
 
             // Rake slow timer: restore Homer's speed after penalty expires
             if (this._rakeSlowTimer > 0) {
