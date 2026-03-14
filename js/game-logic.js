@@ -157,6 +157,11 @@
                     this._cameraEffectsEnabled = this.settingsMenu.settings.cameraEffects;
                 }
                 
+                // Apply accessibility settings on startup
+                if (typeof a11y !== 'undefined') {
+                    a11y.applyLargeText();
+                }
+                
                 // Hook up settings button
                 const settingsBtn = document.getElementById('settingsBtn');
                 if (settingsBtn) {
@@ -272,14 +277,18 @@
                     this.currentLayout = getMazeLayout(this.level);
                     this.maze = this.currentLayout.template.map(row => [...row]);
                     this.showStartScreen();
-                } else if (this.state === ST_PLAYING && e.code === 'KeyP') {
+                } else if (this.state === ST_PLAYING && (e.code === 'KeyP' || e.code === 'Space')) {
+                    e.preventDefault();
                     this.state = ST_PAUSED;
                     this.sound.stopMusic();
-                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P to continue');
-                } else if (this.state === ST_PAUSED && e.code === 'KeyP') {
+                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P or SPACE to continue');
+                    if (typeof a11y !== 'undefined') a11y.onPause();
+                } else if (this.state === ST_PAUSED && (e.code === 'KeyP' || e.code === 'Space')) {
+                    e.preventDefault();
                     this.state = ST_PLAYING;
                     this.sound.startMusic();
                     this.hideMessage();
+                    if (typeof a11y !== 'undefined') a11y.onResume();
                 } else if (this.state === ST_CUTSCENE) {
                     // Skip cutscene on any key press
                     this.skipCutscene();
@@ -502,6 +511,7 @@
                 : '';
             this.showMessage('&#127849; READY!', challengeBanner + this._levelTitle());
             this.updateHUD();
+            if (typeof a11y !== 'undefined') a11y.onGameStart();
         }
 
         // ---- MAZE HELPERS ----
@@ -761,6 +771,7 @@
                             }
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
+                            if (typeof a11y !== 'undefined') a11y.onGameOver(this.score);
                             const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
                             this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
                         }
