@@ -389,3 +389,23 @@
 - `js/game-logic.js`: Animation state, FPS guard, draw pipeline
 - `js/engine/entity-manager.js`: `homer.isMoving` tracking
 - `js/engine/collision-detector.js`: `_celebrationTimer` trigger
+
+### Mute/Pause Buttons & Settings Auto-Pause Fix (PR #119)
+**Date:** 2026-03-14
+**Context:** Desktop users couldn't click mute/pause buttons; settings didn't auto-pause
+
+**Root Causes Found:**
+- Touch buttons (pause, mute, fullscreen) were CSS `display: none` on desktop — only shown on touch devices via `@media (hover: none) and (pointer: coarse)`
+- Buttons only had `touchstart` handlers, no `click` handlers for mouse
+- Settings overlay had no game-state awareness — didn't pause/resume
+
+**Fixes Applied:**
+- CSS: Changed action buttons to `display: block` by default, kept d-pad touch-only
+- JS (touch-input.js): Added `click` event handlers alongside `touchstart` for pause, mute, fullscreen
+- JS (settings-menu.js): `open()` auto-pauses if `ST_PLAYING`, `close()` resumes if was playing
+- `_wasPlayingBeforeOpen` flag prevents resuming a game that was already paused
+
+**Key Files Modified:**
+- `index.html`: CSS visibility rules for action buttons
+- `js/engine/touch-input.js`: Click handlers added
+- `js/ui/settings-menu.js`: Auto-pause/resume logic in open()/close()
