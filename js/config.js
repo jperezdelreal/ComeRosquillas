@@ -383,6 +383,69 @@ const PERF_CONFIG = {
     levelTransitionWipeDuration: 30,    // frames for level transition wipe effect
 }
 
+// ==================== DAILY CHALLENGE ====================
+const DAILY_CHALLENGE_STORAGE_KEY = 'comerosquillas-daily'
+const DAILY_CHALLENGE_HISTORY_KEY = 'comerosquillas-daily-history'
+
+const DAILY_CHALLENGE_TYPES = [
+  {
+    id: 'speed_run',
+    name: 'Speed Run',
+    emoji: '⏱️',
+    description: 'Clear the maze in 90 seconds!',
+    color: '#ff4444',
+    rules: { timeLimit: 90, lives: 3, scoreMultiplier: 1.0, powerUpsEnabled: true, donutSpawnMultiplier: 1, ghostSpeedBonus: 0 }
+  },
+  {
+    id: 'ghost_hunter',
+    name: 'Ghost Hunter',
+    emoji: '👻',
+    description: 'Eat 6+ ghosts in a single game!',
+    color: '#8844ff',
+    rules: { ghostTarget: 6, lives: 3, scoreMultiplier: 1.0, powerUpsEnabled: true, donutSpawnMultiplier: 1, ghostSpeedBonus: 0 }
+  },
+  {
+    id: 'perfect_run',
+    name: 'Perfect Run',
+    emoji: '✨',
+    description: 'Clear the maze without dying!',
+    color: '#ffd800',
+    rules: { perfectRun: true, lives: 1, scoreMultiplier: 2.0, powerUpsEnabled: true, donutSpawnMultiplier: 1, ghostSpeedBonus: 0 }
+  },
+  {
+    id: 'no_powerups',
+    name: 'No Power-Ups',
+    emoji: '🚫',
+    description: 'Survive without Duff power-ups!',
+    color: '#ff8c00',
+    rules: { lives: 3, scoreMultiplier: 1.5, powerUpsEnabled: false, donutSpawnMultiplier: 1, ghostSpeedBonus: 0 }
+  },
+  {
+    id: 'donut_feast',
+    name: 'Donut Feast',
+    emoji: '🍩',
+    description: 'Double donut spawns — eat them all!',
+    color: '#ff69b4',
+    rules: { lives: 3, scoreMultiplier: 1.0, powerUpsEnabled: true, donutSpawnMultiplier: 2, ghostSpeedBonus: 0 }
+  },
+  {
+    id: 'high_score_attack',
+    name: 'High Score Attack',
+    emoji: '🏆',
+    description: '1.5x points — go for the record!',
+    color: '#44bb44',
+    rules: { lives: 3, scoreMultiplier: 1.5, powerUpsEnabled: true, donutSpawnMultiplier: 1, ghostSpeedBonus: 0 }
+  },
+  {
+    id: 'survival',
+    name: 'Survival',
+    emoji: '💀',
+    description: 'One life only — how far can you go?',
+    color: '#cc0000',
+    rules: { lives: 1, scoreMultiplier: 2.0, powerUpsEnabled: true, donutSpawnMultiplier: 1, ghostSpeedBonus: 0.1 }
+  }
+]
+
 // ==================== SIMPSONS COLOR PALETTE ====================
 const COLORS = {
     simpsonYellow: '#ffd800',
