@@ -876,7 +876,7 @@
         }
 
         #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
-            display: none;
+            display: block;
             position: fixed;
             top: 20px;
             width: 50px;
@@ -900,9 +900,9 @@
             box-shadow: 0 0 12px rgba(255,216,0,0.7);
         }
 
-        /* Show touch controls on touch-capable devices */
+        /* Show d-pad and hide keyboard hints on touch-capable devices */
         @media (hover: none) and (pointer: coarse) {
-            #touchDpad, #touchPauseBtn, #touchMuteBtn, #touchFullscreenBtn {
+            #touchDpad {
                 display: block;
             }
             #bottomBar {

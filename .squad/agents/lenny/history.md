@@ -431,3 +431,19 @@
 - When adding new translation keys, EN must always have the full set — other languages fall back to EN gracefully
 - Canvas-rendered text (renderer.js) uses `t()` calls that get evaluated each frame — no caching needed
 - Emoji prefixes (🍩, 🔊, etc.) are part of translation values, not hardcoded in UI code — allows per-language emoji customization
+
+### Portrait Mobile Viewport Fix (PR #118)
+
+**Problem:** The game forced landscape orientation on mobile via an orientation warning overlay, but the maze is vertical (28×31 tiles, 672×744px). Portrait is the natural orientation.
+
+**Changes:**
+- Removed #orientationWarning CSS styles and the @media (orientation: portrait) media query that showed it
+- Made setupOrientationWarning() a no-op in touch-input.js (kept method to not break constructor call chain)
+- Added portrait-specific media query @media (hover: none) and (pointer: coarse) and (orientation: portrait) with canvas max-height: calc(100dvh - 240px) to fit the game above the D-pad
+- Used dvh units with h fallback for accurate mobile viewport handling
+
+**Key learnings:**
+- Canvas is a replaced element in CSS — setting both max-width and max-height with width: auto preserves aspect ratio automatically
+- dvh (dynamic viewport height) is critical on mobile because h doesn't account for browser chrome that shows/hides during scroll
+- The 240px reservation (for HUD ~40px + D-pad 160px + margins) works on iPhone SE (375×667) through iPhone 14 Pro Max (430×932)
+- When removing a feature called from a constructor, make the method a no-op instead of deleting it — avoids breaking the call chain

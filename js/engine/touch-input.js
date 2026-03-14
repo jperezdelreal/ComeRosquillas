@@ -123,6 +123,11 @@ class TouchInput {
             e.preventDefault()
             this.pauseButton.classList.remove('touch-btn-active')
         })
+        // Click handler for desktop mouse support
+        this.pauseButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            this.triggerKey('KeyP')
+        })
 
         // Mute button
         this.muteButton.addEventListener('touchstart', (e) => {
@@ -135,6 +140,11 @@ class TouchInput {
             e.preventDefault()
             this.muteButton.classList.remove('touch-btn-active')
         })
+        // Click handler for desktop mouse support
+        this.muteButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            this.triggerKey('KeyM')
+        })
 
         // Fullscreen toggle
         this.fullscreenButton.addEventListener('touchstart', (e) => {
@@ -146,6 +156,11 @@ class TouchInput {
         this.fullscreenButton.addEventListener('touchend', (e) => {
             e.preventDefault()
             this.fullscreenButton.classList.remove('touch-btn-active')
+        })
+        // Click handler for desktop mouse support
+        this.fullscreenButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            this.toggleFullscreen()
         })
 
         // Update fullscreen icon on change
