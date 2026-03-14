@@ -247,4 +247,40 @@
 - Daily challenge state must be cleaned up on game-over return-to-start (Enter key handler)
 - Script load order: daily-challenge.js after share-menu.js, before renderer.js
 
+### Screen Shake & Camera Juice System (Issue #94)
+
+**Architecture decisions:**
+- Extended existing `screenShakeTimer`/`screenShakeIntensity` system — no replacement, backward-compatible
+- `CAMERA_CONFIG` constant in config.js centralizes all camera parameters (shake, zoom, follow, FPS threshold)
+- Camera juice methods (`triggerShake`, `triggerZoom`, `_updateCamera`, `_isCameraEnabled`) added to Game class
+- All effects gated behind `_isCameraEnabled()` which checks: `CAMERA_CONFIG` exists, `_cameraEffectsEnabled`, `!_cameraAutoDisabled`
+- `typeof CAMERA_CONFIG !== 'undefined'` guards at every call site for cross-branch compatibility
+
+**Camera transform pipeline:**
+- Single `ctx.save()/restore()` wrapping zoom + follow + shake transforms in `draw()`
+- Zoom: translate to center → scale → translate back (zoom around canvas center)
+- Follow: smooth lerp toward Homer with directional lookahead, clamped at maze edges
+- Shake: sine-based oscillation with linear decay (same pattern as original)
+- Zoom-out artifact prevention: full canvas clear via `setTransform(1,0,0,1,0,0)` when zoom < 1.0
+- Level complete white flash overlay: separate from camera transform, applied after restore
+
+**Zoom effects:**
+- Level start: instant set to 1.5x, ease-out cubic to 1.0x over 60 frames
+- Level complete: zoom to 0.9x over 40 frames
+- Death: zoom to 1.2x over 45 frames
+- Power pellet: subtle 1.02x pulse over 12 frames
+- All zoom returns to 1.0 via smooth lerp when timer expires
+
+**Settings integration:**
+- `cameraEffects: true` added to SettingsMenu defaults (both constructor and resetToDefaults)
+- Toggle in Camera Effects section (between Tutorial and Ghost AI Debug)
+- `_syncCameraToGame()` pushes preference to `game._cameraEffectsEnabled`
+- Auto-disable: FPS checked every 120 frames (~2s), disables all effects if < 45 FPS
+
+**Key learnings for future work:**
+- Python patch scripts reading from `git show main:file` are the reliable way to apply clean changes when multiple branches share files
+- Combo shake presets ('comboLight', 'comboMedium', 'comboHeavy') replace hardcoded values for consistency
+- Camera follow uses 20% of viewport offset (viewportRatio 0.8) — subtle enough not to disorient
+- Edge padding of 3 tiles prevents camera from centering too close to maze borders
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
