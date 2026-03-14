@@ -447,3 +447,32 @@
 - dvh (dynamic viewport height) is critical on mobile because h doesn't account for browser chrome that shows/hides during scroll
 - The 240px reservation (for HUD ~40px + D-pad 160px + margins) works on iPhone SE (375×667) through iPhone 14 Pro Max (430×932)
 - When removing a feature called from a constructor, make the method a no-op instead of deleting it — avoids breaking the call chain
+
+### Game Boy Mobile Layout Redesign
+
+**Problem:** Mobile portrait had severe UX issues — D-pad and action buttons overlapping the canvas as fixed overlays, huge empty space above/below the game, canvas too small.
+
+**Solution:** Game Boy Classic-inspired layout for portrait touch devices:
+- Canvas fills width at top, controls sit BELOW in a dedicated bar
+- #touchControlsBar wrapper with D-pad (left) + button cluster (right)
+- Three-tier CSS media query strategy: base (desktop), touch landscape (floating), portrait (Game Boy)
+
+**Architecture decisions:**
+- Controls bar uses display: block; height: 0; overflow: visible; on landscape so children (position:fixed) float while bar takes no space
+- Portrait overrides to display: flex; height: auto; making it a visible Game Boy control bar
+- Added #touchSettingsBtn in button cluster for portrait (original #settingsBtn hidden via CSS)
+- Settings touch button delegates to #settingsBtn.click() — decoupled from SettingsMenu internals
+- Canvas uses width: 100%; height: auto; object-fit: contain; with max-height: calc(100dvh - 170px) safety
+- Portrait query placed LAST in CSS for override specificity over max-width queries
+
+**Viewport math (all fit without scrolling):**
+- iPhone SE (375×667): canvas 375×415 + HUD ~40 + controls ~170 = 625 < 667 ✓
+- iPhone 14 (390×844): canvas 390×432 + HUD + controls = 642 < 844 ✓
+- Android (360×800): canvas 360×399 + HUD + controls = 609 < 800 ✓
+
+**Key learnings:**
+- position: fixed children render regardless of parent size — use height: 0; overflow: visible; to create invisible containers
+- Canvas aspect ratio (672:744 = 28×24 grid) is close to square but slightly taller — critical for mobile viewport budget
+- dvh with h fallback (double declaration) handles iOS Safari address bar
+- Button cluster uses CSS Grid (2×2) in portrait for thumb-friendly spacing
+- Separating touch controls into a wrapper div (#touchControlsBar) enables CSS-only layout switching between floating and in-flow modes
