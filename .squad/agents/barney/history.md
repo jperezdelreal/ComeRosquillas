@@ -251,4 +251,17 @@
 - `js/engine/audio.js`: _specialItemSfx(), _powerUpWarning()
 - `js/engine/high-scores.js`: totalItemsCollected in lifetime stats
 
+### PR #102 Review Fixes (Issue #92)
+**Date:** 2026-07-25  
+**Context:** Fixed 4 bugs flagged by Moe's code review on the power-up PR
+
+**Fixes Applied:**
+- `getSpeed()` now checks `_activePowerUps` and applies `effectValue` multipliers for speed_boost (2x Homer) and slow_ghosts (0.5x ghosts) — previously returned normal speed ignoring active power-ups
+- `checkCollisions()` now has `hasPowerUp('invincibility')` guard before death — Lard Lad's invincibility was tracked but never checked
+- `_specialItemSpawned` resets to `false` in `initLevel()` — was stuck `true` after first level, blocking all future spawns
+- Removed center-screen duplicate power-up timer bars, kept top-right HUD version
+- Removed all boss ghost dead code: `BOSS_GHOSTS`, `getBossForLevel()`, `ST_BOSS_INTRO`, `createBossGhost()`, and ghost personality props (`laughTimer`, `wobbleOffset`, `speedVariation`) — belongs in issue #96
+
+**Key Lesson:** Power-up effects that modify speeds must be wired into the central `getSpeed()` method, not just tracked in arrays. Level-scoped flags like `_specialItemSpawned` need explicit resets in level init.
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
