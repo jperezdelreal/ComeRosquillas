@@ -157,3 +157,28 @@
 - Ghost Debug Tools: AI state overlay, target visualization, tuning sliders — 16 tests
 - Daily Challenges: Daily rotation, deterministic PRNG, challenge leaderboard — 15 tests
 - Integration (Sprint 4 cross-feature): 9 tests
+
+### 2026-03-14: Sprint 5 Proactive Test Scaffolding (PR #100)
+
+**Context:** Built proactive tests for Sprint 5 features while Barney (#92 Power-Up Variety) and Lenny (#94 Screen Shake & Camera Juice) are implementing. Created 2 new test files with 112 running tests.
+
+**What Changed:**
+- **feature-power-ups.test.js** — 62 tests. Covers all 5 power-up types (Duff Beer, Chili Pepper, Mr. Burns Token, Donut Box, Lard Lad Statue), weighted spawn probability, collection logic, duration timers, speed/slow effects, extra life mechanic (3 tokens), random points (1000-5000), invincibility, stacking combos, spawn rules (1 per level), edge cases (expiry during collision, collection during death).
+- **feature-camera-juice.test.js** — 50 tests. Covers screen shake intensity levels (ghost collision 5px, combo escalation 3/5/8, boss 10px), shake timer decay, zoom effects (level start 150%→100%, complete 90%, death 120%), camera follow lerp math, edge padding/clamping, settings toggle (localStorage), auto-disable on FPS < 45, no-effects guard, regression compatibility with existing combo shake.
+
+**Final Results:** 709 tests passing, 0 skipped, 0 failures across 24 test files.
+
+**Key Formulas Tested:**
+- `applyDuffBeer(speed)` = `speed * 2` — doubles player speed
+- `applyChiliPepper(ghostSpeed)` = `ghostSpeed * 0.5` — halves ghost speed
+- `collectBurnsToken(held)` — 3 tokens = extra life, counter resets
+- `rollDonutBoxPoints()` = `1000 + floor(random() * 41) * 100` — range [1000, 5000]
+- `lerpZoom(current, target, speed)` = `current + (target - current) * speed`
+- `lerpFollow(cam, target, factor)` = `cam + (target - cam) * factor`
+- `shouldAutoDisableEffects(fps)` = `fps < 45`
+- Spawn probability: weighted selection, total weight 61 (25+20+1+5+10)
+
+**Notes:**
+- Tests may need minor adjustment when implementations land (specific values, localStorage keys)
+- Power-up spawn weights and durations are best guesses from issue spec — verify against implementation
+- Camera follow tests assume lerp-based smooth follow, not hard snap
