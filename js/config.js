@@ -389,6 +389,39 @@ const AUDIO_JUICE = {
     frightDetune: -200,                 // cents detune for fright melody
 }
 
+// ==================== CAMERA EFFECTS ====================
+const CAMERA_CONFIG = {
+    // Screen shake intensities (pixels)
+    shake: {
+        ghostCollision:  { intensity: 5, duration: 18 },   // medium shake on death
+        comboLight:      { intensity: 3, duration: 12 },    // 2x combo
+        comboMedium:     { intensity: 5, duration: 14 },    // 4x combo
+        comboHeavy:      { intensity: 8, duration: 18 },    // 8x combo
+        powerPellet:     { intensity: 2, duration: 10 },    // light pulse on power pickup
+    },
+    // Zoom effects
+    zoom: {
+        levelStartScale:    1.5,    // zoom in on level start
+        levelStartDuration: 60,     // frames (1s at 60fps)
+        levelCompleteScale: 0.9,    // slight zoom out on level clear
+        levelCompleteDuration: 40,
+        deathScale:         1.2,    // zoom toward Homer on death
+        deathDuration:      45,
+        powerPulseScale:    1.02,   // subtle pulse on power pellet
+        powerPulseDuration: 12,
+    },
+    // Camera follow (smooth lerp)
+    follow: {
+        lerpSpeed:      0.08,       // interpolation speed (0–1, higher = snappier)
+        lookahead:      2.5,        // tiles ahead in movement direction
+        edgePadding:    3,          // tiles from maze edge to stop centering
+        viewportRatio:  0.8,        // keep Homer within 80% of viewport center
+    },
+    // Auto-disable threshold
+    fpsThreshold: 45,               // disable camera effects below this FPS
+    fpsCheckInterval: 120,          // frames between FPS checks (~2s)
+}
+
 // ==================== PERFORMANCE ====================
 const PERF_CONFIG = {
     bfsCacheTTL: 3,                     // frames to cache BFS pathfinding results
@@ -522,6 +555,57 @@ const COLORS = {
     krustyPurple: '#6a0dad',
     burnsGreen: '#556b2f',
 };
+
+// ==================== POWER-UP TYPES ====================
+const SPECIAL_ITEM = 6;
+
+const POWER_UP_TYPES = [
+    {
+        id: 'duff_beer', name: 'Duff Beer', emoji: '🍺',
+        description: '2x speed for 8 seconds', duration: 480, probability: 30, points: 200,
+        colors: { primary: '#cc0000', secondary: '#ffd700', glow: 'rgba(255,215,0,0.3)' },
+        quote: '¡Cerveza rápida!', effect: 'speed_boost', effectValue: 2.0,
+    },
+    {
+        id: 'donut_box', name: 'Donut Box', emoji: '📦',
+        description: 'Bonus points jackpot', duration: 0, probability: 5, points: 0,
+        colors: { primary: '#ff69b4', secondary: '#ffd800', glow: 'rgba(255,105,180,0.3)' },
+        quote: 'Mmm... caja de rosquillas!', effect: 'bonus_points', effectValue: [1000, 5000],
+    },
+    {
+        id: 'chili_pepper', name: 'Chili Pepper', emoji: '🌶️',
+        description: 'Ghosts at 50% speed for 10s', duration: 600, probability: 25, points: 150,
+        colors: { primary: '#ff2200', secondary: '#ff8800', glow: 'rgba(255,34,0,0.3)' },
+        quote: '¡Ay, picante!', effect: 'slow_ghosts', effectValue: 0.5,
+    },
+    {
+        id: 'burns_token', name: 'Mr. Burns Token', emoji: '💰',
+        description: 'Collect 3 for extra life', duration: 0, probability: 1, points: 500,
+        colors: { primary: '#556b2f', secondary: '#ffd800', glow: 'rgba(85,107,47,0.3)' },
+        quote: 'Excellent...', effect: 'collect_token', effectValue: 3,
+    },
+    {
+        id: 'lard_lad', name: 'Lard Lad Statue', emoji: '🗽',
+        description: '5s invincibility', duration: 300, probability: 15, points: 300,
+        colors: { primary: '#daa520', secondary: '#ff4500', glow: 'rgba(218,165,32,0.3)' },
+        quote: '¡Soy invencible!', effect: 'invincibility', effectValue: true,
+    },
+]
+
+const POWER_UP_TOTAL_WEIGHT = POWER_UP_TYPES.reduce((sum, t) => sum + t.probability, 0)
+
+function getRandomPowerUpType() {
+    let roll = Math.random() * POWER_UP_TOTAL_WEIGHT
+    for (const type of POWER_UP_TYPES) {
+        roll -= type.probability
+        if (roll <= 0) return type
+    }
+    return POWER_UP_TYPES[0]
+}
+
+const POWER_UP_COMBOS = {
+    duff_beer_power_pellet: { scoreMultiplier: 1.5, label: 'DUFF COMBO!' },
+}
 
 // ==================== CUTSCENE DEFINITIONS ====================
 // Levels that trigger cutscenes: 2, 5, 9, 14

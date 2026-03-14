@@ -42,10 +42,29 @@
             this.screenShakeTimer = 0;
             this.screenShakeIntensity = 0;
 
+            // Camera juice state
+            this._cameraEffectsEnabled = true;
+            this._cameraAutoDisabled = false;
+            this._cameraFpsCheckFrame = 0;
+            this._cameraZoom = 1.0;
+            this._cameraZoomTarget = 1.0;
+            this._cameraZoomTimer = 0;
+            this._cameraZoomDuration = 0;
+            this._cameraZoomStart = 1.0;
+            this._cameraOffsetX = 0;
+            this._cameraOffsetY = 0;
+
             // Per-game stats tracking
             this._gameDonutsEaten = 0;
             this._gameGhostsEaten = 0;
             this._gameStartTime = 0;
+            this._gameItemsCollected = 0;
+
+            // Power-up system state
+            this._specialItem = null;
+            this._activePowerUps = [];
+            this._burnsTokens = 0;
+            this._powerUpComboActive = false;
 
             // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
             this._bfsCache = new Map();
@@ -98,6 +117,10 @@
                         chaseDistance: this.settingsMenu.settings.aiChaseDistance || 8,
                         scatterMultiplier: this.settingsMenu.settings.aiScatterMult || 1.0,
                     };
+                }
+                // Sync camera effects from saved settings
+                if (this.settingsMenu.settings.cameraEffects !== undefined) {
+                    this._cameraEffectsEnabled = this.settingsMenu.settings.cameraEffects;
                 }
                 
                 // Hook up settings button
@@ -388,6 +411,10 @@
             this._gameDonutsEaten = 0;
             this._gameGhostsEaten = 0;
             this._gameStartTime = Date.now();
+            this._gameItemsCollected = 0;
+            this._burnsTokens = 0;
+            this._activePowerUps = [];
+            this._powerUpComboActive = false;
             this._dailyTimeUp = false;
             this.initLevel();
             
@@ -400,6 +427,12 @@
             this.stateTimer = 150;
             this.sound.play('start');
             this.sound.setLevelTempo(this.level);
+            
+            // Camera: zoom in from 150% on level start
+            if (typeof CAMERA_CONFIG !== 'undefined') {
+                this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
+                this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
+            }
             
             const challengeBanner = this._dailyChallenge
                 ? DailyChallenge.getBannerHtml(this._dailyChallenge)
@@ -602,6 +635,72 @@
             } catch (e) {}
         }
 
+        // ---- CAMERA JUICE ----
+        _isCameraEnabled() {
+            return typeof CAMERA_CONFIG !== 'undefined' &&
+                   this._cameraEffectsEnabled &&
+                   !this._cameraAutoDisabled;
+        }
+
+        triggerShake(preset) {
+            if (!this._isCameraEnabled()) return;
+            const cfg = CAMERA_CONFIG.shake[preset];
+            if (!cfg) return;
+            this.screenShakeTimer = cfg.duration;
+            this.screenShakeIntensity = cfg.intensity;
+        }
+
+        triggerZoom(targetScale, duration) {
+            if (!this._isCameraEnabled()) return;
+            this._cameraZoomStart = this._cameraZoom;
+            this._cameraZoomTarget = targetScale;
+            this._cameraZoomDuration = duration;
+            this._cameraZoomTimer = duration;
+        }
+
+        _updateCamera() {
+            if (typeof CAMERA_CONFIG === 'undefined') return;
+            if (this._cameraEffectsEnabled && !this._cameraAutoDisabled) {
+                this._cameraFpsCheckFrame++;
+                if (this._cameraFpsCheckFrame >= CAMERA_CONFIG.fpsCheckInterval) {
+                    this._cameraFpsCheckFrame = 0;
+                    if (this._fpsDisplay > 0 && this._fpsDisplay < CAMERA_CONFIG.fpsThreshold) {
+                        this._cameraAutoDisabled = true;
+                        this._cameraZoom = 1.0;
+                        this._cameraOffsetX = 0;
+                        this._cameraOffsetY = 0;
+                    }
+                }
+            }
+            if (!this._isCameraEnabled()) return;
+            if (this._cameraZoomTimer > 0) {
+                this._cameraZoomTimer--;
+                const progress = 1 - (this._cameraZoomTimer / this._cameraZoomDuration);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                this._cameraZoom = this._cameraZoomStart + (this._cameraZoomTarget - this._cameraZoomStart) * ease;
+            } else if (Math.abs(this._cameraZoom - 1.0) > 0.001) {
+                this._cameraZoom += (1.0 - this._cameraZoom) * 0.1;
+            } else {
+                this._cameraZoom = 1.0;
+            }
+            if (this.homer && (this.state === ST_PLAYING || this.state === ST_READY)) {
+                const cfg = CAMERA_CONFIG.follow;
+                const centerX = CANVAS_W / 2;
+                const centerY = CANVAS_H / 2;
+                const homerCX = this.homer.x + TILE / 2;
+                const homerCY = this.homer.y + TILE / 2;
+                const lookX = DX[this.homer.dir] * TILE * cfg.lookahead;
+                const lookY = DY[this.homer.dir] * TILE * cfg.lookahead;
+                let targetX = (centerX - homerCX - lookX) * (1 - cfg.viewportRatio);
+                let targetY = (centerY - homerCY - lookY) * (1 - cfg.viewportRatio);
+                const maxOff = cfg.edgePadding * TILE;
+                targetX = Math.max(-maxOff, Math.min(maxOff, targetX));
+                targetY = Math.max(-maxOff, Math.min(maxOff, targetY));
+                this._cameraOffsetX += (targetX - this._cameraOffsetX) * cfg.lerpSpeed;
+                this._cameraOffsetY += (targetY - this._cameraOffsetY) * cfg.lerpSpeed;
+            }
+        }
+
         // ---- UPDATE ----
         update() {
             this.animFrame++;
@@ -634,6 +733,9 @@
 
             // Update screen shake
             if (this.screenShakeTimer > 0) this.screenShakeTimer--;
+
+            // Update camera juice (zoom, follow, FPS auto-disable)
+            this._updateCamera();
 
             if (this.state === ST_READY) {
                 this.stateTimer--;
@@ -694,6 +796,11 @@
                         this.level++;
                         this.initLevel();
                         this.sound.setLevelTempo(this.level);
+                        // Camera: zoom in on new level
+                        if (typeof CAMERA_CONFIG !== 'undefined') {
+                            this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
+                            this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
+                        }
                         this.state = ST_READY;
                         this.stateTimer = 150;
                         this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
@@ -720,6 +827,8 @@
             this.moveHomer();
             this.checkDots();
             this.updateBonus();
+            this.updateSpecialItems();
+            this.updateActivePowerUps();
             for (const ghost of this.ghosts) this.moveGhost(ghost);
             this.checkCollisions();
 
@@ -841,6 +950,11 @@
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
                 this.sound.setFrightMode(true);
+                // Camera: light pulse on power pellet
+                this.triggerShake('powerPellet');
+                if (typeof CAMERA_CONFIG !== 'undefined') {
+                    this.triggerZoom(CAMERA_CONFIG.zoom.powerPulseScale, CAMERA_CONFIG.zoom.powerPulseDuration);
+                }
                 // Haptic: double-pulse on power pellet pickup
                 if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
@@ -856,6 +970,8 @@
                 }
                 this.checkExtraLife();
                 this.updateHUD();
+            } else if (typeof SPECIAL_ITEM !== 'undefined' && cell === SPECIAL_ITEM) {
+                this.checkSpecialItemCollection();
             }
 
             if (this.dotsEaten >= this.totalDots) {
@@ -863,6 +979,10 @@
                 this.stateTimer = 150;
                 this.sound.stopMusic();
                 this.sound.play('levelComplete');
+                // Camera: zoom out on level complete
+                if (typeof CAMERA_CONFIG !== 'undefined') {
+                    this.triggerZoom(CAMERA_CONFIG.zoom.levelCompleteScale, CAMERA_CONFIG.zoom.levelCompleteDuration);
+                }
                 const quote = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
                 const levelLabel = this.isEndlessMode()
                     ? `∞ ENDLESS ${this.currentLayout.name} ${this.level}`
@@ -906,6 +1026,148 @@
                 this.addFloatingText(this.homer.x + TILE / 2, this.homer.y - 10, 'EXTRA LIFE!', '#00ff00');
                 this.updateHUD();
             }
+        }
+
+        // ---- SPECIAL ITEMS (POWER-UP VARIETY) ----
+
+        updateSpecialItems() {
+            if (typeof POWER_UP_TYPES === 'undefined') return;
+            if (this._specialItemSpawned || this._specialItem) return;
+            const threshold = Math.floor(this.totalDots * 0.4);
+            if (this.dotsEaten >= threshold) {
+                this.spawnSpecialItem();
+            }
+        }
+
+        spawnSpecialItem() {
+            const candidates = [];
+            const hTile = this.tileAt(this.homer.x + TILE / 2, this.homer.y + TILE / 2);
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (this.maze[r][c] !== EMPTY) continue;
+                    if (r >= 11 && r <= 19 && c >= 10 && c <= 18) continue;
+                    if (r === 14 && (c < 6 || c > 21)) continue;
+                    const dist = Math.abs(hTile.col - c) + Math.abs(hTile.row - r);
+                    if (dist < 5) continue;
+                    candidates.push({ col: c, row: r });
+                }
+            }
+            if (candidates.length === 0) return;
+            const pos = candidates[Math.floor(Math.random() * candidates.length)];
+            const type = getRandomPowerUpType();
+            this._specialItem = { type, col: pos.col, row: pos.row };
+            this._specialItemSpawned = true;
+            this.maze[pos.row][pos.col] = SPECIAL_ITEM;
+        }
+
+        checkSpecialItemCollection() {
+            if (!this._specialItem) return;
+            const cx = this.homer.x + TILE / 2;
+            const cy = this.homer.y + TILE / 2;
+            const tile = this.tileAt(cx, cy);
+            if (tile.col === this._specialItem.col && tile.row === this._specialItem.row) {
+                this.collectSpecialItem(this._specialItem);
+            }
+        }
+
+        collectSpecialItem(item) {
+            const type = item.type;
+            const cx = item.col * TILE + TILE / 2;
+            const cy = item.row * TILE + TILE / 2;
+            this.maze[item.row][item.col] = EMPTY;
+            this._specialItem = null;
+            this._gameItemsCollected++;
+            this.sound.play('specialItem', type);
+            const _dcMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
+                ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
+            let comboMul = 1;
+            if (type.effect === 'speed_boost' && this.frightTimer > 0) {
+                comboMul = POWER_UP_COMBOS.duff_beer_power_pellet.scoreMultiplier;
+                this._powerUpComboActive = true;
+                this.addFloatingText(cx, cy - 20, POWER_UP_COMBOS.duff_beer_power_pellet.label, '#ffd800');
+                this.addParticles(cx, cy, '#ffd800', 12);
+            }
+            switch (type.effect) {
+                case 'speed_boost':
+                case 'slow_ghosts':
+                case 'invincibility': {
+                    const pts = Math.round(type.points * _dcMul * comboMul);
+                    this.score += pts;
+                    this.addFloatingText(cx, cy, `${type.emoji} ${pts}`, type.colors.primary);
+                    this.addParticles(cx, cy, type.colors.primary, 10);
+                    this._activePowerUps.push({ type, timer: type.duration, startTimer: type.duration });
+                    if (type.effect === 'speed_boost') this.homer.speed = this.getSpeed('homer');
+                    if (type.effect === 'slow_ghosts') {
+                        for (const g of this.ghosts) {
+                            if (g.mode !== GM_EATEN) g.speed = this.getSpeed('ghost', g);
+                        }
+                    }
+                    break;
+                }
+                case 'bonus_points': {
+                    const [min, max] = type.effectValue;
+                    const bonus = Math.round((min + Math.random() * (max - min)) * _dcMul * comboMul);
+                    this.score += bonus;
+                    this.addFloatingText(cx, cy, `${type.emoji} ${bonus}!`, type.colors.secondary);
+                    this.addParticles(cx, cy, type.colors.primary, 15);
+                    this.screenShakeTimer = 10;
+                    this.screenShakeIntensity = 4;
+                    break;
+                }
+                case 'collect_token': {
+                    const pts = Math.round(type.points * _dcMul);
+                    this.score += pts;
+                    this._burnsTokens++;
+                    this.addFloatingText(cx, cy, `${type.emoji} ${this._burnsTokens}/${type.effectValue}`, type.colors.secondary);
+                    this.addParticles(cx, cy, type.colors.primary, 8);
+                    if (this._burnsTokens >= type.effectValue) {
+                        this._burnsTokens = 0;
+                        this.lives++;
+                        this.sound.play('extraLife');
+                        this.addFloatingText(cx, cy - 20, '💰 EXTRA LIFE!', '#ffd800');
+                        this.addParticles(cx, cy, '#ffd800', 20);
+                        this.screenShakeTimer = 15;
+                        this.screenShakeIntensity = 6;
+                    }
+                    break;
+                }
+            }
+            this.addFloatingText(cx, cy - 10, type.quote, type.colors.secondary);
+            if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
+            this.checkExtraLife();
+            this.updateHUD();
+        }
+
+        updateActivePowerUps() {
+            if (!this._activePowerUps || this._activePowerUps.length === 0) return;
+            const expired = [];
+            for (let i = this._activePowerUps.length - 1; i >= 0; i--) {
+                const pu = this._activePowerUps[i];
+                pu.timer--;
+                if (pu.timer === Math.floor(pu.startTimer * 0.25)) {
+                    this.sound.play('powerUpWarning');
+                }
+                if (pu.timer <= 0) {
+                    expired.push(pu);
+                    this._activePowerUps.splice(i, 1);
+                }
+            }
+            for (const pu of expired) {
+                this.addFloatingText(this.homer.x + TILE / 2, this.homer.y - 10, `${pu.type.emoji} expired`, '#888');
+                if (pu.type.effect === 'speed_boost') this.homer.speed = this.getSpeed('homer');
+                if (pu.type.effect === 'slow_ghosts') {
+                    for (const g of this.ghosts) {
+                        if (g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED) {
+                            g.speed = this.getSpeed('ghost', g);
+                        }
+                    }
+                }
+                this._powerUpComboActive = false;
+            }
+        }
+
+        hasPowerUp(effectId) {
+            return this._activePowerUps && this._activePowerUps.some(p => p.type.effect === effectId);
         }
 
         // ---- GHOST AI WITH BFS PATHFINDING ----
@@ -1168,8 +1430,8 @@
                             this.addParticles(g.x + TILE / 2, g.y + TILE / 2, '#ffd800', 15);
                             this.addFloatingText(g.x + TILE / 2, g.y - TILE, `${comboMultiplier}x COMBO!`, '#ffd800');
                             // Screen shake scales with milestone tier
-                            this.screenShakeTimer = 12;
-                            this.screenShakeIntensity = comboMultiplier <= 2 ? 3 : comboMultiplier <= 4 ? 5 : 8;
+                            const shakePreset = comboMultiplier <= 2 ? 'comboLight' : comboMultiplier <= 4 ? 'comboMedium' : 'comboHeavy';
+                            this.triggerShake(shakePreset);
                         }
                         this.comboDisplayTimer = 120;
 
@@ -1190,6 +1452,11 @@
                         this.stateTimer = 90;
                         this.sound.stopMusic();
                         this.sound.play('die');
+                        // Camera: medium shake + zoom on death
+                        this.triggerShake('ghostCollision');
+                        if (typeof CAMERA_CONFIG !== 'undefined') {
+                            this.triggerZoom(CAMERA_CONFIG.zoom.deathScale, CAMERA_CONFIG.zoom.deathDuration);
+                        }
                         // Haptic: strong buzz on ghost collision (death)
                         if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
                         return;
@@ -1206,6 +1473,7 @@
                 difficulty: typeof getCurrentDifficulty === 'function' ? getCurrentDifficulty() : 'normal',
                 donutsEaten: this._gameDonutsEaten,
                 ghostsEaten: this._gameGhostsEaten,
+                itemsCollected: this._gameItemsCollected,
                 playTimeMs: this._gameStartTime ? Date.now() - this._gameStartTime : 0
             };
         }
@@ -1308,14 +1576,43 @@
             
             const ctx = this.ctx;
 
-            // Smooth camera shake (sine-based instead of random for less jarring motion)
-            if (this.screenShakeTimer > 0) {
-                const decay = this.screenShakeTimer / 12;
-                const intensity = this.screenShakeIntensity * decay;
-                const sx = Math.sin(this.animFrame * 1.1) * intensity;
-                const sy = Math.cos(this.animFrame * 1.7) * intensity;
+            // Camera transform: combine shake, zoom, and follow
+            const hasShake = this.screenShakeTimer > 0;
+            const hasZoom = this._isCameraEnabled() && Math.abs(this._cameraZoom - 1.0) > 0.001;
+            const hasFollow = this._isCameraEnabled() &&
+                (Math.abs(this._cameraOffsetX) > 0.1 || Math.abs(this._cameraOffsetY) > 0.1);
+            const hasCameraTransform = hasShake || hasZoom || hasFollow;
+
+            if (hasCameraTransform) {
                 ctx.save();
-                ctx.translate(sx, sy);
+                if (hasZoom) {
+                    const cx = CANVAS_W / 2;
+                    const cy = CANVAS_H / 2;
+                    ctx.translate(cx, cy);
+                    ctx.scale(this._cameraZoom, this._cameraZoom);
+                    ctx.translate(-cx, -cy);
+                }
+                if (hasFollow) {
+                    ctx.translate(this._cameraOffsetX, this._cameraOffsetY);
+                }
+                if (hasShake) {
+                    const maxDur = typeof CAMERA_CONFIG !== 'undefined'
+                        ? Math.max(...Object.values(CAMERA_CONFIG.shake).map(s => s.duration))
+                        : 18;
+                    const decay = this.screenShakeTimer / maxDur;
+                    const intensity = this.screenShakeIntensity * decay;
+                    ctx.translate(
+                        Math.sin(this.animFrame * 1.1) * intensity,
+                        Math.cos(this.animFrame * 1.7) * intensity
+                    );
+                }
+            }
+            if (hasZoom && this._cameraZoom < 1.0) {
+                ctx.save();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = COLORS.pathDark;
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.restore();
             }
 
             ctx.fillStyle = COLORS.pathDark;
@@ -1344,6 +1641,34 @@
             // Bonus item
             if (this.bonusActive && this.bonusPos) {
                 Sprites.drawBonusItem(ctx, this.bonusPos.x + TILE / 2, this.bonusPos.y + TILE / 2, this.level, this.animFrame);
+            }
+
+            // Special power-up item
+            if (this._specialItem) {
+                const si = this._specialItem;
+                const sx = si.col * TILE + TILE / 2;
+                const sy = si.row * TILE + TILE / 2;
+                const bob = Math.sin(this.animFrame * 0.1) * 3;
+                const glow = 0.4 + Math.sin(this.animFrame * 0.08) * 0.2;
+                
+                ctx.save();
+                ctx.globalAlpha = glow + 0.4;
+                
+                // Draw glow effect
+                const gradient = ctx.createRadialGradient(sx, sy + bob, 0, sx, sy + bob, TILE);
+                gradient.addColorStop(0, si.type.colors.glow);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(sx - TILE, sy + bob - TILE, TILE * 2, TILE * 2);
+                
+                // Draw item icon
+                ctx.globalAlpha = 1;
+                ctx.font = `${TILE * 1.2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(si.type.emoji, sx, sy + bob);
+                
+                ctx.restore();
             }
 
             // Homer
@@ -1450,14 +1775,79 @@
                 Sprites.drawMiniHomer(ctx, 20 + i * 28, CANVAS_H - 16);
             }
 
+            // Active power-ups HUD timer (top-right corner)
+            if (this._activePowerUps && this._activePowerUps.length > 0) {
+                const hudX = CANVAS_W - 10;
+                let hudY = 30;
+                
+                for (const pu of this._activePowerUps) {
+                    const timeLeft = Math.ceil(pu.timer / 60);
+                    const pct = pu.timer / pu.startTimer;
+                    const barWidth = 80;
+                    const barHeight = 16;
+                    
+                    ctx.save();
+                    ctx.textAlign = 'right';
+                    
+                    // Background bar
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(hudX - barWidth, hudY, barWidth, barHeight);
+                    
+                    // Progress bar
+                    const barColor = pct < 0.25 ? '#ff4444' : pct < 0.5 ? '#ff8800' : pu.type.colors.primary;
+                    ctx.fillStyle = barColor;
+                    ctx.fillRect(hudX - barWidth, hudY, barWidth * pct, barHeight);
+                    
+                    // Border
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(hudX - barWidth, hudY, barWidth, barHeight);
+                    
+                    // Icon and time
+                    ctx.font = '12px Arial';
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(`${pu.type.emoji} ${timeLeft}s`, hudX - 5, hudY + 12);
+                    
+                    ctx.restore();
+                    hudY += 22;
+                }
+            }
+
+            // Burns token indicator (bottom-left corner)
+            if (this._burnsTokens > 0 && typeof POWER_UP_TYPES !== 'undefined') {
+                const tokenType = POWER_UP_TYPES.find(t => t.effect === 'collect_token');
+                if (tokenType) {
+                    ctx.save();
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(`${tokenType.emoji} ${this._burnsTokens}/${tokenType.effectValue}`, 11, CANVAS_H - 27);
+                    ctx.fillStyle = '#ffd800';
+                    ctx.fillText(`${tokenType.emoji} ${this._burnsTokens}/${tokenType.effectValue}`, 10, CANVAS_H - 28);
+                    ctx.restore();
+                }
+            }
+
             // Ghost names display (bottom right)
             if (this.state === ST_START || this.state === ST_READY) {
                 this.drawGhostLegend(ctx);
             }
 
-            // Restore screen shake transform
-            if (this.screenShakeTimer > 0) {
+            // Restore camera transforms
+            if (hasCameraTransform) {
                 ctx.restore();
+            }
+
+            // Level complete white flash overlay
+            if (this.state === ST_LEVEL_DONE && this._isCameraEnabled() && typeof CAMERA_CONFIG !== 'undefined') {
+                const flashProgress = 1 - (this.stateTimer / 150);
+                if (flashProgress > 0.6) {
+                    ctx.save();
+                    ctx.globalAlpha = (flashProgress - 0.6) * 2.5;
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                    ctx.restore();
+                }
             }
 
             // Level transition wipe effect (circular iris wipe)

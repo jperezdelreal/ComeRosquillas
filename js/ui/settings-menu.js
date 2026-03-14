@@ -24,6 +24,7 @@ class SettingsMenu {
             aiAggression: 1.0,
             aiChaseDistance: 8,
             aiScatterMult: 1.0,
+            cameraEffects: true,
         };
         
         this.loadSettings();
@@ -147,6 +148,22 @@ class SettingsMenu {
                             <button class="settings-button settings-tutorial-btn" style="flex: 0; padding: 8px 16px; font-size: 16px;">
                                 Show Tutorial
                             </button>
+                        </div>
+                    </section>
+                    
+                    <!-- Camera Effects -->
+                    <section class="settings-section">
+                        <h3>📷 Camera Effects</h3>
+                        
+                        <div class="setting-row">
+                            <label for="cameraEffects">Screen Shake & Zoom</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="cameraEffects" ${this.settings.cameraEffects ? 'checked' : ''} />
+                                <span class="toggle-label">${this.settings.cameraEffects ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                        <div class="setting-row" style="opacity: 0.7; font-size: 12px;">
+                            <label>Auto-disables on low-end devices (FPS &lt; 45)</label>
                         </div>
                     </section>
                     
@@ -280,6 +297,17 @@ class SettingsMenu {
                 e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
                 this.saveSettings();
                 this._syncDebugToGame();
+            });
+        }
+        
+        // Camera effects toggle
+        const cameraToggle = this.overlay.querySelector('#cameraEffects');
+        if (cameraToggle) {
+            cameraToggle.addEventListener('change', (e) => {
+                this.settings.cameraEffects = e.target.checked;
+                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                this.saveSettings();
+                this._syncCameraToGame();
             });
         }
         
@@ -461,6 +489,7 @@ class SettingsMenu {
             aiAggression: 1.0,
             aiChaseDistance: 8,
             aiScatterMult: 1.0,
+            cameraEffects: true,
         };
         
         this.saveSettings();
@@ -468,6 +497,7 @@ class SettingsMenu {
         this.applySettings();
         this._syncDebugToGame();
         this._syncAITuning();
+        this._syncCameraToGame();
         
         // Reset difficulty in Barney's system if available
         if (typeof setDifficulty === 'function') {
@@ -504,6 +534,13 @@ class SettingsMenu {
         if (devEl) {
             devEl.checked = this.settings.devConsole;
             devEl.parentElement.querySelector('.toggle-label').textContent = this.settings.devConsole ? 'ON' : 'OFF';
+        }
+        
+        // Update camera effects toggle
+        const camEl = this.overlay.querySelector('#cameraEffects');
+        if (camEl) {
+            camEl.checked = this.settings.cameraEffects;
+            camEl.parentElement.querySelector('.toggle-label').textContent = this.settings.cameraEffects ? 'ON' : 'OFF';
         }
         
         // Update AI tuning sliders
@@ -582,5 +619,12 @@ class SettingsMenu {
         this.saveSettings();
         this.updateUI();
         this._syncAITuning();
+    }
+    
+    // Push camera effects preference to game instance
+    _syncCameraToGame() {
+        const game = this._game;
+        if (!game) return;
+        game._cameraEffectsEnabled = this.settings.cameraEffects;
     }
 }
