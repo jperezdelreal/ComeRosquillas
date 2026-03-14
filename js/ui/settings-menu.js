@@ -42,17 +42,17 @@ class SettingsMenu {
         this.overlay.innerHTML = `
             <div class="settings-modal" role="dialog" aria-labelledby="settingsTitle">
                 <div class="settings-header">
-                    <h2 id="settingsTitle">⚙️ Settings</h2>
-                    <button class="settings-close" aria-label="Close settings">✕</button>
+                    <h2 id="settingsTitle">${t('settings.title')}</h2>
+                    <button class="settings-close" aria-label="${t('settings.close')}">✕</button>
                 </div>
                 
                 <div class="settings-content">
                     <!-- Audio Controls -->
                     <section class="settings-section">
-                        <h3>🔊 Audio</h3>
+                        <h3>${t('settings.audio')}</h3>
                         
                         <div class="setting-row">
-                            <label for="masterVolume">Master Volume</label>
+                            <label for="masterVolume">${t('settings.master_volume')}</label>
                             <div class="slider-container">
                                 <input type="range" id="masterVolume" min="0" max="100" value="${this.settings.masterVolume}" />
                                 <span class="slider-value">${this.settings.masterVolume}%</span>
@@ -60,7 +60,7 @@ class SettingsMenu {
                         </div>
                         
                         <div class="setting-row">
-                            <label for="musicVolume">Music Volume</label>
+                            <label for="musicVolume">${t('settings.music_volume')}</label>
                             <div class="slider-container">
                                 <input type="range" id="musicVolume" min="0" max="100" value="${this.settings.musicVolume}" />
                                 <span class="slider-value">${this.settings.musicVolume}%</span>
@@ -68,7 +68,7 @@ class SettingsMenu {
                         </div>
                         
                         <div class="setting-row">
-                            <label for="sfxVolume">SFX Volume</label>
+                            <label for="sfxVolume">${t('settings.sfx_volume')}</label>
                             <div class="slider-container">
                                 <input type="range" id="sfxVolume" min="0" max="100" value="${this.settings.sfxVolume}" />
                                 <span class="slider-value">${this.settings.sfxVolume}%</span>
@@ -76,40 +76,40 @@ class SettingsMenu {
                         </div>
                         
                         <div class="setting-row">
-                            <label for="musicToggle">Music Enabled</label>
+                            <label for="musicToggle">${t('settings.music_enabled')}</label>
                             <div class="toggle-container">
                                 <input type="checkbox" id="musicToggle" ${this.settings.musicEnabled ? 'checked' : ''} />
-                                <span class="toggle-label">${this.settings.musicEnabled ? 'ON' : 'OFF'}</span>
-                                <span class="key-hint">(M key)</span>
+                                <span class="toggle-label">${this.settings.musicEnabled ? t('settings.on') : t('settings.off')}</span>
+                                <span class="key-hint">${t('settings.music_key_hint')}</span>
                             </div>
                         </div>
                     </section>
                     
                     <!-- Difficulty Settings -->
                     <section class="settings-section">
-                        <h3>🎮 Difficulty</h3>
+                        <h3>${t('settings.difficulty')}</h3>
                         
                         <div class="setting-row">
                             <div class="difficulty-options">
                                 <label class="radio-option">
                                     <input type="radio" name="difficulty" value="easy" ${this.settings.difficulty === 'easy' ? 'checked' : ''} />
                                     <span class="radio-label">
-                                        <strong>Easy</strong>
-                                        <small>Slow ghosts, forgiving gameplay</small>
+                                        <strong>${t('settings.easy')}</strong>
+                                        <small>${t('settings.easy_desc')}</small>
                                     </span>
                                 </label>
                                 <label class="radio-option">
                                     <input type="radio" name="difficulty" value="normal" ${this.settings.difficulty === 'normal' ? 'checked' : ''} />
                                     <span class="radio-label">
-                                        <strong>Normal</strong>
-                                        <small>Balanced challenge</small>
+                                        <strong>${t('settings.normal')}</strong>
+                                        <small>${t('settings.normal_desc')}</small>
                                     </span>
                                 </label>
                                 <label class="radio-option">
                                     <input type="radio" name="difficulty" value="hard" ${this.settings.difficulty === 'hard' ? 'checked' : ''} />
                                     <span class="radio-label">
-                                        <strong>Hard</strong>
-                                        <small>Fast ghosts, intense gameplay</small>
+                                        <strong>${t('settings.hard')}</strong>
+                                        <small>${t('settings.hard_desc')}</small>
                                     </span>
                                 </label>
                             </div>
@@ -118,52 +118,65 @@ class SettingsMenu {
                     
                     <!-- Controls Display -->
                     <section class="settings-section">
-                        <h3>🎹 Controls</h3>
+                        <h3>${t('settings.controls')}</h3>
                         
                         <div class="controls-display">
                             <div class="control-item">
                                 <span class="control-key">↑ ↓ ← →</span>
-                                <span class="control-action">Move Homer</span>
+                                <span class="control-action">${t('settings.move_homer')}</span>
                             </div>
                             <div class="control-item">
                                 <span class="control-key">P</span>
-                                <span class="control-action">Pause Game</span>
+                                <span class="control-action">${t('settings.pause_game')}</span>
                             </div>
                             <div class="control-item">
                                 <span class="control-key">M</span>
-                                <span class="control-action">Toggle Music</span>
+                                <span class="control-action">${t('settings.toggle_music')}</span>
                             </div>
                             <div class="control-item">
                                 <span class="control-key">ENTER</span>
-                                <span class="control-action">Start Game</span>
+                                <span class="control-action">${t('settings.start_game')}</span>
                             </div>
+                        </div>
+                    </section>
+                    
+                                        <!-- Language -->
+                    <section class="settings-section">
+                        <h3>${t('settings.language')}</h3>
+                        <div class="setting-row">
+                            <label for="languageSelect">${t('settings.language_label')}</label>
+                            <select id="languageSelect" class="settings-select" aria-label="${t('settings.language_label')}">
+                                ${Object.entries(I18n.SUPPORTED_LANGUAGES).map(([code, lang]) =>
+                                    `<option value="${code}" ${I18n.getLanguage() === code ? 'selected' : ''}>${lang.flag} ${lang.nativeName}</option>`
+                                ).join('')}
+                            </select>
                         </div>
                     </section>
                     
                     <!-- Tutorial -->
                     <section class="settings-section">
-                        <h3>📖 Tutorial</h3>
+                        <h3>${t('settings.tutorial_section')}</h3>
                         <div class="setting-row">
-                            <label>Learn the game basics</label>
+                            <label>${t('settings.tutorial_learn')}</label>
                             <button class="settings-button settings-tutorial-btn" style="flex: 0; padding: 8px 16px; font-size: 16px;">
-                                Show Tutorial
+                                ${t('settings.tutorial_show')}
                             </button>
                         </div>
                     </section>
                     
                     <!-- Camera Effects -->
                     <section class="settings-section">
-                        <h3>📷 Camera Effects</h3>
+                        <h3>${t('settings.camera_section')}</h3>
                         
                         <div class="setting-row">
-                            <label for="cameraEffects">Screen Shake & Zoom</label>
+                            <label for="cameraEffects">${t('settings.camera_shake')}</label>
                             <div class="toggle-container">
                                 <input type="checkbox" id="cameraEffects" ${this.settings.cameraEffects ? 'checked' : ''} />
-                                <span class="toggle-label">${this.settings.cameraEffects ? 'ON' : 'OFF'}</span>
+                                <span class="toggle-label">${this.settings.cameraEffects ? t('settings.on') : t('settings.off')}</span>
                             </div>
                         </div>
                         <div class="setting-row" style="opacity: 0.7; font-size: 12px;">
-                            <label>Auto-disables on low-end devices (FPS &lt; 45)</label>
+                            <label>${t('settings.camera_auto_note')}</label>
                         </div>
                     </section>
                     
@@ -175,7 +188,7 @@ class SettingsMenu {
                             <label for="debugOverlay">Show Ghost AI Debug Info</label>
                             <div class="toggle-container">
                                 <input type="checkbox" id="debugOverlay" ${this.settings.debugOverlay ? 'checked' : ''} />
-                                <span class="toggle-label">${this.settings.debugOverlay ? 'ON' : 'OFF'}</span>
+                                <span class="toggle-label">${this.settings.debugOverlay ? t('settings.on') : t('settings.off')}</span>
                                 <span class="key-hint">(D key)</span>
                             </div>
                         </div>
@@ -184,7 +197,7 @@ class SettingsMenu {
                             <label for="devConsole">Dev Console</label>
                             <div class="toggle-container">
                                 <input type="checkbox" id="devConsole" ${this.settings.devConsole ? 'checked' : ''} />
-                                <span class="toggle-label">${this.settings.devConsole ? 'ON' : 'OFF'}</span>
+                                <span class="toggle-label">${this.settings.devConsole ? t('settings.on') : t('settings.off')}</span>
                                 <span class="key-hint">(~ key)</span>
                             </div>
                         </div>
@@ -294,7 +307,7 @@ class SettingsMenu {
         if (debugToggle) {
             debugToggle.addEventListener('change', (e) => {
                 this.settings.debugOverlay = e.target.checked;
-                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? t('settings.on') : t('settings.off');
                 this.saveSettings();
                 this._syncDebugToGame();
             });
@@ -305,7 +318,7 @@ class SettingsMenu {
         if (cameraToggle) {
             cameraToggle.addEventListener('change', (e) => {
                 this.settings.cameraEffects = e.target.checked;
-                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? t('settings.on') : t('settings.off');
                 this.saveSettings();
                 this._syncCameraToGame();
             });
@@ -316,7 +329,7 @@ class SettingsMenu {
         if (devConsoleToggle) {
             devConsoleToggle.addEventListener('change', (e) => {
                 this.settings.devConsole = e.target.checked;
-                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? t('settings.on') : t('settings.off');
                 this.saveSettings();
                 this._syncDebugToGame();
             });
@@ -360,6 +373,20 @@ class SettingsMenu {
         const aiResetBtn = this.overlay.querySelector('.settings-ai-reset');
         if (aiResetBtn) {
             aiResetBtn.addEventListener('click', () => this.resetAIDefaults());
+        }
+        // Language selector
+        const langSelect = this.overlay.querySelector('#languageSelect');
+        if (langSelect) {
+            langSelect.addEventListener('change', (e) => {
+                I18n.setLanguage(e.target.value);
+                this.overlay.remove();
+                this.createOverlay();
+                this.setupEventHandlers();
+                this.open();
+                if (typeof window._game !== 'undefined' && window._game.state === ST_START) {
+                    window._game.showStartScreen();
+                }
+            });
         }
         
         // Keyboard navigation
@@ -410,7 +437,7 @@ class SettingsMenu {
     toggleMusic(enabled) {
         this.settings.musicEnabled = enabled;
         const toggleLabel = this.overlay.querySelector('#musicToggle').parentElement.querySelector('.toggle-label');
-        toggleLabel.textContent = enabled ? 'ON' : 'OFF';
+        toggleLabel.textContent = enabled ? t('settings.on') : t('settings.off');
         this.saveSettings();
         this.applySettings();
     }
@@ -518,7 +545,7 @@ class SettingsMenu {
         
         // Update music toggle
         this.overlay.querySelector('#musicToggle').checked = this.settings.musicEnabled;
-        this.overlay.querySelector('#musicToggle').parentElement.querySelector('.toggle-label').textContent = this.settings.musicEnabled ? 'ON' : 'OFF';
+        this.overlay.querySelector('#musicToggle').parentElement.querySelector('.toggle-label').textContent = this.settings.musicEnabled ? t('settings.on') : t('settings.off');
         
         // Update difficulty radio
         const difficultyRadio = this.overlay.querySelector(`input[name="difficulty"][value="${this.settings.difficulty}"]`);
@@ -528,19 +555,19 @@ class SettingsMenu {
         const debugEl = this.overlay.querySelector('#debugOverlay');
         if (debugEl) {
             debugEl.checked = this.settings.debugOverlay;
-            debugEl.parentElement.querySelector('.toggle-label').textContent = this.settings.debugOverlay ? 'ON' : 'OFF';
+            debugEl.parentElement.querySelector('.toggle-label').textContent = this.settings.debugOverlay ? t('settings.on') : t('settings.off');
         }
         const devEl = this.overlay.querySelector('#devConsole');
         if (devEl) {
             devEl.checked = this.settings.devConsole;
-            devEl.parentElement.querySelector('.toggle-label').textContent = this.settings.devConsole ? 'ON' : 'OFF';
+            devEl.parentElement.querySelector('.toggle-label').textContent = this.settings.devConsole ? t('settings.on') : t('settings.off');
         }
         
         // Update camera effects toggle
         const camEl = this.overlay.querySelector('#cameraEffects');
         if (camEl) {
             camEl.checked = this.settings.cameraEffects;
-            camEl.parentElement.querySelector('.toggle-label').textContent = this.settings.cameraEffects ? 'ON' : 'OFF';
+            camEl.parentElement.querySelector('.toggle-label').textContent = this.settings.cameraEffects ? t('settings.on') : t('settings.off');
         }
         
         // Update AI tuning sliders

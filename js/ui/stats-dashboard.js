@@ -28,13 +28,13 @@ class StatsDashboard {
         this.overlay.innerHTML = `
             <div class="stats-modal" role="dialog" aria-labelledby="statsTitle">
                 <div class="stats-header">
-                    <h2 id="statsTitle">\U0001f3c6 Leaderboard</h2>
-                    <button class="stats-close" aria-label="Close dashboard">\u2715</button>
+                    <h2 id="statsTitle">${t('stats.leaderboard')}</h2>
+                    <button class="stats-close" aria-label="${t('stats.close')}">\u2715</button>
                 </div>
                 <div class="stats-tabs" role="tablist">
-                    <button class="stats-tab stats-tab-active" role="tab" data-tab="leaderboard" aria-selected="true">\U0001f3c6 Leaderboard</button>
-                    <button class="stats-tab" role="tab" data-tab="stats" aria-selected="false">\U0001f4ca Stats</button>
-                    <button class="stats-tab" role="tab" data-tab="achievements" aria-selected="false">\U0001f3c5 Achievements</button>
+                    <button class="stats-tab stats-tab-active" role="tab" data-tab="leaderboard" aria-selected="true">${t('stats.leaderboard')}</button>
+                    <button class="stats-tab" role="tab" data-tab="stats" aria-selected="false">${t('stats.stats')}</button>
+                    <button class="stats-tab" role="tab" data-tab="achievements" aria-selected="false">${t('stats.achievements_tab')}</button>
                 </div>
                 <div class="stats-content">
                     <div class="stats-panel" id="panelLeaderboard"></div>
@@ -42,8 +42,8 @@ class StatsDashboard {
                     <div class="stats-panel" id="panelAchievements" style="display:none"></div>
                 </div>
                 <div class="stats-footer">
-                    <button class="stats-button stats-clear-btn">\U0001f5d1\ufe0f Clear Data</button>
-                    <button class="stats-button stats-done-btn">Done</button>
+                    <button class="stats-button stats-clear-btn">${t('stats.clear_data')}</button>
+                    <button class="stats-button stats-done-btn">${t('stats.done')}</button>
                 </div>
             </div>
         `;
@@ -93,13 +93,13 @@ class StatsDashboard {
         stPanel.style.display = 'none';
         if (achPanel) achPanel.style.display = 'none';
         if (tabName === 'leaderboard') {
-            titleEl.textContent = '\U0001f3c6 Leaderboard';
+            titleEl.textContent = t('stats.leaderboard');
             lbPanel.style.display = '';
         } else if (tabName === 'achievements') {
-            titleEl.textContent = '\U0001f3c5 Achievements';
+            titleEl.textContent = t('stats.achievements_tab');
             if (achPanel) achPanel.style.display = '';
         } else {
-            titleEl.textContent = '\U0001f4ca Stats';
+            titleEl.textContent = t('stats.stats');
             stPanel.style.display = '';
         }
     }
@@ -108,14 +108,14 @@ class StatsDashboard {
         const panel = this.overlay.querySelector('#panelLeaderboard');
         const scores = this.highScores.getScores();
         if (scores.length === 0) {
-            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">\U0001f369</div><div style="color:#ffd800;font-size:20px;">No scores yet!</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">Play a game to see your scores here.</div></div>';
+            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">\U0001f369</div><div style="color:#ffd800;font-size:20px;">' + t('stats.no_scores') + '</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">' + t('stats.play_to_see') + '</div></div>';
             return;
         }
         const rank = this.highScores.getRank();
         const challengeBadge = typeof DailyChallenge !== 'undefined' ? DailyChallenge.getChallengeBadge() : null;
         const challengeStr = challengeBadge ? ' \u2022 ' + challengeBadge.emoji + ' ' + challengeBadge.name : '';
         let html = '<div class="lb-rank-banner">' + rank.emoji + ' ' + rank.name + ' \u2014 ' + this.highScores.lifetimeStats.totalDonutsEaten.toLocaleString() + ' donuts lifetime' + challengeStr + '</div>';
-        html += '<div class="lb-scroll"><table class="lb-table" role="grid"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Lvl</th><th>Combo</th><th>Diff</th><th>Date</th></tr></thead><tbody>';
+        html += '<div class="lb-scroll"><table class="lb-table" role="grid"><thead><tr><th>' + t('stats.rank_header') + '</th><th>' + t('stats.name_header') + '</th><th>' + t('stats.score_header') + '</th><th>' + t('stats.level_header') + '</th><th>' + t('stats.combo_header') + '</th><th>' + t('stats.diff_header') + '</th><th>' + t('stats.date_header') + '</th></tr></thead><tbody>';
         scores.forEach((s, i) => {
             const pos = i + 1;
             const isTop3 = pos <= 3;
@@ -193,14 +193,14 @@ class StatsDashboard {
         if (typeof AchievementManager !== 'undefined' && window._game && window._game.achievements) {
             window._game.achievements.renderAchievementsPanel(panel);
         } else {
-            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">🏅</div><div style="color:#ffd800;font-size:20px;">Achievements</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">Play to unlock achievements!</div></div>';
+            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">🏅</div><div style="color:#ffd800;font-size:20px;">Achievements</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">' + t('stats.play_to_unlock') + '</div></div>';
         }
     }
 
     showClearConfirm() {
         const footer = this.overlay.querySelector('.stats-footer');
         const what = this.activeTab === 'leaderboard' ? 'scores' : this.activeTab === 'achievements' ? 'achievements' : 'stats';
-        footer.innerHTML = '<div class="stats-confirm"><span style="color:#ff6b6b;">Clear all ' + what + '?</span><div style="display:flex;gap:8px;margin-top:8px;"><button class="stats-button stats-cancel-btn">Cancel</button><button class="stats-button stats-confirm-btn">Yes, Clear</button></div></div>';
+        footer.innerHTML = '<div class="stats-confirm"><span style="color:#ff6b6b;">' + t('stats.clear_confirm', what) + '</span><div style="display:flex;gap:8px;margin-top:8px;"><button class="stats-button stats-cancel-btn">' + t('stats.cancel') + '</button><button class="stats-button stats-confirm-btn">' + t('stats.yes_clear') + '</button></div></div>';
         footer.querySelector('.stats-cancel-btn').addEventListener('click', () => this.restoreFooter());
         footer.querySelector('.stats-confirm-btn').addEventListener('click', () => {
             if (this.activeTab === 'leaderboard') { this.highScores.clearScores(); this.renderLeaderboard(); }
@@ -214,7 +214,7 @@ class StatsDashboard {
 
     restoreFooter() {
         const footer = this.overlay.querySelector('.stats-footer');
-        footer.innerHTML = '<button class="stats-button stats-clear-btn">\U0001f5d1\ufe0f Clear Data</button><button class="stats-button stats-done-btn">Done</button>';
+        footer.innerHTML = '<button class="stats-button stats-clear-btn">' + t('stats.clear_data') + '</button><button class="stats-button stats-done-btn">' + t('stats.done') + '</button>';
         footer.querySelector('.stats-clear-btn').addEventListener('click', () => this.showClearConfirm());
         footer.querySelector('.stats-done-btn').addEventListener('click', () => this.close());
     }

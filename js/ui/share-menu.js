@@ -49,13 +49,13 @@ class ShareMenu {
     this.overlay.className = 'share-overlay'
     this.overlay.style.display = 'none'
     this.overlay.setAttribute('role', 'dialog')
-    this.overlay.setAttribute('aria-label', 'Share Your Score')
+    this.overlay.setAttribute('aria-label', t('share.title'))
 
     this.overlay.innerHTML = `
       <div class="share-modal">
         <div class="share-header">
-          <span class="share-title">📤 Share Your Score!</span>
-          <button class="share-close" aria-label="Close">&times;</button>
+          <span class="share-title">${t('share.title')}</span>
+          <button class="share-close" aria-label="${t('share.close')}">&times;</button>
         </div>
         <div class="share-content">
           <div class="share-score-card" id="shareScoreCard">
@@ -63,21 +63,21 @@ class ShareMenu {
             <div class="share-stats" id="shareStats"></div>
           </div>
           <div class="share-actions">
-            <button class="share-btn share-btn-primary" id="shareNativeBtn" aria-label="Share">
-              📱 Share
+            <button class="share-btn share-btn-primary" id="shareNativeBtn" aria-label="${t('share.share_btn')}">
+              ${t('share.share_btn')}
             </button>
-            <button class="share-btn share-btn-copy" id="shareCopyBtn" aria-label="Copy to clipboard">
-              📋 Copy Link
+            <button class="share-btn share-btn-copy" id="shareCopyBtn" aria-label="${t('share.copy_link')}">
+              ${t('share.copy_link')}
             </button>
-            <button class="share-btn share-btn-screenshot" id="shareScreenshotBtn" aria-label="Download screenshot">
-              📸 Screenshot
+            <button class="share-btn share-btn-screenshot" id="shareScreenshotBtn" aria-label="${t('share.screenshot')}">
+              ${t('share.screenshot')}
             </button>
-            <button class="share-btn share-btn-challenge" id="shareChallengeBtn" aria-label="Challenge a friend">
-              ⚔️ Challenge
+            <button class="share-btn share-btn-challenge" id="shareChallengeBtn" aria-label="${t('share.challenge')}">
+              ${t('share.challenge')}
             </button>
           </div>
           <div class="share-qr-section" id="shareQrSection">
-            <div class="share-qr-label">Scan to play:</div>
+            <div class="share-qr-label">${t('share.scan_to_play')}</div>
             <canvas id="shareQrCanvas" width="148" height="148"></canvas>
           </div>
           <div class="share-toast" id="shareToast"></div>
@@ -174,7 +174,7 @@ class ShareMenu {
     const levelStr = g.isEndlessMode && g.isEndlessMode()
       ? `∞ Level ${g.level}`
       : `Level ${g.level}`
-    let text = `I scored ${g.score.toLocaleString()} points on ComeRosquillas! Can you beat me?`
+    let text = t('share.score_msg', g.score.toLocaleString())
     text += `\n🎮 ${levelStr}`
     if (g.bestCombo > 1) text += ` | 🔥 ${g.bestCombo}x Combo`
     text += ` | 🍩 ${g._gameDonutsEaten} Donuts`
@@ -205,13 +205,13 @@ class ShareMenu {
 
   async _shareNative() {
     const shareData = {
-      title: "Come Rosquillas — Homer's Donut Quest",
+      title: t('share.game_title'),
       text: this._getShareText(),
       url: this._getShareUrl()
     }
     try {
       await navigator.share(shareData)
-      this._showToast('Shared! 🎉')
+      this._showToast(t('share.shared_toast'))
     } catch (e) {
       if (e.name !== 'AbortError') {
         this._copyToClipboard()
@@ -225,7 +225,7 @@ class ShareMenu {
     const text = `${this._getShareText()}\n${this._getShareUrl()}`
     try {
       await navigator.clipboard.writeText(text)
-      this._showToast('Copied to clipboard! 📋')
+      this._showToast(t('share.copied_toast'))
     } catch (e) {
       // Fallback for older browsers
       const ta = document.createElement('textarea')
@@ -235,7 +235,7 @@ class ShareMenu {
       ta.select()
       document.execCommand('copy')
       document.body.removeChild(ta)
-      this._showToast('Copied to clipboard! 📋')
+      this._showToast(t('share.copied_toast'))
     }
   }
 
@@ -288,7 +288,7 @@ class ShareMenu {
     // Branding
     ctx.fillStyle = '#ff69b4'
     ctx.font = '14px Bangers, Arial, sans-serif'
-    ctx.fillText('ComeRosquillas — Homer\'s Donut Quest', w / 2, src.height + 100)
+    ctx.fillText(t('share.game_title'), w / 2, src.height + 100)
 
     // Download
     const link = document.createElement('a')
@@ -296,7 +296,7 @@ class ShareMenu {
     link.href = scr.toDataURL('image/png')
     link.click()
 
-    this._showToast('Screenshot saved! 📸')
+    this._showToast(t('share.screenshot_toast'))
   }
 
   // ==================== CHALLENGE A FRIEND ====================
@@ -304,16 +304,16 @@ class ShareMenu {
   async _challengeFriend() {
     const url = this._getChallengeUrl()
     const g = this._game
-    const text = `🎮 I challenge you to beat my ${g.score.toLocaleString()} points on ComeRosquillas!\n${url}`
+    const text = t('share.challenge_text', g.score.toLocaleString()) + '\n' + url
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'ComeRosquillas Challenge!',
+          title: t('share.challenge'),
           text: text,
           url: url
         })
-        this._showToast('Challenge sent! ⚔️')
+        this._showToast(t('share.challenge_sent_toast'))
         return
       } catch (e) {
         if (e.name === 'AbortError') return
@@ -332,7 +332,7 @@ class ShareMenu {
       document.execCommand('copy')
       document.body.removeChild(ta)
     }
-    this._showToast('Challenge link copied! ⚔️')
+    this._showToast(t('share.challenge_copied_toast'))
   }
 
   // ==================== TOAST NOTIFICATION ====================

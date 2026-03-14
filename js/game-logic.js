@@ -275,7 +275,7 @@
                 } else if (this.state === ST_PLAYING && e.code === 'KeyP') {
                     this.state = ST_PAUSED;
                     this.sound.stopMusic();
-                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P to continue');
+                    this.showMessage(t('game.paused'), t('game.pause_hint'));
                 } else if (this.state === ST_PAUSED && e.code === 'KeyP') {
                     this.state = ST_PLAYING;
                     this.sound.startMusic();
@@ -286,11 +286,11 @@
                 } else if (e.code === 'KeyM') {
                     const muted = this.sound.toggleMute();
                     if (muted !== undefined) {
-                        this.addFloatingText(CANVAS_W / 2, 40, muted ? '🔇 MUTED' : '🔊 MUSIC ON', '#ffd800');
+                        this.addFloatingText(CANVAS_W / 2, 40, muted ? t('hud.muted') : t('hud.music_on'), '#ffd800');
                     }
                 } else if (e.code === 'KeyD') {
                     this._debugOverlay = !this._debugOverlay;
-                    this.addFloatingText(CANVAS_W / 2, 40, this._debugOverlay ? '🔍 DEBUG ON' : '🔍 DEBUG OFF', '#0f0');
+                    this.addFloatingText(CANVAS_W / 2, 40, this._debugOverlay ? t('hud.debug_on') : t('hud.debug_off'), '#0f0');
                     if (this.settingsMenu) {
                         this.settingsMenu.settings.debugOverlay = this._debugOverlay;
                         this.settingsMenu.saveSettings();
@@ -352,8 +352,8 @@
                 }
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
-                const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
+                const quote = I18n.getGameOverQuotes()[Math.floor(Math.random() * I18n.getGameOverQuotes().length)];
+                this.showMessage("D'OH!", `${t('game.game_over_rank', rank).replace('\n', '<br>')}<br>${t('game.score', this.score)}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}${t('game.press_enter_retry')}`);
                 if (this.achievements) this.achievements.notify('game_over', this);
             }
         }
@@ -365,29 +365,29 @@
             const rank = this.highScores.getRank();
             let scoreTable = '';
             if (scores.length > 0) {
-                scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">HIGH SCORES</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
+                scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">' + t('start.high_scores') + '</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
                 const topScores = scores.slice(0, 5);
                 topScores.forEach((s, i) => {
                     const comboStr = s.combo > 1 ? ` | 🔥${s.combo}x` : '';
-                    const lvlStr = (typeof ENDLESS_MODE !== 'undefined' && s.level >= ENDLESS_MODE.startLevel) ? `∞${s.level}` : `Lvl ${s.level}`;
+                    const lvlStr = (typeof ENDLESS_MODE !== 'undefined' && s.level >= ENDLESS_MODE.startLevel) ? `∞${s.level}` : t('start.lvl', s.level);
                     scoreTable += `${i + 1}. ${s.name} - ${s.score} (${lvlStr}${comboStr})<br>`;
                 });
                 scoreTable += '</div>';
                 if (allTimeBest > 1) {
-                    scoreTable += `<div style="font-size: 13px; color: #ff69b4; margin-top: 4px;">Best Combo Ever: 🔥 ${allTimeBest}x</div>`;
+                    scoreTable += `<div style="font-size: 13px; color: #ff69b4; margin-top: 4px;">${t('start.best_combo', allTimeBest)}</div>`;
                 }
             }
             
             this.msgEl.innerHTML = `
-                <div class="title-large">&#127849; Come Rosquillas!</div>
-                <div class="catchphrase">"Mmm... donuts"</div>
+                <div class="title-large">&#127849; ${t('game.title')}</div>
+                <div class="catchphrase">${t('game.catchphrase')}</div>
                 <div class="subtitle">
-                    Homer's Donut Quest through Springfield<br><br>
-                    &#127850; Eat all the donuts<br>
-                    &#127866; Grab a Duff to chase the bad guys<br>
-                    &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
-                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; A = Achievements &nbsp; H = Share &nbsp; D = Daily<br><br>
-                    ${this._challengeBannerHtml()}${this._dailyChallengeBannerHtml()}Press ENTER or SPACE to start
+                    ${t('game.subtitle')}<br><br>
+                    &#127850; ${t('start.eat_donuts')}<br>
+                    &#127866; ${t('start.grab_duff')}<br>
+                    &#128123; ${t('start.beware_ghosts')}<br><br>
+                    ${t('start.controls_legend')}<br><br>
+                    ${this._challengeBannerHtml()}${this._dailyChallengeBannerHtml()}${t('start.press_enter')}
                     ${scoreTable}
                 </div>`;
             this.msgEl.style.display = 'block';
@@ -408,21 +408,21 @@
             
             this.msgEl.innerHTML = `
                 <div class="title-large" style="color: #ff69b4; animation: pulse 1s infinite;">
-                    &#11088; NEW HIGH SCORE! &#11088;
+                    ${t('highscore.title')}
                 </div>
                 <div class="subtitle" style="margin-top: 20px;">
-                    Score: ${this.score}<br>
-                    Level: ${this.isEndlessMode() ? `∞ ${this.level}` : this.level}<br>
-                    ${this.bestCombo > 1 ? `Best Combo: 🔥 ${this.bestCombo}x<br>` : ''}
+                    ${t('game.score', this.score)}<br>
+                    ${t('game.level', this.isEndlessMode() ? `∞ ${this.level}` : this.level)}<br>
+                    ${this.bestCombo > 1 ? `${t('highscore.best_combo', this.bestCombo)}<br>` : ''}
                     <br>
-                    Enter your initials:<br><br>
+                    ${t('highscore.enter_initials')}<br><br>
                     <div style="font-family: 'Permanent Marker', monospace; font-size: 36px; letter-spacing: 10px; margin: 16px 0;">
                         ${highlighted}
                     </div>
                     <br>
-                    Use &#8593;&#8595; to change letter<br>
-                    &#8592;&#8594; to move position<br>
-                    ENTER to confirm
+                    ${t('highscore.use_arrows')}<br>
+                    ${t('highscore.move_position')}<br>
+                    ${t('highscore.confirm')}
                 </div>`;
             this.msgEl.style.display = 'block';
             
@@ -499,7 +499,7 @@
             const challengeBanner = this._dailyChallenge
                 ? DailyChallenge.getBannerHtml(this._dailyChallenge)
                 : '';
-            this.showMessage('&#127849; READY!', challengeBanner + this._levelTitle());
+            this.showMessage(t('game.ready'), challengeBanner + this._levelTitle());
             this.updateHUD();
         }
 
@@ -758,15 +758,15 @@
                             }
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
-                            const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                            this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
+                            const quote = I18n.getGameOverQuotes()[Math.floor(Math.random() * I18n.getGameOverQuotes().length)];
+                            this.showMessage("D'OH!", `${t('game.game_over')}<br>${t('game.score', this.score)}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}${t('game.press_enter_retry')}`);
                         }
                     } else {
                         this.initEntities();
                         this.state = ST_READY;
                         this.stateTimer = 120;
-                        const quote = HOMER_DEATH_QUOTES[Math.floor(Math.random() * HOMER_DEATH_QUOTES.length)];
-                        this.showMessage(quote, `Lives: ${this.lives}`);
+                        const quote = I18n.getDeathQuotes()[Math.floor(Math.random() * I18n.getDeathQuotes().length)];
+                        this.showMessage(quote, t('game.lives', this.lives));
                     }
                 }
                 return;
@@ -800,7 +800,7 @@
                             this.state = ST_READY;
                             this.stateTimer = BOSS_CONFIG.introScreenDuration + 60;
                             this.showMessage(
-                                `⚠️ BOSS APPROACHING!`,
+                                t('hud.boss_approaching'),
                                 `${this._bossConfig.emoji} <b>${this._bossConfig.name}</b><br>${this._bossConfig.description}<br><br>"${this._bossConfig.quote}"`
                             );
                         } else {
@@ -1146,7 +1146,7 @@
                     ctx.font = 'bold 28px "Bangers", Arial';
                     ctx.textAlign = 'center';
                     ctx.fillStyle = '#ff4444';
-                    ctx.fillText('⚠️ BOSS APPROACHING! ⚠️', CANVAS_W / 2, CANVAS_H / 2 - 20);
+                    ctx.fillText(t('hud.boss_approaching'), CANVAS_W / 2, CANVAS_H / 2 - 20);
                     ctx.font = 'bold 20px "Bangers", Arial';
                     ctx.fillStyle = '#ffd800';
                     const pulse = 1 + Math.sin(this.animFrame * 0.15) * 0.1;
@@ -1202,11 +1202,11 @@
                 ctx.textAlign = 'center';
                 // Shadow
                 ctx.fillStyle = '#000';
-                ctx.fillText(`${comboMult}x COMBO!`, 1, 1);
+                ctx.fillText(t('hud.combo', comboMult), 1, 1);
                 // Gradient fill color based on multiplier
                 const comboColor = comboMult >= 8 ? '#ff4444' : comboMult >= 4 ? '#ff8800' : '#ffd800';
                 ctx.fillStyle = comboColor;
-                ctx.fillText(`${comboMult}x COMBO!`, 0, 0);
+                ctx.fillText(t('hud.combo', comboMult), 0, 0);
                 ctx.restore();
             }
 
@@ -1220,9 +1220,9 @@
                 ctx.font = 'bold 14px "Bangers", Arial';
                 ctx.textAlign = 'center';
                 ctx.fillStyle = '#000';
-                ctx.fillText('∞ ENDLESS', 1, 1);
+                ctx.fillText(t('hud.endless'), 1, 1);
                 ctx.fillStyle = '#ff69b4';
-                ctx.fillText('∞ ENDLESS', 0, 0);
+                ctx.fillText(t('hud.endless'), 0, 0);
                 ctx.restore();
             }
 
@@ -1378,7 +1378,7 @@
             ctx.fillStyle = `rgba(0, 255, 0, ${signGlow})`;
             ctx.font = 'bold 7px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('☢ Planta Nuclear', 14 * TILE, 13 * TILE - 2);
+            ctx.fillText(t('hud.ghost_house'), 14 * TILE, 13 * TILE - 2);
 
             // Draw theme-specific decorations
             this.drawThemeDecorations(ctx);

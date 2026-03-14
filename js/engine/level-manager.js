@@ -133,10 +133,15 @@ Game.prototype.getSpeed = function(type, ghost) {
 };
 
 Game.prototype._levelTitle = function() {
+    const mazeName = typeof I18n !== 'undefined' ? I18n.getMazeName(this.currentLayout.name) : this.currentLayout.name;
     if (this.isEndlessMode()) {
-        return `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
+        return typeof I18n !== 'undefined'
+            ? I18n.tNamed('level.endless_title', { name: mazeName, level: this.level })
+            : `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
     }
-    return `${this.currentLayout.name} - Level ${this.level}`;
+    return typeof I18n !== 'undefined'
+        ? I18n.tNamed('level.title', { name: mazeName, level: this.level })
+        : `${this.currentLayout.name} - Level ${this.level}`;
 };
 
 Game.prototype.startCutscene = function(cutsceneNum) {
@@ -374,7 +379,7 @@ Game.prototype.endCutscene = function() {
     this.state = ST_READY;
     this.stateTimer = 150;
     // Show event announcement after cutscene if an event triggered
-    let levelMsg = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
+    let levelMsg = I18n.getWinQuotes()[Math.floor(Math.random() * I18n.getWinQuotes().length)];
     if (typeof PROCEDURAL_EVENTS !== 'undefined' && this._activeEvent) {
         this.stateTimer = PROCEDURAL_EVENTS.announceDuration;
         const evt = this._activeEvent;

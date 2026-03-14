@@ -17,27 +17,27 @@ class Tutorial {
 
     this.steps = [
       {
-        title: '🎮 Move Homer!',
+        title: t('tutorial.step1_title'),
         icon: '🏃',
-        desktop: 'Use <strong>Arrow Keys</strong> to navigate Homer through the maze.',
-        mobile: '<strong>Swipe</strong> in any direction to guide Homer through the maze.',
-        hint: 'Collect all the donuts to complete each level!',
+        desktop: t('tutorial.step1_desktop').replace('Arrow Keys', '<strong>Arrow Keys</strong>'),
+        mobile: t('tutorial.step1_mobile').replace('Swipe', '<strong>Swipe</strong>'),
+        hint: t('tutorial.step1_hint'),
         highlight: 'maze'
       },
       {
-        title: '🍩 Grab a Duff!',
+        title: t('tutorial.step2_title'),
         icon: '🍺',
-        desktop: 'Eat a <strong>Power Pellet</strong> (the big flashing dots) to power up!',
-        mobile: 'Eat a <strong>Power Pellet</strong> (the big flashing dots) to power up!',
-        hint: 'Ghosts turn blue and run away — now YOU chase THEM!',
+        desktop: t('tutorial.step2_desktop').replace('Power Pellet', '<strong>Power Pellet</strong>'),
+        mobile: t('tutorial.step2_mobile').replace('Power Pellet', '<strong>Power Pellet</strong>'),
+        hint: t('tutorial.step2_hint'),
         highlight: 'power'
       },
       {
-        title: '👻 Eat the Ghosts!',
+        title: t('tutorial.step3_title'),
         icon: '💥',
-        desktop: 'While powered up, run into <strong>blue ghosts</strong> to eat them for bonus points!',
-        mobile: 'While powered up, run into <strong>blue ghosts</strong> to eat them for bonus points!',
-        hint: 'Chain ghost eats for a combo multiplier: 200 → 400 → 800 → 1600!',
+        desktop: t('tutorial.step3_desktop').replace('blue ghosts', '<strong>blue ghosts</strong>'),
+        mobile: t('tutorial.step3_mobile').replace('blue ghosts', '<strong>blue ghosts</strong>'),
+        hint: t('tutorial.step3_hint'),
         highlight: 'ghost'
       }
     ]
@@ -109,7 +109,7 @@ class Tutorial {
       <div class="tutorial-backdrop"></div>
       <div class="tutorial-card">
         <div class="tutorial-progress">
-          <span class="tutorial-step-label">Step ${stepNum} of ${totalSteps}</span>
+          <span class="tutorial-step-label">${t('tutorial.step_counter', stepNum, totalSteps)}</span>
           <div class="tutorial-dots">${dots}</div>
         </div>
 
@@ -122,15 +122,15 @@ class Tutorial {
         <p class="tutorial-hint">${step.hint}</p>
 
         <div class="tutorial-actions">
-          <button class="tutorial-btn tutorial-skip-btn" aria-label="Skip Tutorial">
-            Skip Tutorial${!this.isMobile ? ' (ESC)' : ''}
+          <button class="tutorial-btn tutorial-skip-btn" aria-label="${t('tutorial.skip_label')}">
+            ${!this.isMobile ? t('tutorial.skip') : t('tutorial.skip_label')}
           </button>
-          <button class="tutorial-btn tutorial-next-btn" aria-label="${isLast ? 'Start Playing' : 'Next Step'}">
-            ${isLast ? "Let's Play! 🎮" : 'Next →'}
+          <button class="tutorial-btn tutorial-next-btn" aria-label="${isLast ? t('tutorial.start_playing') : 'Next Step'}">
+            ${isLast ? t('tutorial.lets_play') : t('tutorial.next')}
           </button>
         </div>
 
-        ${this.isMobile ? '<p class="tutorial-tap-hint">Tap anywhere to continue</p>' : ''}
+        ${this.isMobile ? `<p class="tutorial-tap-hint">${t('tutorial.tap_continue')}</p>` : ''}
       </div>
     `
 
@@ -281,7 +281,7 @@ class Tutorial {
     ctx.fillStyle = '#ffd800'
     ctx.font = 'bold 11px "Bangers", Arial'
     ctx.textAlign = 'center'
-    ctx.fillText('Power Pellet!', pelletX, h - 8)
+    ctx.fillText(t('tutorial.power_pellet'), pelletX, h - 8)
   }
 
   drawGhostEatIllustration(ctx, w, h) {
@@ -555,10 +555,10 @@ class Tutorial {
       <div class="tutorial-backdrop"></div>
       <div class="tutorial-card tutorial-celebration">
         <canvas id="tutorialCelebrationCanvas" width="260" height="160"></canvas>
-        <h2 class="tutorial-title">🎉 You're Ready!</h2>
-        <p class="tutorial-text">Go get those donuts, Homer!</p>
-        <p class="tutorial-hint">"Mmm... donuts" — Homer Simpson</p>
-        <button class="tutorial-btn tutorial-next-btn tutorial-play-btn">Start Playing! 🍩</button>
+        <h2 class="tutorial-title">${t('tutorial.celebration_title')}</h2>
+        <p class="tutorial-text">${t('tutorial.celebration_msg')}</p>
+        <p class="tutorial-hint">${t('tutorial.celebration_quote')}</p>
+        <button class="tutorial-btn tutorial-next-btn tutorial-play-btn">${t('tutorial.celebration_btn')}</button>
       </div>
     `
 

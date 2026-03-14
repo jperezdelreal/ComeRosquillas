@@ -266,7 +266,7 @@ class DailyChallenge {
     this.overlay.className = 'daily-overlay'
     this.overlay.style.display = 'none'
     this.overlay.setAttribute('role', 'dialog')
-    this.overlay.setAttribute('aria-label', 'Daily Challenge')
+    this.overlay.setAttribute('aria-label', t('daily.title'))
 
     this.overlay.innerHTML = `
       <div class="daily-modal">

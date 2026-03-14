@@ -251,7 +251,7 @@ class AchievementManager {
     toast.innerHTML =
       '<div class="achievement-toast-icon">' + ach.icon + '</div>' +
       '<div class="achievement-toast-body">' +
-      '<div class="achievement-toast-label">Achievement Unlocked!</div>' +
+      '<div class="achievement-toast-label">' + t('achievements.toast_title') + '</div>' +
       '<div class="achievement-toast-title">' + ach.title + '</div>' +
       '<div class="achievement-toast-desc">' + ach.description + '</div>' +
       '</div>'
@@ -347,7 +347,7 @@ class AchievementManager {
 
     let html = '<div class="ach-summary">' +
       '<div class="ach-summary-count">' + unlocked + '/' + total + '</div>' +
-      '<div class="ach-summary-label">Achievements Unlocked (' + pct + '%)</div>' +
+      '<div class="ach-summary-label">' + t('achievements.progress', pct) + '</div>' +
       '<div class="ach-progress-bar"><div class="ach-progress-fill" style="width:' + pct + '%"></div></div>' +
       '</div>'
 
@@ -369,7 +369,7 @@ class AchievementManager {
           html += '<div class="ach-card-progress-text">' + progressText + '</div>'
         }
         if (earned) {
-          html += '<div class="ach-card-date">Unlocked ' + this._shortDate(a.unlockedAt) + '</div>'
+          html += '<div class="ach-card-date">' + t('achievements.unlocked_date', this._shortDate(a.unlockedAt)) + '</div>'
         }
         html += '</div></div>'
       }
