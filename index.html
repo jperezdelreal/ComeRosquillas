@@ -910,37 +910,28 @@
             }
         }
 
-        /* Orientation warning — portrait on touch devices */
-        #orientationWarning {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(13,2,33,0.96);
-            z-index: 9999;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            font-family: 'Bangers', Arial, sans-serif;
-        }
-        .orient-icon {
-            font-size: 64px;
-            animation: orientSpin 2s ease-in-out infinite;
-        }
-        @keyframes orientSpin {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-        }
-        .orient-text {
-            color: #ffd800;
-            font-size: 24px;
-            text-align: center;
-            padding: 0 24px;
-            text-shadow: 2px 2px 0 #000;
-            letter-spacing: 1px;
-        }
+        /* Portrait mobile — scale canvas to fit viewport with D-pad below */
         @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
-            #orientationWarning { display: flex; }
+            body {
+                align-items: flex-start;
+                padding-top: 6px;
+                overflow: hidden;
+            }
+            #gameContainer {
+                width: 100%;
+                max-height: 100vh;
+                max-height: 100dvh;
+            }
+            canvas {
+                max-height: calc(100vh - 240px);
+                max-height: calc(100dvh - 240px);
+                width: auto;
+                max-width: 100vw;
+            }
+            #touchDpad {
+                bottom: 12px;
+                left: 12px;
+            }
         }
 
         /* Responsive scaling for mobile */
