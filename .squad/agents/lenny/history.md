@@ -476,3 +476,36 @@
 - dvh with h fallback (double declaration) handles iOS Safari address bar
 - Button cluster uses CSS Grid (2×2) in portrait for thumb-friendly spacing
 - Separating touch controls into a wrapper div (#touchControlsBar) enables CSS-only layout switching between floating and in-flow modes
+
+### Mobile Layout V2 — Screenshot-Driven Fixes
+
+**Problem:** Real-device testing showed Game Boy layout from PR #120 had major issues:
+- ~35% empty space above canvas (body centering + padding not fully overridden)
+- D-pad too small (130px) and centered instead of left-aligned
+- Action buttons too small (48px) and scattered at top-right
+- Keyboard hints showing on mobile
+- Astro iframe wrapper adding header/hints chrome
+
+**Root causes:**
+- Portrait touch query didn't override body's `justify-content: center` and `min-height: 100vh`
+- Canvas `max-height: calc(100dvh - 170px)` reserved too little for controls
+- D-pad and buttons sized for desktop, not thumb-friendly mobile
+- Astro play.astro header/hints always visible
+
+**Fixes applied:**
+- Body: `justify-content: flex-start; min-height: 0; padding: 0; margin: 0` in portrait touch
+- Canvas: `flex: 0 1 auto; max-height: calc(100dvh - 230px)` — canvas shrinks when needed
+- Controls bar: `flex: 1 0 0px; min-height: 190px` — grows to fill remaining viewport
+- D-pad: 160px × 160px (up from 130px), `position: static` in bar
+- Action buttons: 56px × 56px (up from 48px), 2×2 grid via #touchBtnCluster
+- `#bottomBar`: `display: none !important` on all touch devices
+- Astro play.astro: hide header/hints/border on mobile portrait, iframe fills 100dvh
+- Removed small-screen overrides for touch buttons (portrait query handles them now)
+
+**Key learnings:**
+- Always override BOTH `justify-content` AND `align-items` when switching from centered to top-left layout
+- `flex: 0 1 auto` on canvas lets it shrink below its natural height when controls need more space
+- `flex: 1 0 0px` (note: `0px` not `0` for spec compliance) on controls lets it grow beyond min-height
+- Reserve ~230px for HUD+controls: 36px HUD + 12px×2 padding + 160px D-pad + margins
+- Astro iframe wrapper needs its own mobile media queries — game CSS can't fix parent chrome
+- `aspect-ratio: auto !important` on iframe is needed to override inline style in portrait
