@@ -93,6 +93,7 @@ class HighScoreManager {
             totalGames: 0,
             totalDonutsEaten: 0,
             totalGhostsEaten: 0,
+            totalItemsCollected: 0,
             highestCombo: 0,
             highestLevel: 0,
             totalPlayTimeMs: 0,
@@ -128,6 +129,7 @@ class HighScoreManager {
         s.totalGames++;
         s.totalDonutsEaten += gameStats.donutsEaten || 0;
         s.totalGhostsEaten += gameStats.ghostsEaten || 0;
+        s.totalItemsCollected += gameStats.itemsCollected || 0;
         s.totalPlayTimeMs += gameStats.playTimeMs || 0;
         if (gameStats.bestCombo > s.highestCombo) s.highestCombo = gameStats.bestCombo;
         if (gameStats.level > s.highestLevel) s.highestLevel = gameStats.level;

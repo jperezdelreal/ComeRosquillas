@@ -198,30 +198,58 @@ const MAZE_MOES_TAVERN = [
 // ==================== MAZE LAYOUT DEFINITIONS ====================
 const MAZE_LAYOUTS = [
     {
-        name: 'Springfield',
+        name: 'Springfield Streets',
         template: MAZE_TEMPLATE,
-        wallColors: { main: '#2244aa', dark: '#1a3388', light: '#3366cc', border: '#5577ee' }
-    },
-    {
-        name: 'Planta Nuclear',
-        template: MAZE_NUCLEAR_PLANT,
-        wallColors: { main: '#2d6b2d', dark: '#1a4a1a', light: '#3d8b3d', border: '#55cc55' }
-    },
-    {
-        name: 'Kwik-E-Mart',
-        template: MAZE_KWIK_E_MART,
-        wallColors: { main: '#8b2252', dark: '#6b1a42', light: '#ab3272', border: '#dd4488' }
+        wallColors: { main: '#2244aa', dark: '#1a3388', light: '#3366cc', border: '#5577ee' },
+        floorColor: '#0a0a1a',
+        ambientColor: 'rgba(34, 68, 170, 0.05)',
+        decorations: ['street_sign', 'lamp_post']
     },
     {
         name: "Moe's Tavern",
         template: MAZE_MOES_TAVERN,
-        wallColors: { main: '#7a5c2e', dark: '#5a3c1e', light: '#9a7c4e', border: '#cc9944' }
+        wallColors: { main: '#7a5c2e', dark: '#5a3c1e', light: '#9a7c4e', border: '#cc9944' },
+        floorColor: '#1a0f08',
+        ambientColor: 'rgba(122, 92, 46, 0.08)',
+        decorations: ['beer_mug', 'neon_duff']
+    },
+    {
+        name: 'Kwik-E-Mart',
+        template: MAZE_KWIK_E_MART,
+        wallColors: { main: '#8b2252', dark: '#6b1a42', light: '#ab3272', border: '#dd4488' },
+        floorColor: '#1a0a15',
+        ambientColor: 'rgba(139, 34, 82, 0.06)',
+        decorations: ['squishee', 'shelf']
+    },
+    {
+        name: 'Springfield Elementary',
+        template: MAZE_NUCLEAR_PLANT,
+        wallColors: { main: '#4a4a4a', dark: '#2a2a2a', light: '#6a6a6a', border: '#8a8a8a' },
+        floorColor: '#0d0d15',
+        ambientColor: 'rgba(74, 74, 74, 0.07)',
+        decorations: ['chalkboard', 'desk']
+    },
+    {
+        name: 'Nuclear Plant',
+        template: MAZE_KWIK_E_MART,
+        wallColors: { main: '#2d6b2d', dark: '#1a4a1a', light: '#3d8b3d', border: '#55cc55' },
+        floorColor: '#080d08',
+        ambientColor: 'rgba(45, 107, 45, 0.09)',
+        decorations: ['radiation', 'control_panel']
+    },
+    {
+        name: 'Simpsons House',
+        template: MAZE_TEMPLATE,
+        wallColors: { main: '#d4a373', dark: '#b4834f', light: '#f4c393', border: '#ffddaa' },
+        floorColor: '#1a120a',
+        ambientColor: 'rgba(212, 163, 115, 0.06)',
+        decorations: ['couch', 'photo_frame']
     }
 ];
 
-// Returns the maze layout for a given level (cycles every 2 levels)
+// Returns the maze layout for a given level (cycles through 6 themes)
 function getMazeLayout(level) {
-    const idx = Math.floor((level - 1) / 2) % MAZE_LAYOUTS.length;
+    const idx = (level - 1) % MAZE_LAYOUTS.length;
     return MAZE_LAYOUTS[idx];
 }
 
@@ -229,10 +257,10 @@ function getMazeLayout(level) {
 const HOMER_START = { x: 14, y: 23 };
 
 const GHOST_CFG = [
-    { name: 'Sr. Burns',   color: '#ffd800', skinColor: '#f5e6a0', startX: 14, startY: 11, scatterX: 25, scatterY: 0,  homeX: 14, homeY: 14, exitDelay: 0 },
-    { name: 'Bob Patiño',  color: '#ff4444', skinColor: '#f5d0a0', startX: 12, startY: 14, scatterX: 2,  scatterY: 0,  homeX: 12, homeY: 14, exitDelay: 50 },
-    { name: 'Nelson',      color: '#ff8c00', skinColor: '#ffd800', startX: 14, startY: 14, scatterX: 27, scatterY: 30, homeX: 14, homeY: 14, exitDelay: 100 },
-    { name: 'Snake',       color: '#44bb44', skinColor: '#f5d0a0', startX: 16, startY: 14, scatterX: 0,  scatterY: 30, homeX: 16, homeY: 14, exitDelay: 150 }
+    { name: 'Sr. Burns',   color: '#ffd800', skinColor: '#f5e6a0', startX: 14, startY: 11, scatterX: 25, scatterY: 0,  homeX: 14, homeY: 14, exitDelay: 0,   personality: 'smart' },
+    { name: 'Bob Patiño',  color: '#ff4444', skinColor: '#f5d0a0', startX: 12, startY: 14, scatterX: 2,  scatterY: 0,  homeX: 12, homeY: 14, exitDelay: 50,  personality: 'fast' },
+    { name: 'Nelson',      color: '#ff8c00', skinColor: '#ffd800', startX: 14, startY: 14, scatterX: 27, scatterY: 30, homeX: 14, homeY: 14, exitDelay: 100, personality: 'wobble' },
+    { name: 'Snake',       color: '#44bb44', skinColor: '#f5d0a0', startX: 16, startY: 14, scatterX: 0,  scatterY: 30, homeX: 16, homeY: 14, exitDelay: 150, personality: 'erratic' }
 ];
 
 // ==================== TIMING ====================
@@ -417,6 +445,39 @@ const CAMERA_CONFIG = {
     fpsCheckInterval: 120,
 }
 
+// ==================== CAMERA EFFECTS ====================
+const CAMERA_CONFIG = {
+    // Screen shake intensities (pixels)
+    shake: {
+        ghostCollision:  { intensity: 5, duration: 18 },   // medium shake on death
+        comboLight:      { intensity: 3, duration: 12 },    // 2x combo
+        comboMedium:     { intensity: 5, duration: 14 },    // 4x combo
+        comboHeavy:      { intensity: 8, duration: 18 },    // 8x combo
+        powerPellet:     { intensity: 2, duration: 10 },    // light pulse on power pickup
+    },
+    // Zoom effects
+    zoom: {
+        levelStartScale:    1.5,    // zoom in on level start
+        levelStartDuration: 60,     // frames (1s at 60fps)
+        levelCompleteScale: 0.9,    // slight zoom out on level clear
+        levelCompleteDuration: 40,
+        deathScale:         1.2,    // zoom toward Homer on death
+        deathDuration:      45,
+        powerPulseScale:    1.02,   // subtle pulse on power pellet
+        powerPulseDuration: 12,
+    },
+    // Camera follow (smooth lerp)
+    follow: {
+        lerpSpeed:      0.08,       // interpolation speed (0–1, higher = snappier)
+        lookahead:      2.5,        // tiles ahead in movement direction
+        edgePadding:    3,          // tiles from maze edge to stop centering
+        viewportRatio:  0.8,        // keep Homer within 80% of viewport center
+    },
+    // Auto-disable threshold
+    fpsThreshold: 45,               // disable camera effects below this FPS
+    fpsCheckInterval: 120,          // frames between FPS checks (~2s)
+}
+
 // ==================== PERFORMANCE ====================
 const PERF_CONFIG = {
     bfsCacheTTL: 3,                     // frames to cache BFS pathfinding results
@@ -550,6 +611,57 @@ const COLORS = {
     krustyPurple: '#6a0dad',
     burnsGreen: '#556b2f',
 };
+
+// ==================== POWER-UP TYPES ====================
+const SPECIAL_ITEM = 6;
+
+const POWER_UP_TYPES = [
+    {
+        id: 'duff_beer', name: 'Duff Beer', emoji: '🍺',
+        description: '2x speed for 8 seconds', duration: 480, probability: 30, points: 200,
+        colors: { primary: '#cc0000', secondary: '#ffd700', glow: 'rgba(255,215,0,0.3)' },
+        quote: '¡Cerveza rápida!', effect: 'speed_boost', effectValue: 2.0,
+    },
+    {
+        id: 'donut_box', name: 'Donut Box', emoji: '📦',
+        description: 'Bonus points jackpot', duration: 0, probability: 5, points: 0,
+        colors: { primary: '#ff69b4', secondary: '#ffd800', glow: 'rgba(255,105,180,0.3)' },
+        quote: 'Mmm... caja de rosquillas!', effect: 'bonus_points', effectValue: [1000, 5000],
+    },
+    {
+        id: 'chili_pepper', name: 'Chili Pepper', emoji: '🌶️',
+        description: 'Ghosts at 50% speed for 10s', duration: 600, probability: 25, points: 150,
+        colors: { primary: '#ff2200', secondary: '#ff8800', glow: 'rgba(255,34,0,0.3)' },
+        quote: '¡Ay, picante!', effect: 'slow_ghosts', effectValue: 0.5,
+    },
+    {
+        id: 'burns_token', name: 'Mr. Burns Token', emoji: '💰',
+        description: 'Collect 3 for extra life', duration: 0, probability: 1, points: 500,
+        colors: { primary: '#556b2f', secondary: '#ffd800', glow: 'rgba(85,107,47,0.3)' },
+        quote: 'Excellent...', effect: 'collect_token', effectValue: 3,
+    },
+    {
+        id: 'lard_lad', name: 'Lard Lad Statue', emoji: '🗽',
+        description: '5s invincibility', duration: 300, probability: 15, points: 300,
+        colors: { primary: '#daa520', secondary: '#ff4500', glow: 'rgba(218,165,32,0.3)' },
+        quote: '¡Soy invencible!', effect: 'invincibility', effectValue: true,
+    },
+]
+
+const POWER_UP_TOTAL_WEIGHT = POWER_UP_TYPES.reduce((sum, t) => sum + t.probability, 0)
+
+function getRandomPowerUpType() {
+    let roll = Math.random() * POWER_UP_TOTAL_WEIGHT
+    for (const type of POWER_UP_TYPES) {
+        roll -= type.probability
+        if (roll <= 0) return type
+    }
+    return POWER_UP_TYPES[0]
+}
+
+const POWER_UP_COMBOS = {
+    duff_beer_power_pellet: { scoreMultiplier: 1.5, label: 'DUFF COMBO!' },
+}
 
 // ==================== CUTSCENE DEFINITIONS ====================
 // Levels that trigger cutscenes: 2, 5, 9, 14

@@ -55,10 +55,29 @@
             this._cameraOffsetX = 0;
             this._cameraOffsetY = 0;
 
+            // Camera juice state
+            this._cameraEffectsEnabled = true;
+            this._cameraAutoDisabled = false;
+            this._cameraFpsCheckFrame = 0;
+            this._cameraZoom = 1.0;
+            this._cameraZoomTarget = 1.0;
+            this._cameraZoomTimer = 0;
+            this._cameraZoomDuration = 0;
+            this._cameraZoomStart = 1.0;
+            this._cameraOffsetX = 0;
+            this._cameraOffsetY = 0;
+
             // Per-game stats tracking
             this._gameDonutsEaten = 0;
             this._gameGhostsEaten = 0;
             this._gameStartTime = 0;
+            this._gameItemsCollected = 0;
+
+            // Power-up system state
+            this._specialItem = null;
+            this._activePowerUps = [];
+            this._burnsTokens = 0;
+            this._powerUpComboActive = false;
 
             // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
             this._bfsCache = new Map();
@@ -405,6 +424,10 @@
             this._gameDonutsEaten = 0;
             this._gameGhostsEaten = 0;
             this._gameStartTime = Date.now();
+            this._gameItemsCollected = 0;
+            this._burnsTokens = 0;
+            this._activePowerUps = [];
+            this._powerUpComboActive = false;
             this._dailyTimeUp = false;
             this.initLevel();
             
@@ -452,6 +475,8 @@
             this.bonusPos = null;
             this.ghostsEaten = 0;
             this.comboDisplayTimer = 0;
+            this._specialItemSpawned = false;
+            this._specialItem = null;
         }
 
         initEntities() {
@@ -473,6 +498,7 @@
                     mode: GM_SCATTER,
                     color: cfg.color,
                     name: cfg.name,
+                    personality: cfg.personality,
                     scatterX: cfg.scatterX,
                     scatterY: cfg.scatterY,
                     homeX: cfg.homeX * TILE,
@@ -485,6 +511,7 @@
                 ghost.speed = this.getSpeed('ghost', ghost);
                 return ghost;
             });
+
         }
 
         // ---- DIFFICULTY CURVE ----
@@ -539,7 +566,12 @@
             const speedCap = BASE_SPEED * ENDLESS_MODE.maxSpeedMultiplier;
             
             if (type === 'homer') {
-                return Math.min(speedCap, BASE_SPEED * (1 + (effectiveLevel - 1) * 0.05));
+                let speed = Math.min(speedCap, BASE_SPEED * (1 + (effectiveLevel - 1) * 0.05));
+                if (this.hasPowerUp('speed_boost')) {
+                    const pu = this._activePowerUps.find(p => p.type.effect === 'speed_boost');
+                    if (pu) speed *= pu.type.effectValue;
+                }
+                return Math.min(speedCap * 2, speed);
             }
             if (type === 'ghost') {
                 const levelMultiplier = Math.pow(1 + DIFFICULTY_CURVE.ghostSpeedPerLevel, effectiveLevel - 1);
@@ -550,6 +582,10 @@
                 if (ghost) {
                     if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
                     if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
+                }
+                if (this.hasPowerUp('slow_ghosts')) {
+                    const pu = this._activePowerUps.find(p => p.type.effect === 'slow_ghosts');
+                    if (pu) base *= pu.type.effectValue;
                 }
                 return Math.min(speedCap, base);
             }
@@ -625,10 +661,13 @@
             } catch (e) {}
         }
 
+        // ---- CAMERA JUICE ----
         _isCameraEnabled() {
             return typeof CAMERA_CONFIG !== 'undefined' &&
-                   this._cameraEffectsEnabled && !this._cameraAutoDisabled;
+                   this._cameraEffectsEnabled &&
+                   !this._cameraAutoDisabled;
         }
+
         triggerShake(preset) {
             if (!this._isCameraEnabled()) return;
             const cfg = CAMERA_CONFIG.shake[preset];
@@ -644,6 +683,7 @@
             this._cameraZoomDuration = duration;
             this._cameraZoomTimer = duration;
         }
+
         _updateCamera() {
             if (typeof CAMERA_CONFIG === 'undefined') return;
             if (this._cameraEffectsEnabled && !this._cameraAutoDisabled) {
@@ -661,8 +701,8 @@
             if (!this._isCameraEnabled()) return;
             if (this._cameraZoomTimer > 0) {
                 this._cameraZoomTimer--;
-                const t = 1 - (this._cameraZoomTimer / this._cameraZoomDuration);
-                const ease = 1 - Math.pow(1 - t, 3);
+                const progress = 1 - (this._cameraZoomTimer / this._cameraZoomDuration);
+                const ease = 1 - Math.pow(1 - progress, 3);
                 this._cameraZoom = this._cameraZoomStart + (this._cameraZoomTarget - this._cameraZoomStart) * ease;
             } else if (Math.abs(this._cameraZoom - 1.0) > 0.001) {
                 this._cameraZoom += (1.0 - this._cameraZoom) * 0.1;
@@ -671,17 +711,19 @@
             }
             if (this.homer && (this.state === ST_PLAYING || this.state === ST_READY)) {
                 const cfg = CAMERA_CONFIG.follow;
-                const cx = CANVAS_W / 2, cy = CANVAS_H / 2;
-                const hx = this.homer.x + TILE / 2, hy = this.homer.y + TILE / 2;
-                const lx = DX[this.homer.dir] * TILE * cfg.lookahead;
-                const ly = DY[this.homer.dir] * TILE * cfg.lookahead;
-                let tx = (cx - hx - lx) * (1 - cfg.viewportRatio);
-                let ty = (cy - hy - ly) * (1 - cfg.viewportRatio);
-                const mo = cfg.edgePadding * TILE;
-                tx = Math.max(-mo, Math.min(mo, tx));
-                ty = Math.max(-mo, Math.min(mo, ty));
-                this._cameraOffsetX += (tx - this._cameraOffsetX) * cfg.lerpSpeed;
-                this._cameraOffsetY += (ty - this._cameraOffsetY) * cfg.lerpSpeed;
+                const centerX = CANVAS_W / 2;
+                const centerY = CANVAS_H / 2;
+                const homerCX = this.homer.x + TILE / 2;
+                const homerCY = this.homer.y + TILE / 2;
+                const lookX = DX[this.homer.dir] * TILE * cfg.lookahead;
+                const lookY = DY[this.homer.dir] * TILE * cfg.lookahead;
+                let targetX = (centerX - homerCX - lookX) * (1 - cfg.viewportRatio);
+                let targetY = (centerY - homerCY - lookY) * (1 - cfg.viewportRatio);
+                const maxOff = cfg.edgePadding * TILE;
+                targetX = Math.max(-maxOff, Math.min(maxOff, targetX));
+                targetY = Math.max(-maxOff, Math.min(maxOff, targetY));
+                this._cameraOffsetX += (targetX - this._cameraOffsetX) * cfg.lerpSpeed;
+                this._cameraOffsetY += (targetY - this._cameraOffsetY) * cfg.lerpSpeed;
             }
         }
 
@@ -718,7 +760,7 @@
             // Update screen shake
             if (this.screenShakeTimer > 0) this.screenShakeTimer--;
 
-            // Update camera juice
+            // Update camera juice (zoom, follow, FPS auto-disable)
             this._updateCamera();
 
             if (this.state === ST_READY) {
@@ -780,6 +822,7 @@
                         this.level++;
                         this.initLevel();
                         this.sound.setLevelTempo(this.level);
+                        // Camera: zoom in on new level
                         if (typeof CAMERA_CONFIG !== 'undefined') {
                             this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
                             this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
@@ -810,6 +853,8 @@
             this.moveHomer();
             this.checkDots();
             this.updateBonus();
+            this.updateSpecialItems();
+            this.updateActivePowerUps();
             for (const ghost of this.ghosts) this.moveGhost(ghost);
             this.checkCollisions();
 
@@ -931,6 +976,7 @@
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
                 this.sound.setFrightMode(true);
+                // Camera: light pulse on power pellet
                 this.triggerShake('powerPellet');
                 if (typeof CAMERA_CONFIG !== 'undefined') {
                     this.triggerZoom(CAMERA_CONFIG.zoom.powerPulseScale, CAMERA_CONFIG.zoom.powerPulseDuration);
@@ -950,6 +996,8 @@
                 }
                 this.checkExtraLife();
                 this.updateHUD();
+            } else if (typeof SPECIAL_ITEM !== 'undefined' && cell === SPECIAL_ITEM) {
+                this.checkSpecialItemCollection();
             }
 
             if (this.dotsEaten >= this.totalDots) {
@@ -957,6 +1005,7 @@
                 this.stateTimer = 150;
                 this.sound.stopMusic();
                 this.sound.play('levelComplete');
+                // Camera: zoom out on level complete
                 if (typeof CAMERA_CONFIG !== 'undefined') {
                     this.triggerZoom(CAMERA_CONFIG.zoom.levelCompleteScale, CAMERA_CONFIG.zoom.levelCompleteDuration);
                 }
@@ -1003,6 +1052,148 @@
                 this.addFloatingText(this.homer.x + TILE / 2, this.homer.y - 10, 'EXTRA LIFE!', '#00ff00');
                 this.updateHUD();
             }
+        }
+
+        // ---- SPECIAL ITEMS (POWER-UP VARIETY) ----
+
+        updateSpecialItems() {
+            if (typeof POWER_UP_TYPES === 'undefined') return;
+            if (this._specialItemSpawned || this._specialItem) return;
+            const threshold = Math.floor(this.totalDots * 0.4);
+            if (this.dotsEaten >= threshold) {
+                this.spawnSpecialItem();
+            }
+        }
+
+        spawnSpecialItem() {
+            const candidates = [];
+            const hTile = this.tileAt(this.homer.x + TILE / 2, this.homer.y + TILE / 2);
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (this.maze[r][c] !== EMPTY) continue;
+                    if (r >= 11 && r <= 19 && c >= 10 && c <= 18) continue;
+                    if (r === 14 && (c < 6 || c > 21)) continue;
+                    const dist = Math.abs(hTile.col - c) + Math.abs(hTile.row - r);
+                    if (dist < 5) continue;
+                    candidates.push({ col: c, row: r });
+                }
+            }
+            if (candidates.length === 0) return;
+            const pos = candidates[Math.floor(Math.random() * candidates.length)];
+            const type = getRandomPowerUpType();
+            this._specialItem = { type, col: pos.col, row: pos.row };
+            this._specialItemSpawned = true;
+            this.maze[pos.row][pos.col] = SPECIAL_ITEM;
+        }
+
+        checkSpecialItemCollection() {
+            if (!this._specialItem) return;
+            const cx = this.homer.x + TILE / 2;
+            const cy = this.homer.y + TILE / 2;
+            const tile = this.tileAt(cx, cy);
+            if (tile.col === this._specialItem.col && tile.row === this._specialItem.row) {
+                this.collectSpecialItem(this._specialItem);
+            }
+        }
+
+        collectSpecialItem(item) {
+            const type = item.type;
+            const cx = item.col * TILE + TILE / 2;
+            const cy = item.row * TILE + TILE / 2;
+            this.maze[item.row][item.col] = EMPTY;
+            this._specialItem = null;
+            this._gameItemsCollected++;
+            this.sound.play('specialItem', type);
+            const _dcMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
+                ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
+            let comboMul = 1;
+            if (type.effect === 'speed_boost' && this.frightTimer > 0) {
+                comboMul = POWER_UP_COMBOS.duff_beer_power_pellet.scoreMultiplier;
+                this._powerUpComboActive = true;
+                this.addFloatingText(cx, cy - 20, POWER_UP_COMBOS.duff_beer_power_pellet.label, '#ffd800');
+                this.addParticles(cx, cy, '#ffd800', 12);
+            }
+            switch (type.effect) {
+                case 'speed_boost':
+                case 'slow_ghosts':
+                case 'invincibility': {
+                    const pts = Math.round(type.points * _dcMul * comboMul);
+                    this.score += pts;
+                    this.addFloatingText(cx, cy, `${type.emoji} ${pts}`, type.colors.primary);
+                    this.addParticles(cx, cy, type.colors.primary, 10);
+                    this._activePowerUps.push({ type, timer: type.duration, startTimer: type.duration });
+                    if (type.effect === 'speed_boost') this.homer.speed = this.getSpeed('homer');
+                    if (type.effect === 'slow_ghosts') {
+                        for (const g of this.ghosts) {
+                            if (g.mode !== GM_EATEN) g.speed = this.getSpeed('ghost', g);
+                        }
+                    }
+                    break;
+                }
+                case 'bonus_points': {
+                    const [min, max] = type.effectValue;
+                    const bonus = Math.round((min + Math.random() * (max - min)) * _dcMul * comboMul);
+                    this.score += bonus;
+                    this.addFloatingText(cx, cy, `${type.emoji} ${bonus}!`, type.colors.secondary);
+                    this.addParticles(cx, cy, type.colors.primary, 15);
+                    this.screenShakeTimer = 10;
+                    this.screenShakeIntensity = 4;
+                    break;
+                }
+                case 'collect_token': {
+                    const pts = Math.round(type.points * _dcMul);
+                    this.score += pts;
+                    this._burnsTokens++;
+                    this.addFloatingText(cx, cy, `${type.emoji} ${this._burnsTokens}/${type.effectValue}`, type.colors.secondary);
+                    this.addParticles(cx, cy, type.colors.primary, 8);
+                    if (this._burnsTokens >= type.effectValue) {
+                        this._burnsTokens = 0;
+                        this.lives++;
+                        this.sound.play('extraLife');
+                        this.addFloatingText(cx, cy - 20, '💰 EXTRA LIFE!', '#ffd800');
+                        this.addParticles(cx, cy, '#ffd800', 20);
+                        this.screenShakeTimer = 15;
+                        this.screenShakeIntensity = 6;
+                    }
+                    break;
+                }
+            }
+            this.addFloatingText(cx, cy - 10, type.quote, type.colors.secondary);
+            if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
+            this.checkExtraLife();
+            this.updateHUD();
+        }
+
+        updateActivePowerUps() {
+            if (!this._activePowerUps || this._activePowerUps.length === 0) return;
+            const expired = [];
+            for (let i = this._activePowerUps.length - 1; i >= 0; i--) {
+                const pu = this._activePowerUps[i];
+                pu.timer--;
+                if (pu.timer === Math.floor(pu.startTimer * 0.25)) {
+                    this.sound.play('powerUpWarning');
+                }
+                if (pu.timer <= 0) {
+                    expired.push(pu);
+                    this._activePowerUps.splice(i, 1);
+                }
+            }
+            for (const pu of expired) {
+                this.addFloatingText(this.homer.x + TILE / 2, this.homer.y - 10, `${pu.type.emoji} expired`, '#888');
+                if (pu.type.effect === 'speed_boost') this.homer.speed = this.getSpeed('homer');
+                if (pu.type.effect === 'slow_ghosts') {
+                    for (const g of this.ghosts) {
+                        if (g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED) {
+                            g.speed = this.getSpeed('ghost', g);
+                        }
+                    }
+                }
+                this._powerUpComboActive = false;
+            }
+        }
+
+        hasPowerUp(effectId) {
+            return this._activePowerUps && this._activePowerUps.some(p => p.type.effect === effectId);
         }
 
         // ---- GHOST AI WITH BFS PATHFINDING ----
@@ -1283,10 +1474,12 @@
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
                         this.updateHUD();
                     } else if (g.mode !== GM_EATEN) {
+                        if (this.hasPowerUp('invincibility')) continue;
                         this.state = ST_DYING;
                         this.stateTimer = 90;
                         this.sound.stopMusic();
                         this.sound.play('die');
+                        // Camera: medium shake + zoom on death
                         this.triggerShake('ghostCollision');
                         if (typeof CAMERA_CONFIG !== 'undefined') {
                             this.triggerZoom(CAMERA_CONFIG.zoom.deathScale, CAMERA_CONFIG.zoom.deathDuration);
@@ -1307,6 +1500,7 @@
                 difficulty: typeof getCurrentDifficulty === 'function' ? getCurrentDifficulty() : 'normal',
                 donutsEaten: this._gameDonutsEaten,
                 ghostsEaten: this._gameGhostsEaten,
+                itemsCollected: this._gameItemsCollected,
                 playTimeMs: this._gameStartTime ? Date.now() - this._gameStartTime : 0
             };
         }
@@ -1409,6 +1603,7 @@
             
             const ctx = this.ctx;
 
+            // Camera transform: combine shake, zoom, and follow
             const hasShake = this.screenShakeTimer > 0;
             const hasZoom = this._isCameraEnabled() && Math.abs(this._cameraZoom - 1.0) > 0.001;
             const hasFollow = this._isCameraEnabled() &&
@@ -1434,8 +1629,14 @@
                 ctx.restore();
             }
 
-            ctx.fillStyle = COLORS.pathDark;
+            ctx.fillStyle = this.currentLayout.floorColor || COLORS.pathDark;
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Ambient color overlay for theme atmosphere
+            if (this.currentLayout.ambientColor) {
+                ctx.fillStyle = this.currentLayout.ambientColor;
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            }
 
             // Subtle starfield background for non-wall cells
             if (!this._stars) {
@@ -1462,6 +1663,34 @@
                 Sprites.drawBonusItem(ctx, this.bonusPos.x + TILE / 2, this.bonusPos.y + TILE / 2, this.level, this.animFrame);
             }
 
+            // Special power-up item
+            if (this._specialItem) {
+                const si = this._specialItem;
+                const sx = si.col * TILE + TILE / 2;
+                const sy = si.row * TILE + TILE / 2;
+                const bob = Math.sin(this.animFrame * 0.1) * 3;
+                const glow = 0.4 + Math.sin(this.animFrame * 0.08) * 0.2;
+                
+                ctx.save();
+                ctx.globalAlpha = glow + 0.4;
+                
+                // Draw glow effect
+                const gradient = ctx.createRadialGradient(sx, sy + bob, 0, sx, sy + bob, TILE);
+                gradient.addColorStop(0, si.type.colors.glow);
+                gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(sx - TILE, sy + bob - TILE, TILE * 2, TILE * 2);
+                
+                // Draw item icon
+                ctx.globalAlpha = 1;
+                ctx.font = `${TILE * 1.2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(si.type.emoji, sx, sy + bob);
+                
+                ctx.restore();
+            }
+
             // Homer
             if (this.state === ST_DYING) {
                 Sprites.drawHomerDying(ctx, this.homer.x, this.homer.y, 1 - this.stateTimer / 90, TILE);
@@ -1471,6 +1700,30 @@
                 ctx.beginPath();
                 ctx.ellipse(this.homer.x + TILE / 2, this.homer.y + TILE - 2, TILE / 3, 3, 0, 0, Math.PI * 2);
                 ctx.fill();
+                // Power-up visual effects on Homer
+                if (this._activePowerUps && this._activePowerUps.length > 0) {
+                    for (const pu of this._activePowerUps) {
+                        if (pu.type.effect === 'speed_boost') {
+                            ctx.globalAlpha = 0.3;
+                            ctx.fillStyle = pu.type.colors.primary;
+                            const trailX = this.homer.x - DX[this.homer.dir] * 8;
+                            const trailY = this.homer.y - DY[this.homer.dir] * 8;
+                            ctx.beginPath();
+                            ctx.arc(trailX + TILE / 2, trailY + TILE / 2, TILE / 3, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.globalAlpha = 1;
+                        } else if (pu.type.effect === 'invincibility') {
+                            const hue = (this.animFrame * 5) % 360;
+                            ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
+                            ctx.lineWidth = 2;
+                            ctx.globalAlpha = 0.6 + Math.sin(this.animFrame * 0.2) * 0.3;
+                            ctx.beginPath();
+                            ctx.arc(this.homer.x + TILE / 2, this.homer.y + TILE / 2, TILE * 0.7, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+                }
                 Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE);
             }
 
@@ -1494,6 +1747,14 @@
                         ctx.fill();
                     }
                     Sprites.drawGhost(ctx, g, this.animFrame, this.frightTimer, this.homer);
+                    // Chili pepper heat particles for slowed ghosts
+                    if (this._activePowerUps && this._activePowerUps.some(p => p.type.effect === 'slow_ghosts') && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED) {
+                        ctx.globalAlpha = 0.6;
+                        ctx.font = '8px Arial';
+                        const floatY = Math.sin(this.animFrame * 0.15 + g.idx) * 4;
+                        ctx.fillText('🌶️', g.x + TILE / 2 + 6, g.y - 2 + floatY);
+                        ctx.globalAlpha = 1;
+                    }
                 }
             }
 
@@ -1545,7 +1806,7 @@
                 ctx.restore();
             }
 
-            // Endless mode badge (pulsing infinity symbol)
+            // Endless mode badge(pulsing infinity symbol)
             if (this.isEndlessMode() && this.state === ST_PLAYING) {
                 const pulse = 0.85 + Math.sin(this.animFrame * 0.08) * 0.15;
                 ctx.save();
@@ -1566,15 +1827,79 @@
                 Sprites.drawMiniHomer(ctx, 20 + i * 28, CANVAS_H - 16);
             }
 
+            // Active power-ups HUD timer (top-right corner)
+            if (this._activePowerUps && this._activePowerUps.length > 0) {
+                const hudX = CANVAS_W - 10;
+                let hudY = 30;
+                
+                for (const pu of this._activePowerUps) {
+                    const timeLeft = Math.ceil(pu.timer / 60);
+                    const pct = pu.timer / pu.startTimer;
+                    const barWidth = 80;
+                    const barHeight = 16;
+                    
+                    ctx.save();
+                    ctx.textAlign = 'right';
+                    
+                    // Background bar
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(hudX - barWidth, hudY, barWidth, barHeight);
+                    
+                    // Progress bar
+                    const barColor = pct < 0.25 ? '#ff4444' : pct < 0.5 ? '#ff8800' : pu.type.colors.primary;
+                    ctx.fillStyle = barColor;
+                    ctx.fillRect(hudX - barWidth, hudY, barWidth * pct, barHeight);
+                    
+                    // Border
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(hudX - barWidth, hudY, barWidth, barHeight);
+                    
+                    // Icon and time
+                    ctx.font = '12px Arial';
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(`${pu.type.emoji} ${timeLeft}s`, hudX - 5, hudY + 12);
+                    
+                    ctx.restore();
+                    hudY += 22;
+                }
+            }
+
+            // Burns token indicator (bottom-left corner)
+            if (this._burnsTokens > 0 && typeof POWER_UP_TYPES !== 'undefined') {
+                const tokenType = POWER_UP_TYPES.find(t => t.effect === 'collect_token');
+                if (tokenType) {
+                    ctx.save();
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(`${tokenType.emoji} ${this._burnsTokens}/${tokenType.effectValue}`, 11, CANVAS_H - 27);
+                    ctx.fillStyle = '#ffd800';
+                    ctx.fillText(`${tokenType.emoji} ${this._burnsTokens}/${tokenType.effectValue}`, 10, CANVAS_H - 28);
+                    ctx.restore();
+                }
+            }
+
             // Ghost names display (bottom right)
             if (this.state === ST_START || this.state === ST_READY) {
                 this.drawGhostLegend(ctx);
             }
 
-            if (hasCameraTransform) ctx.restore();
+            // Restore camera transforms
+            if (hasCameraTransform) {
+                ctx.restore();
+            }
+
+            // Level complete white flash overlay
             if (this.state === ST_LEVEL_DONE && this._isCameraEnabled() && typeof CAMERA_CONFIG !== 'undefined') {
-                const fp = 1 - (this.stateTimer / 150);
-                if (fp > 0.6) { ctx.save(); ctx.globalAlpha = (fp - 0.6) * 2.5; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H); ctx.restore(); }
+                const flashProgress = 1 - (this.stateTimer / 150);
+                if (flashProgress > 0.6) {
+                    ctx.save();
+                    ctx.globalAlpha = (flashProgress - 0.6) * 2.5;
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                    ctx.restore();
+                }
             }
 
             // Level transition wipe effect (circular iris wipe)
@@ -1650,6 +1975,196 @@
             ctx.font = 'bold 7px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('☢ Planta Nuclear', 14 * TILE, 13 * TILE - 2);
+
+            // Draw theme-specific decorations
+            this.drawThemeDecorations(ctx);
+        }
+
+        drawThemeDecorations(ctx) {
+            if (!this.currentLayout.decorations) return;
+
+            const decorations = this.currentLayout.decorations;
+            const themeName = this.currentLayout.name;
+
+            // Draw 3-4 decorative elements per theme (strategic positions)
+            const decorationPositions = [
+                { r: 2, c: 2 }, { r: 2, c: 25 },
+                { r: 28, c: 2 }, { r: 28, c: 25 }
+            ];
+
+            decorationPositions.forEach((pos, idx) => {
+                const x = pos.c * TILE;
+                const y = pos.r * TILE;
+                const decType = decorations[idx % decorations.length];
+
+                ctx.save();
+                
+                switch(decType) {
+                    case 'street_sign':
+                        // Springfield Streets - Street sign pole
+                        ctx.fillStyle = '#555';
+                        ctx.fillRect(x + 10, y + 8, 2, 12);
+                        ctx.fillStyle = '#2244aa';
+                        ctx.fillRect(x + 4, y + 5, 14, 6);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 4px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('MAIN', x + 11, y + 9);
+                        break;
+                        
+                    case 'lamp_post':
+                        // Springfield Streets - Lamp post with glow
+                        ctx.fillStyle = '#444';
+                        ctx.fillRect(x + 11, y + 6, 2, 14);
+                        const lampGlow = 0.6 + Math.sin(this.animFrame * 0.05 + idx) * 0.2;
+                        ctx.fillStyle = `rgba(255, 215, 0, ${lampGlow})`;
+                        ctx.shadowColor = '#ffd700';
+                        ctx.shadowBlur = 4;
+                        ctx.beginPath();
+                        ctx.arc(x + 12, y + 8, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'beer_mug':
+                        // Moe's Tavern - Beer mug
+                        ctx.fillStyle = '#cc9944';
+                        ctx.fillRect(x + 7, y + 8, 8, 10);
+                        ctx.fillStyle = '#f4d596';
+                        ctx.fillRect(x + 7, y + 8, 8, 4);
+                        ctx.fillStyle = '#fff';
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillRect(x + 8, y + 10, 2, 6);
+                        ctx.globalAlpha = 1;
+                        // Foam on top
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 7, y + 6, 8, 3);
+                        break;
+                        
+                    case 'neon_duff':
+                        // Moe's Tavern - Duff neon sign
+                        const neonGlow = 0.5 + Math.sin(this.animFrame * 0.08 + idx) * 0.3;
+                        ctx.shadowColor = '#cc0000';
+                        ctx.shadowBlur = 6;
+                        ctx.fillStyle = `rgba(204, 0, 0, ${neonGlow})`;
+                        ctx.font = 'bold 8px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('DUFF', x + 12, y + 14);
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'squishee':
+                        // Kwik-E-Mart - Squishee machine
+                        ctx.fillStyle = '#dd4488';
+                        ctx.fillRect(x + 6, y + 6, 10, 12);
+                        ctx.fillStyle = '#ab3272';
+                        ctx.fillRect(x + 7, y + 7, 8, 8);
+                        // Liquid inside
+                        const squisheeColor = idx % 2 === 0 ? '#00ccff' : '#ff00ff';
+                        ctx.fillStyle = squisheeColor;
+                        ctx.fillRect(x + 8, y + 9, 6, 4);
+                        break;
+                        
+                    case 'shelf':
+                        // Kwik-E-Mart - Store shelf
+                        ctx.fillStyle = '#8b2252';
+                        ctx.fillRect(x + 4, y + 8, 14, 2);
+                        ctx.fillRect(x + 4, y + 14, 14, 2);
+                        // Products on shelf
+                        ctx.fillStyle = '#dd4488';
+                        ctx.fillRect(x + 6, y + 5, 3, 3);
+                        ctx.fillRect(x + 11, y + 5, 3, 3);
+                        ctx.fillRect(x + 6, y + 11, 3, 3);
+                        ctx.fillRect(x + 11, y + 11, 3, 3);
+                        break;
+                        
+                    case 'chalkboard':
+                        // Springfield Elementary - Chalkboard
+                        ctx.fillStyle = '#2a2a2a';
+                        ctx.fillRect(x + 4, y + 6, 14, 10);
+                        ctx.strokeStyle = '#8a8a8a';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 4, y + 6, 14, 10);
+                        // Chalk writing
+                        ctx.strokeStyle = '#ccc';
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(x + 6, y + 9);
+                        ctx.lineTo(x + 16, y + 9);
+                        ctx.moveTo(x + 6, y + 12);
+                        ctx.lineTo(x + 16, y + 12);
+                        ctx.stroke();
+                        break;
+                        
+                    case 'desk':
+                        // Springfield Elementary - School desk
+                        ctx.fillStyle = '#6a6a6a';
+                        ctx.fillRect(x + 6, y + 10, 10, 6);
+                        ctx.fillStyle = '#4a4a4a';
+                        ctx.fillRect(x + 7, y + 16, 2, 4);
+                        ctx.fillRect(x + 13, y + 16, 2, 4);
+                        break;
+                        
+                    case 'radiation':
+                        // Nuclear Plant - Radiation symbol
+                        const radGlow = 0.5 + Math.sin(this.animFrame * 0.06 + idx) * 0.3;
+                        ctx.fillStyle = `rgba(85, 204, 85, ${radGlow})`;
+                        ctx.shadowColor = '#55cc55';
+                        ctx.shadowBlur = 8;
+                        ctx.font = 'bold 12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('☢', x + 12, y + 16);
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'control_panel':
+                        // Nuclear Plant - Control panel
+                        ctx.fillStyle = '#2d6b2d';
+                        ctx.fillRect(x + 4, y + 8, 14, 10);
+                        // Buttons and lights
+                        const colors = ['#55cc55', '#ff0000', '#ffff00'];
+                        for (let i = 0; i < 3; i++) {
+                            const btnGlow = 0.6 + Math.sin(this.animFrame * 0.07 + idx + i) * 0.4;
+                            ctx.fillStyle = colors[i];
+                            ctx.globalAlpha = btnGlow;
+                            ctx.beginPath();
+                            ctx.arc(x + 7 + i * 4, y + 12, 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.globalAlpha = 1;
+                        break;
+                        
+                    case 'couch':
+                        // Simpsons House - Orange couch
+                        ctx.fillStyle = '#d4a373';
+                        ctx.fillRect(x + 4, y + 10, 14, 8);
+                        ctx.fillStyle = '#b4834f';
+                        ctx.fillRect(x + 4, y + 10, 14, 2);
+                        // Cushions
+                        ctx.fillStyle = '#f4c393';
+                        ctx.fillRect(x + 6, y + 11, 4, 3);
+                        ctx.fillRect(x + 12, y + 11, 4, 3);
+                        break;
+                        
+                    case 'photo_frame':
+                        // Simpsons House - Family photo frame
+                        ctx.fillStyle = '#ffddaa';
+                        ctx.fillRect(x + 7, y + 8, 8, 10);
+                        ctx.strokeStyle = '#d4a373';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(x + 7, y + 8, 8, 10);
+                        // Simple photo (blue sky + yellow figure)
+                        ctx.fillStyle = '#87ceeb';
+                        ctx.fillRect(x + 8, y + 9, 6, 4);
+                        ctx.fillStyle = '#ffd800';
+                        ctx.beginPath();
+                        ctx.arc(x + 11, y + 15, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                }
+                
+                ctx.restore();
+            });
         }
 
         drawDots(ctx) {
