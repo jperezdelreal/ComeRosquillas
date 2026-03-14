@@ -195,4 +195,56 @@
 - Clipboard API requires `navigator.clipboard.writeText()` with textarea fallback for older browsers
 - Share menu is fully self-contained — can be loaded/unloaded without modifying core game logic
 
+### Daily Challenge Mode (Issue #69)
+
+**Architecture decisions:**
+- Created `js/ui/daily-challenge.js` following the established `js/ui/` modular pattern
+- DailyChallenge overlay uses z-index: 1800 (above share menu at 1600, stats at 1500)
+- 7 challenge types defined as `DAILY_CHALLENGE_TYPES` config array in `js/config.js`
+- Seeded PRNG using FNV-1a hash of `YYYY-MM-DD` date string — deterministic across all players
+- Separate daily leaderboard: localStorage key `comerosquillas-daily` (top 10 per day)
+- Challenge history: localStorage key `comerosquillas-daily-history` (completion dates, streak, badge)
+- Challenge rules implemented as modifier functions (`applyModifiers`, `getScoreMultiplier`, `getGhostSpeedBonus`)
+
+**Challenge types and modifiers:**
+- Speed Run: 90s timer via `setInterval` with HUD countdown display (`#dailyTimerDisplay`)
+- Ghost Hunter: ghost target tracked via existing `_gameGhostsEaten` counter
+- Perfect Run: lives set to 1, score multiplier 2x
+- No Power-Ups: POWER cells converted to DOT in maze during `applyModifiers()`
+- Donut Feast: extra DOT cells seeded into EMPTY spaces using seeded PRNG
+- High Score Attack: 1.5x score multiplier applied to dot/ghost scoring
+- Survival: 1 life, 2x score, 10% ghost speed bonus
+
+**Integration points:**
+- Game class: DailyChallenge initialized in constructor after ShareMenu
+- `_dailyChallenge` property on Game stores active challenge reference
+- `_dailyTimeUp` flag checked in game loop for Speed Run timeout
+- `startNewGame()` calls `DailyChallenge.applyModifiers()` after `initLevel()`
+- Score multiplier injected into `checkDots()` (dot/power scoring) and `checkCollisions()` (ghost eating)
+- Ghost speed bonus applied in `getSpeed('ghost')` via `DailyChallenge.getGhostSpeedBonus()`
+- Daily score submitted on game-over (both high-score-entry and non-high-score paths)
+- D key shortcut opens daily challenge panel from start/pause/game-over screens
+- Daily challenge banner with click-to-open on start screen (`_dailyChallengeBannerHtml()`)
+- HUD shows challenge name/emoji instead of level name during active challenge
+
+**Leaderboard badge integration:**
+- `DailyChallenge.getChallengeBadge()` static method returns badge based on total challenges completed
+- Badge shown on stats-dashboard leaderboard rank banner (stats-dashboard.js)
+- Four badge tiers: Challenger (1+), Challenge Regular (7+), Challenge Master (14+), Challenge Legend (30+)
+
+**CSS organization:**
+- All daily challenge styles in index.html `<style>` block (following existing convention)
+- Uses same color palette: purple gradients, yellow accents, pink highlights
+- Challenge card border colored per challenge type (e.g., red for Speed Run, gold for Perfect Run)
+- Responsive breakpoint at 700px matching existing patterns
+- Reuses `shareSlideIn` animation for modal appearance
+
+**Key learnings for future work:**
+- Seeded PRNG pattern: `hashDate()` + `seededRandom()` can be reused for any deterministic game variation
+- Challenge modifier pattern: modifier functions applied after `initLevel()` in `startNewGame()` — clean separation
+- Timer management: `setInterval` with `_timerInterval` ref, cleared on challenge end and game-over
+- D key is shared with debug toggle during gameplay — daily challenge D only fires from start/pause/gameover states
+- Daily challenge state must be cleaned up on game-over return-to-start (Enter key handler)
+- Script load order: daily-challenge.js after share-menu.js, before renderer.js
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->

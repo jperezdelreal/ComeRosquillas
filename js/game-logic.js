@@ -193,6 +193,10 @@
                     this.handleHighScoreInput(e.code);
                 } else if (this.state === ST_GAME_OVER && (e.code === 'Enter' || e.code === 'Space')) {
                     e.preventDefault();
+                    // Clean up daily challenge state on return to start
+                    if (this.dailyChallenge) this.dailyChallenge.endChallenge();
+                    this._dailyChallenge = null;
+                    this._dailyTimeUp = false;
                     this.state = ST_START;
                     this.level = 1;
                     this.currentLayout = getMazeLayout(this.level);
@@ -268,6 +272,14 @@
                 const gameStats = this._buildGameStats();
                 const rank = this.highScores.addScore(this.initialsEntry.name, this.score, this.level, this.bestCombo, gameStats);
                 this.highScores.recordGameEnd(gameStats);
+                // Submit daily challenge score with player name
+                if (this._dailyChallenge && this.dailyChallenge) {
+                    this.dailyChallenge.submitScore(
+                        this.initialsEntry.name, this.score, this.level,
+                        this._gameGhostsEaten, this._gameDonutsEaten
+                    );
+                    this.dailyChallenge.endChallenge();
+                }
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
@@ -1261,7 +1273,9 @@
 
         updateHUD() {
             this.scoreEl.textContent = this.score;
-            if (this.isEndlessMode()) {
+            if (this._dailyChallenge) {
+                this.levelEl.textContent = `${this._dailyChallenge.emoji} ${this._dailyChallenge.name}`;
+            } else if (this.isEndlessMode()) {
                 this.levelEl.textContent = `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
             } else {
                 this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;

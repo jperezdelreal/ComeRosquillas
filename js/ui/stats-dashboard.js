@@ -103,7 +103,9 @@ class StatsDashboard {
             return;
         }
         const rank = this.highScores.getRank();
-        let html = '<div class="lb-rank-banner">' + rank.emoji + ' ' + rank.name + ' \u2014 ' + this.highScores.lifetimeStats.totalDonutsEaten.toLocaleString() + ' donuts lifetime</div>';
+        const challengeBadge = typeof DailyChallenge !== 'undefined' ? DailyChallenge.getChallengeBadge() : null;
+        const challengeStr = challengeBadge ? ' \u2022 ' + challengeBadge.emoji + ' ' + challengeBadge.name : '';
+        let html = '<div class="lb-rank-banner">' + rank.emoji + ' ' + rank.name + ' \u2014 ' + this.highScores.lifetimeStats.totalDonutsEaten.toLocaleString() + ' donuts lifetime' + challengeStr + '</div>';
         html += '<div class="lb-scroll"><table class="lb-table" role="grid"><thead><tr><th>#</th><th>Name</th><th>Score</th><th>Lvl</th><th>Combo</th><th>Diff</th><th>Date</th></tr></thead><tbody>';
         scores.forEach((s, i) => {
             const pos = i + 1;
