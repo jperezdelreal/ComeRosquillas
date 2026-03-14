@@ -1,5 +1,7 @@
 // ===========================
-// Come Rosquillas - Main Game Logic
+// Come Rosquillas - Main Game Logic (Orchestrator)
+// ===========================
+// Thin orchestrator — delegates to 5 extracted modules.
 // ===========================
 
 'use strict';
@@ -42,18 +44,6 @@
             this.screenShakeTimer = 0;
             this.screenShakeIntensity = 0;
             this._shakeMaxDuration = 0;
-
-            // Camera juice state
-            this._cameraEffectsEnabled = true;
-            this._cameraAutoDisabled = false;
-            this._cameraFpsCheckFrame = 0;
-            this._cameraZoom = 1.0;
-            this._cameraZoomTarget = 1.0;
-            this._cameraZoomTimer = 0;
-            this._cameraZoomDuration = 0;
-            this._cameraZoomStart = 1.0;
-            this._cameraOffsetX = 0;
-            this._cameraOffsetY = 0;
 
             // Camera juice state
             this._cameraEffectsEnabled = true;

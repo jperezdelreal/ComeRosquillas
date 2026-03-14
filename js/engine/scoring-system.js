@@ -33,7 +33,8 @@ Game.prototype._buildGameStats = function() {
         donutsEaten: this._gameDonutsEaten,
         ghostsEaten: this._gameGhostsEaten,
         itemsCollected: this._gameItemsCollected,
-        playTimeMs: this._gameStartTime ? Date.now() - this._gameStartTime : 0
+        playTimeMs: this._gameStartTime ? Date.now() - this._gameStartTime : 0,
+        eventsCompleted: this._eventsCompleted || 0,
     };
 };
 
@@ -105,9 +106,9 @@ Game.prototype.updateHUD = function() {
     if (this._dailyChallenge) {
         this.levelEl.textContent = `${this._dailyChallenge.emoji} ${this._dailyChallenge.name}`;
     } else if (this.isEndlessMode()) {
-        this.levelEl.textContent = `Level ∞${this.level} — ${this.currentLayout.name}`;
+        this.levelEl.textContent = `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
     } else {
-        this.levelEl.textContent = `Level ${this.level} — ${this.currentLayout.name}`;
+        this.levelEl.textContent = `${this.currentLayout.name} - ${this.level}`;
     }
     this.highScoreEl.textContent = this.highScores.getHighScore();
     // Show best combo on HUD when player has achieved one

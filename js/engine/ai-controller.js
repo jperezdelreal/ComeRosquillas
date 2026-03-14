@@ -399,9 +399,9 @@ Game.prototype.checkBossTraps = function() {
             this._rakeTraps.splice(i, 1);
             this.addFloatingText(hx, hy - TILE, 'RAKE!', '#8b4513');
             this.addParticles(hx, hy, '#8b4513', 6);
-            // Brief speed penalty
+            // Brief speed penalty (frame-based timer, 60 frames ≈ 1 second)
             this.homer.speed *= 0.3;
-            setTimeout(() => { if (this.homer) this.homer.speed = this.getSpeed('homer'); }, 1000);
+            this._rakeSlowTimer = 60;
         }
     }
 

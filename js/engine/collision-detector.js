@@ -15,9 +15,11 @@ Game.prototype.checkDots = function() {
     const cell = this.maze[tile.row][tile.col];
     const _dailyMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
         ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
+    const _eventMul = (typeof PROCEDURAL_EVENTS !== 'undefined' && this._getEventScoreMultiplier)
+        ? this._getEventScoreMultiplier() : 1;
     if (cell === DOT) {
         this.maze[tile.row][tile.col] = EMPTY;
-        this.score += Math.round(10 * _dailyMul);
+        this.score += Math.round(10 * _dailyMul * _eventMul);
         this.dotsEaten++;
         this._gameDonutsEaten++;
         if (this.animFrame % 2 === 0) this.sound.play('chomp');
@@ -29,11 +31,14 @@ Game.prototype.checkDots = function() {
         if (this.dotsEaten === 70 || this.dotsEaten === 170) this.spawnBonus();
     } else if (cell === POWER) {
         this.maze[tile.row][tile.col] = EMPTY;
-        this.score += Math.round(50 * _dailyMul);
+        this.score += Math.round(50 * _dailyMul * _eventMul);
         this.dotsEaten++;
         this.ghostsEaten = 0;
         this.comboDisplayTimer = 0;
-        this.frightTimer = this.getLevelFrightTime();
+        // Apply event fright multiplier (Invincibility Rush = 3x)
+        const eventFrightMul = (typeof PROCEDURAL_EVENTS !== 'undefined' && this._getEventFrightMultiplier)
+            ? this._getEventFrightMultiplier() : 1;
+        this.frightTimer = Math.round(this.getLevelFrightTime() * eventFrightMul);
         this.sound.play('power');
         this.sound.setFrightMode(true);
         // Camera: light pulse on power pellet
@@ -73,8 +78,8 @@ Game.prototype.checkDots = function() {
         }
         const quote = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
         const levelLabel = this.isEndlessMode()
-            ? `∞ ENDLESS ${this.currentLayout.name} ${this.level}`
-            : `${this.currentLayout.name} - Level ${this.level}`;
+            ? `Level ∞${this.level} — ${this.currentLayout.name}`
+            : `Level ${this.level} — ${this.currentLayout.name}`;
         this.showMessage('WOOHOO!', `${quote}<br>${levelLabel} Complete!`);
         if (this.achievements) this.achievements.notify('level_complete', this);
     }
@@ -111,7 +116,9 @@ Game.prototype.checkCollisions = function() {
                 const comboMultiplier = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
                 const _dcMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
                     ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
-                const pts = Math.round(200 * comboMultiplier * _dcMul);
+                const _evtMul = (typeof PROCEDURAL_EVENTS !== 'undefined' && this._getEventScoreMultiplier)
+                    ? this._getEventScoreMultiplier() : 1;
+                const pts = Math.round(200 * comboMultiplier * _dcMul * _evtMul);
                 this.score += pts;
 
                 // Milestone: trigger burst, shake, and audio at 2x, 4x, 8x

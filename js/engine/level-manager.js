@@ -134,9 +134,9 @@ Game.prototype.getSpeed = function(type, ghost) {
 
 Game.prototype._levelTitle = function() {
     if (this.isEndlessMode()) {
-        return `Level ∞${this.level} — ${this.currentLayout.name}`;
+        return `∞ ENDLESS - ${this.currentLayout.name} ${this.level}`;
     }
-    return `Level ${this.level} — ${this.currentLayout.name}`;
+    return `${this.currentLayout.name} - Level ${this.level}`;
 };
 
 Game.prototype.startCutscene = function(cutsceneNum) {
