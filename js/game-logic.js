@@ -218,10 +218,7 @@
 
             // Initialize achievement system
             if (typeof AchievementManager !== 'undefined') {
-                this.achievements = new AchievementManager();
-                this.achievements._game = this;
-                // Sync cumulative stats from lifetime
-                this.achievements.syncFromLifetimeStats(this.highScores.getLifetimeStats());
+                this.achievements = new AchievementManager(this.highScores, this.sound);
             }
             
             // Allow 'H' key to open share menu from game-over/start screens
@@ -364,6 +361,7 @@
                 this.sound.play('gameOver');
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
                 this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
+                if (this.achievements) this.achievements.notify('game_over', this);
             }
         }
 
@@ -395,7 +393,7 @@
                     &#127850; Eat all the donuts<br>
                     &#127866; Grab a Duff to chase the bad guys<br>
                     &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
-                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; H = Share &nbsp; D = Daily<br><br>
+                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; A = Achievements &nbsp; H = Share &nbsp; D = Daily<br><br>
                     ${this._challengeBannerHtml()}${this._dailyChallengeBannerHtml()}Press ENTER or SPACE to start
                     ${scoreTable}
                 </div>`;
@@ -546,10 +544,8 @@
             if (this._themesVisitedSet) {
                 const themeIdx = (this.level - 1) % MAZE_LAYOUTS.length;
                 this._themesVisitedSet.add(themeIdx);
-                if (this.achievements) {
-                    this.achievements.maxStat('themesVisited', this._themesVisitedSet.size);
-                }
             }
+            if (this.achievements) this.achievements.notify('level_start', this);
         }
 
         initEntities() {
@@ -915,6 +911,9 @@
                             this.showHighScoreEntry();
                         } else {
                             this.highScores.recordGameEnd(this._buildGameStats());
+                            if (this.achievements) {
+                                this.achievements.notify('game_over', this);
+                            }
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
                             const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
@@ -1003,6 +1002,12 @@
                 this.sound.updateSpatial(this.homer.x, this.homer.y, this.ghosts);
             }
 
+            // Achievement tick: ghost whisperer timer + periodic checks
+            this._noPowerPelletFrames++;
+            if (this.achievements && this.animFrame % 60 === 0) {
+                this.achievements.notify('tick', this);
+            }
+
             // Mouth animation
             if (this.animFrame % 4 === 0) {
                 this.homer.mouthAngle += this.homer.mouthOpen ? 0.15 : -0.15;
@@ -1065,9 +1070,13 @@
                 const nextCol = tile.col + DX[h.nextDir];
                 const nextRow = tile.row + DY[h.nextDir];
                 if (this.isWalkable(nextCol, nextRow, false)) {
+                    if (h.dir !== h.nextDir) this._levelDirectionChanges++;
                     h.dir = h.nextDir;
                     if (h.dir === UP || h.dir === DOWN) h.x = center.x - TILE / 2;
                     else h.y = center.y - TILE / 2;
+                    if (this.achievements && this._levelDirectionChanges >= 200) {
+                        this.achievements.notify('direction_change', this);
+                    }
                 }
             }
 
@@ -1138,6 +1147,7 @@
                 this.checkExtraLife();
                 this.updateHUD();
                 this._noPowerPelletFrames = 0;
+                if (this.achievements) this.achievements.notify('power_pellet', this);
             } else if (typeof SPECIAL_ITEM !== 'undefined' && cell === SPECIAL_ITEM) {
                 this.checkSpecialItemCollection();
             }
@@ -1246,6 +1256,7 @@
             this.maze[item.row][item.col] = EMPTY;
             this._specialItem = null;
             this._gameItemsCollected++;
+            this._lastCollectedPowerUpId = type.id;
             this.sound.play('specialItem', type);
             const _dcMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
                 ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
@@ -1255,6 +1266,7 @@
                 this._powerUpComboActive = true;
                 this.addFloatingText(cx, cy - 20, POWER_UP_COMBOS.duff_beer_power_pellet.label, '#ffd800');
                 this.addParticles(cx, cy, '#ffd800', 12);
+                if (this.achievements) this.achievements.notify('power_up_combo', this);
             }
             switch (type.effect) {
                 case 'speed_boost':
@@ -1305,6 +1317,10 @@
             if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
             this.checkExtraLife();
             this.updateHUD();
+            if (this.achievements) {
+                this.achievements.notify('power_up_collected', this);
+                this.achievements.notify('score_update', this);
+            }
         }
 
         updateActivePowerUps() {
@@ -1642,8 +1658,7 @@
 
                         // Achievement: ghost combo & kill tracking
                         if (this.achievements) {
-                            this.achievements.maxStat('maxCombo', comboMultiplier);
-                            this.achievements.maxStat('maxGhostStreak', this.ghostsEaten);
+                            this.achievements.notify('ghost_eaten', this);
                         }
 
                         // Boss defeat bonus
@@ -1658,10 +1673,6 @@
                             this._fakePellets = [];
                             this._rakeTraps = [];
                             this._laserBeams = [];
-                            // Achievement: boss slayer
-                            if (this.achievements) {
-                                this.achievements.incrementStat('bossesDefeated');
-                            }
                         }
 
                         this.updateHUD();
@@ -1680,14 +1691,7 @@
                         if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
                         this._levelHitsTaken++;
                         this._consecutivePerfectLevels = 0;
-
-                        // Achievement: D'oh Moment (die within 5 seconds)
-                        if (this.achievements && this._levelPlayStartTime) {
-                            const elapsed = (Date.now() - this._levelPlayStartTime) / 1000;
-                            if (elapsed < 5) {
-                                this.achievements.incrementStat('quickDeaths');
-                            }
-                        }
+                        if (this.achievements) this.achievements.notify('death', this);
                         return;
                     }
                 }
@@ -1852,6 +1856,7 @@
                 this._gameGhostsEaten, this._gameDonutsEaten
             );
             this.dailyChallenge.endChallenge();
+            if (this.achievements) this.achievements.notify('daily_complete', this);
         }
 
         _endDailyChallenge() {
@@ -1859,6 +1864,7 @@
                 this._submitDailyScore();
             }
             this.highScores.recordGameEnd(this._buildGameStats());
+            if (this.achievements) this.achievements.notify('game_over', this);
             this.state = ST_GAME_OVER;
             this.sound.stopMusic();
             this.sound.play('gameOver');

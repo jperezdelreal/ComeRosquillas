@@ -34,10 +34,12 @@ class StatsDashboard {
                 <div class="stats-tabs" role="tablist">
                     <button class="stats-tab stats-tab-active" role="tab" data-tab="leaderboard" aria-selected="true">\U0001f3c6 Leaderboard</button>
                     <button class="stats-tab" role="tab" data-tab="stats" aria-selected="false">\U0001f4ca Stats</button>
+                    <button class="stats-tab" role="tab" data-tab="achievements" aria-selected="false">\U0001f3c5 Achievements</button>
                 </div>
                 <div class="stats-content">
                     <div class="stats-panel" id="panelLeaderboard"></div>
                     <div class="stats-panel" id="panelStats" style="display:none"></div>
+                    <div class="stats-panel" id="panelAchievements" style="display:none"></div>
                 </div>
                 <div class="stats-footer">
                     <button class="stats-button stats-clear-btn">\U0001f5d1\ufe0f Clear Data</button>
@@ -86,12 +88,19 @@ class StatsDashboard {
         const titleEl = this.overlay.querySelector('#statsTitle');
         const lbPanel = this.overlay.querySelector('#panelLeaderboard');
         const stPanel = this.overlay.querySelector('#panelStats');
+        const achPanel = this.overlay.querySelector('#panelAchievements');
+        lbPanel.style.display = 'none';
+        stPanel.style.display = 'none';
+        if (achPanel) achPanel.style.display = 'none';
         if (tabName === 'leaderboard') {
             titleEl.textContent = '\U0001f3c6 Leaderboard';
-            lbPanel.style.display = ''; stPanel.style.display = 'none';
+            lbPanel.style.display = '';
+        } else if (tabName === 'achievements') {
+            titleEl.textContent = '\U0001f3c5 Achievements';
+            if (achPanel) achPanel.style.display = '';
         } else {
             titleEl.textContent = '\U0001f4ca Stats';
-            lbPanel.style.display = 'none'; stPanel.style.display = '';
+            stPanel.style.display = '';
         }
     }
 
@@ -178,13 +187,26 @@ class StatsDashboard {
             '<section class="stats-section"><h3>\U0001f396\ufe0f Rank Progression</h3><div class="stats-badges-grid">' + badgesHtml + '</div></section>';
     }
 
+    renderAchievements() {
+        const panel = this.overlay.querySelector('#panelAchievements');
+        if (!panel) return;
+        if (typeof AchievementManager !== 'undefined' && window._game && window._game.achievements) {
+            window._game.achievements.renderAchievementsPanel(panel);
+        } else {
+            panel.innerHTML = '<div class="stats-empty"><div style="font-size:48px;margin-bottom:12px;">🏅</div><div style="color:#ffd800;font-size:20px;">Achievements</div><div style="color:#aaa;font-size:15px;margin-top:8px;font-family:Arial,sans-serif;">Play to unlock achievements!</div></div>';
+        }
+    }
+
     showClearConfirm() {
         const footer = this.overlay.querySelector('.stats-footer');
-        const what = this.activeTab === 'leaderboard' ? 'scores' : 'stats';
+        const what = this.activeTab === 'leaderboard' ? 'scores' : this.activeTab === 'achievements' ? 'achievements' : 'stats';
         footer.innerHTML = '<div class="stats-confirm"><span style="color:#ff6b6b;">Clear all ' + what + '?</span><div style="display:flex;gap:8px;margin-top:8px;"><button class="stats-button stats-cancel-btn">Cancel</button><button class="stats-button stats-confirm-btn">Yes, Clear</button></div></div>';
         footer.querySelector('.stats-cancel-btn').addEventListener('click', () => this.restoreFooter());
         footer.querySelector('.stats-confirm-btn').addEventListener('click', () => {
             if (this.activeTab === 'leaderboard') { this.highScores.clearScores(); this.renderLeaderboard(); }
+            else if (this.activeTab === 'achievements') {
+                if (window._game && window._game.achievements) { window._game.achievements.clearAchievements(); this.renderAchievements(); }
+            }
             else { this.highScores.clearLifetimeStats(); this.renderStats(); }
             this.restoreFooter();
         });
@@ -225,9 +247,10 @@ class StatsDashboard {
         this._lastGameDate = lastGameDate || null;
         this.isOpen = true;
         this.overlay.style.display = 'flex';
-        if (tab === 'stats' || tab === 'leaderboard') this.switchTab(tab);
+        if (tab === 'stats' || tab === 'leaderboard' || tab === 'achievements') this.switchTab(tab);
         this.renderLeaderboard();
         this.renderStats();
+        this.renderAchievements();
         this.focusIndex = 0;
         setTimeout(() => {
             this.focusableElements = Array.from(this.overlay.querySelectorAll(

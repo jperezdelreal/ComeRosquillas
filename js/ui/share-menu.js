@@ -179,6 +179,10 @@ class ShareMenu {
     if (g.bestCombo > 1) text += ` | 🔥 ${g.bestCombo}x Combo`
     text += ` | 🍩 ${g._gameDonutsEaten} Donuts`
     text += ` | 👻 ${g._gameGhostsEaten} Ghosts`
+    if (g.achievements) {
+      const badges = g.achievements.getShareBadges()
+      if (badges) text += `\n🏅 ${badges}`
+    }
     return text
   }
 
