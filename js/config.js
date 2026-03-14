@@ -427,6 +427,108 @@ const FRIGHT_TIME = 360;
 const FRIGHT_FLASH_TIME = 120;
 const BASE_SPEED = 1.8;
 
+// ==================== PROCEDURAL EVENTS ====================
+const PROCEDURAL_EVENTS = {
+    normalChance: 0.2,          // 20% chance per level (1 in 5)
+    endlessChance: 0.33,        // 33% after endless threshold (1 in 3)
+    endlessThreshold: 15,       // level at which higher frequency kicks in
+    announceDuration: 150,      // 2.5s announcement overlay (frames at 60fps)
+    darknessRadius: 5,          // fog of war radius in tiles
+    minLevel: 2,                // events never trigger on level 1
+    events: [
+        {
+            id: 'double_trouble',
+            name: 'Double Trouble',
+            description: '8 ghosts roam Springfield!',
+            emoji: '\u{1F47B}',
+            color: '#ff4444',
+            quote: "They're multiplying!",
+            effects: { extraGhosts: 4 },
+        },
+        {
+            id: 'speed_run',
+            name: 'Speed Run',
+            description: 'Finish in 90 seconds for a 5000pt bonus!',
+            emoji: '\u23F1\uFE0F',
+            color: '#00ccff',
+            quote: "Can't stop, won't stop!",
+            effects: { speedRunTimer: 5400, speedRunBonus: 5000 },
+        },
+        {
+            id: 'ghost_frenzy',
+            name: 'Ghost Frenzy',
+            description: 'Ghosts never scatter \u2014 constant chase!',
+            emoji: '\u{1F608}',
+            color: '#ff6600',
+            quote: 'Run, Homer, run!',
+            effects: { noScatter: true },
+        },
+        {
+            id: 'donut_feast',
+            name: 'Donut Feast',
+            description: 'Extra donuts everywhere! Eat them all!',
+            emoji: '\u{1F369}',
+            color: '#ff69b4',
+            quote: "Mmm... extra donuts!",
+            effects: { bonusDots: 30 },
+        },
+        {
+            id: 'invincibility_rush',
+            name: 'Invincibility Rush',
+            description: 'Power pellets last 3x longer!',
+            emoji: '\u26A1',
+            color: '#ffd800',
+            quote: 'I am invincible!',
+            effects: { frightMultiplier: 3 },
+        },
+        {
+            id: 'no_power',
+            name: 'No Power-Ups',
+            description: 'Pellets disabled \u2014 pure evasion!',
+            emoji: '\u{1F6AB}',
+            color: '#999',
+            quote: "You're on your own, Homer!",
+            effects: { noPower: true },
+        },
+        {
+            id: 'darkness',
+            name: 'Darkness',
+            description: 'Fog of war \u2014 limited visibility!',
+            emoji: '\u{1F311}',
+            color: '#6633cc',
+            quote: "I can't see a thing!",
+            effects: { darkness: true },
+        },
+        {
+            id: 'reverse_day',
+            name: 'Reverse Day',
+            description: 'Controls are inverted!',
+            emoji: '\u{1F504}',
+            color: '#33cc33',
+            quote: 'Up is down, left is right!',
+            effects: { reverseControls: true },
+        },
+        {
+            id: 'golden_hour',
+            name: 'Golden Hour',
+            description: 'All points doubled!',
+            emoji: '\u2728',
+            color: '#ffd800',
+            quote: 'Everything is golden!',
+            effects: { scoreMultiplier: 2 },
+        },
+        {
+            id: 'bonus_stage',
+            name: 'Bonus Stage',
+            description: 'No ghosts! Collect all donuts for 10000pt bonus!',
+            emoji: '\u{1F381}',
+            color: '#00ff88',
+            quote: 'Free donuts for everyone!',
+            effects: { noGhosts: true, bonusOnComplete: 10000 },
+        },
+    ],
+};
+
 // ==================== PROGRESSIVE DIFFICULTY CURVE ====================
 // Levels 1-8: progressive scaling per level
 const DIFFICULTY_CURVE = {
