@@ -373,6 +373,13 @@ Game.prototype.endCutscene = function() {
     this.sound.setLevelTempo(this.level);
     this.state = ST_READY;
     this.stateTimer = 150;
-    this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+    // Show event announcement after cutscene if an event triggered
+    let levelMsg = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
+    if (typeof PROCEDURAL_EVENTS !== 'undefined' && this._activeEvent) {
+        this.stateTimer = PROCEDURAL_EVENTS.announceDuration;
+        const evt = this._activeEvent;
+        levelMsg = `${evt.emoji} <b style="color:${evt.color}">${evt.name}</b><br>${evt.description}<br><br><i>"${evt.quote}"</i>`;
+    }
+    this.showMessage(this._levelTitle(), levelMsg);
     this.updateHUD();
 };
