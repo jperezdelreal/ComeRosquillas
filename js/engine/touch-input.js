@@ -57,7 +57,11 @@ class TouchInput {
     setupTouchElements() {
         const container = document.getElementById('gameContainer')
 
-        // D-pad — 25%+ larger SVG touch targets (viewBox 160 vs old 120)
+        // Controls bar — Game Boy layout: D-pad left, buttons right
+        this.controlsBar = document.createElement('div')
+        this.controlsBar.id = 'touchControlsBar'
+
+        // D-pad — large SVG touch targets
         this.dpadElement = document.createElement('div')
         this.dpadElement.id = 'touchDpad'
         this.dpadElement.innerHTML = `
@@ -69,28 +73,46 @@ class TouchInput {
                 <path id="dpad-right" d="M145,80 L105,105 L105,55 Z" fill="rgba(255,216,0,0.3)" stroke="rgba(255,216,0,0.6)" stroke-width="1.5" class="dpad-arrow"/>
             </svg>
         `
-        container.appendChild(this.dpadElement)
+        this.controlsBar.appendChild(this.dpadElement)
 
-        // Pause button — top-right for right-thumb access
+        // Button cluster — right side of controls bar
+        const btnCluster = document.createElement('div')
+        btnCluster.id = 'touchBtnCluster'
+
+        // Settings button (mirrors #settingsBtn for portrait touch)
+        this.settingsButton = document.createElement('button')
+        this.settingsButton.id = 'touchSettingsBtn'
+        this.settingsButton.className = 'touch-action-btn'
+        this.settingsButton.innerHTML = '⚙️'
+        this.settingsButton.setAttribute('aria-label', 'Settings')
+        btnCluster.appendChild(this.settingsButton)
+
+        // Pause button
         this.pauseButton = document.createElement('button')
         this.pauseButton.id = 'touchPauseBtn'
+        this.pauseButton.className = 'touch-action-btn'
         this.pauseButton.innerHTML = '⏸'
         this.pauseButton.setAttribute('aria-label', 'Pause')
-        container.appendChild(this.pauseButton)
+        btnCluster.appendChild(this.pauseButton)
 
         // Mute button
         this.muteButton = document.createElement('button')
         this.muteButton.id = 'touchMuteBtn'
+        this.muteButton.className = 'touch-action-btn'
         this.muteButton.innerHTML = '🔇'
         this.muteButton.setAttribute('aria-label', 'Mute')
-        container.appendChild(this.muteButton)
+        btnCluster.appendChild(this.muteButton)
 
         // Fullscreen toggle button
         this.fullscreenButton = document.createElement('button')
         this.fullscreenButton.id = 'touchFullscreenBtn'
+        this.fullscreenButton.className = 'touch-action-btn'
         this.fullscreenButton.innerHTML = '⛶'
         this.fullscreenButton.setAttribute('aria-label', 'Toggle fullscreen')
-        container.appendChild(this.fullscreenButton)
+        btnCluster.appendChild(this.fullscreenButton)
+
+        this.controlsBar.appendChild(btnCluster)
+        container.appendChild(this.controlsBar)
     }
 
     // --- Event Handlers ---
@@ -144,6 +166,22 @@ class TouchInput {
         this.muteButton.addEventListener('click', (e) => {
             e.preventDefault()
             this.triggerKey('KeyM')
+        })
+
+        // Settings button — opens settings menu via #settingsBtn
+        this.settingsButton.addEventListener('touchstart', (e) => {
+            e.preventDefault()
+            this.vibrate(10)
+            this.settingsButton.classList.add('touch-btn-active')
+            document.getElementById('settingsBtn')?.click()
+        })
+        this.settingsButton.addEventListener('touchend', (e) => {
+            e.preventDefault()
+            this.settingsButton.classList.remove('touch-btn-active')
+        })
+        this.settingsButton.addEventListener('click', (e) => {
+            e.preventDefault()
+            document.getElementById('settingsBtn')?.click()
         })
 
         // Fullscreen toggle
