@@ -333,4 +333,26 @@
 - DOM-based toast approach is cleaner than Canvas-drawn toasts: no interference with game render loop, survives state transitions
 - Script load order: achievements.js must load after high-scores.js but before game-logic.js
 
+### Maze Theme Particles (Issue #99)
+
+**Architecture decisions:**
+- Theme particle config lives in `MAZE_LAYOUTS` array in config.js alongside wall/floor/ambient colors
+- 3 particle styles: `float` (drift with sine wave), `rise` (upward motion), `sparkle` (flickering diamond shapes)
+- Each theme defines 6 properties: colors, style, spawnRate, sizeRange, speedRange, lifeRange
+- Ambient particle system (`_updateAmbientParticles` / `_drawAmbientParticles`) in game-logic.js consumes config
+
+**Theme flavor:**
+- Springfield Streets: golden street light dust motes
+- Moe's Tavern: beer foam bubbles rising
+- Kwik-E-Mart: neon store light sparkles
+- Springfield Elementary: chalk dust drifting
+- Nuclear Plant: radioactive smoke wisps
+- Simpsons House: warm living room dust
+
+**Key learnings:**
+- Multiple branches share the same base commit — always verify you're on the right branch before committing
+- Stash operations can silently affect other files; always `git status --short` before staging
+- When prior work already exists on main for an issue, only add the remaining pieces (here: particle configs)
+- HUD format "Level X — Theme Name" is consistent across scoring-system.js, level-manager.js, and collision-detector.js
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
