@@ -866,6 +866,98 @@ class Sprites {
             ctx.restore();
         }
 
+        // ==================== PERSONALITY VISUAL EFFECTS ====================
+
+        // Burns: golden crown above ghost
+        static drawBurnsCrown(ctx, cx, cy, config) {
+            ctx.save();
+            const crownW = 10;
+            const crownH = 7;
+            ctx.fillStyle = config.crownColor;
+            ctx.beginPath();
+            ctx.moveTo(cx - crownW / 2, cy);
+            ctx.lineTo(cx - crownW / 2, cy - crownH * 0.5);
+            ctx.lineTo(cx - crownW / 4, cy - crownH * 0.2);
+            ctx.lineTo(cx, cy - crownH);
+            ctx.lineTo(cx + crownW / 4, cy - crownH * 0.2);
+            ctx.lineTo(cx + crownW / 2, cy - crownH * 0.5);
+            ctx.lineTo(cx + crownW / 2, cy);
+            ctx.closePath();
+            ctx.fill();
+            // Crown gem
+            ctx.fillStyle = config.crownGemColor;
+            ctx.beginPath();
+            ctx.arc(cx, cy - crownH * 0.6, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Bob Patiño: speed lines behind sprite
+        static drawPersonalitySpeedLines(ctx, ghost, animFrame, config) {
+            ctx.save();
+            ctx.globalAlpha = config.speedLineAlpha;
+            ctx.strokeStyle = ghost.color;
+            ctx.lineWidth = 1.5;
+            const trailDirX = -DX[ghost.dir];
+            const trailDirY = -DY[ghost.dir];
+            const gcx = ghost.x + TILE / 2;
+            const gcy = ghost.y + TILE / 2;
+            for (let i = 0; i < config.speedLineCount; i++) {
+                const offset = (i - 1) * 4;
+                const perpX = trailDirY;
+                const perpY = -trailDirX;
+                const sx = gcx + trailDirX * 8 + perpX * offset;
+                const sy = gcy + trailDirY * 8 + perpY * offset;
+                const wave = Math.sin(animFrame * 0.3 + i) * 2;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(sx + trailDirX * config.speedLineLength + wave, sy + trailDirY * config.speedLineLength);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Snake: cigarette smoke trail particles
+        static drawSnakeSmokeTrail(ctx, ghost, animFrame, config) {
+            ctx.save();
+            const trailDirX = -DX[ghost.dir];
+            const trailDirY = -DY[ghost.dir];
+            const gcx = ghost.x + TILE / 2;
+            const gcy = ghost.y + TILE / 2;
+            for (let i = 0; i < config.smokeParticleCount; i++) {
+                const age = (animFrame + i * 7) % config.smokeParticleLife;
+                const t = age / config.smokeParticleLife;
+                const sx = gcx + trailDirX * (6 + t * 12) + Math.sin(animFrame * 0.1 + i * 2) * 3;
+                const sy = gcy + trailDirY * (6 + t * 12) - t * 6 + Math.cos(animFrame * 0.08 + i) * 2;
+                const size = 2 + t * 3;
+                ctx.globalAlpha = config.smokeAlpha * (1 - t);
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.arc(sx, sy, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Boss HP bar above boss ghost
+        static drawBossHpBar(ctx, cx, cy, hp, maxHp) {
+            const cfg = typeof BOSS_CONFIG !== 'undefined' ? BOSS_CONFIG : { hpBarWidth: 30, hpBarHeight: 4, hpBarBgColor: '#333', hpBarFillColor: '#ff4444', hpBarBorderColor: '#fff' };
+            const w = cfg.hpBarWidth;
+            const h = cfg.hpBarHeight;
+            const x = cx - w / 2;
+            const y = cy - h / 2;
+            // Background
+            ctx.fillStyle = cfg.hpBarBgColor;
+            ctx.fillRect(x, y, w, h);
+            // HP fill
+            ctx.fillStyle = hp <= 1 ? '#ff0000' : cfg.hpBarFillColor;
+            ctx.fillRect(x, y, w * (hp / maxHp), h);
+            // Border
+            ctx.strokeStyle = cfg.hpBarBorderColor;
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(x, y, w, h);
+        }
+
         // ==================== GHOST DEBUG OVERLAYS ====================
 
         // Draw mode icon + label above a ghost

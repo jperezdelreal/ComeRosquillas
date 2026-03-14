@@ -263,6 +263,116 @@ const GHOST_CFG = [
     { name: 'Snake',       color: '#44bb44', skinColor: '#f5d0a0', startX: 16, startY: 14, scatterX: 0,  scatterY: 30, homeX: 16, homeY: 14, exitDelay: 150, personality: 'erratic' }
 ];
 
+// ==================== GHOST PERSONALITY VISUALS ====================
+const GHOST_PERSONALITY_VISUALS = {
+    burns: {
+        crownColor: '#ffd700',
+        crownGemColor: '#ff0000',
+        bfsInterval: 1,           // BFS every frame (smarter pathfinding)
+    },
+    bob: {
+        speedLineCount: 3,
+        speedLineLength: 12,
+        speedLineAlpha: 0.4,
+        speedMultiplier: 1.2,     // 20% faster movement
+    },
+    nelson: {
+        wobbleAmplitude: 2,
+        wobbleFrequency: 0.3,
+        laughPauseChance: 0.003,  // chance per frame to start laugh pause
+        laughPauseDuration: 60,   // 1 second at 60fps
+    },
+    snake: {
+        smokeParticleCount: 4,
+        smokeParticleLife: 20,
+        smokeAlpha: 0.3,
+        speedVariance: 0.15,      // ±15% speed variation
+    },
+};
+
+// ==================== BOSS GHOSTS ====================
+const BOSS_GHOSTS = [
+    {
+        id: 'fat_tony',
+        name: 'Fat Tony',
+        level: 5,
+        color: '#4a3728',
+        skinColor: '#d4a574',
+        hp: 2,
+        speedMultiplier: 0.7,
+        emoji: '🎩',
+        quote: 'An offer you cannot refuse...',
+        ability: 'block_corridor',
+        defeatPoints: 5000,
+        description: 'Slow but tough — blocks corridors',
+    },
+    {
+        id: 'krusty',
+        name: 'Krusty',
+        level: 10,
+        color: '#6a0dad',
+        skinColor: '#ffffff',
+        hp: 2,
+        speedMultiplier: 1.0,
+        emoji: '🤡',
+        quote: 'Hey hey! Hahaha!',
+        ability: 'fake_pellets',
+        fakePelletCount: 3,
+        defeatPoints: 5000,
+        description: 'Drops fake power pellets',
+    },
+    {
+        id: 'sideshow_bob_boss',
+        name: 'Sideshow Bob',
+        level: 15,
+        color: '#cc2222',
+        skinColor: '#f5d0a0',
+        hp: 2,
+        speedMultiplier: 1.1,
+        emoji: '🔪',
+        quote: 'You\'ll rue this day!',
+        ability: 'teleport',
+        teleportInterval: 600,   // every 10 seconds at 60fps
+        rakeCount: 2,
+        defeatPoints: 5000,
+        description: 'Teleports and leaves rake traps',
+    },
+    {
+        id: 'burns_mega',
+        name: 'Mr. Burns Mega',
+        level: 20,
+        color: '#556b2f',
+        skinColor: '#f5e6a0',
+        hp: 3,
+        speedMultiplier: 0.9,
+        emoji: '☢️',
+        quote: 'Release the hounds! Excellent...',
+        ability: 'laser',
+        laserInterval: 300,      // every 5 seconds at 60fps
+        laserDuration: 30,       // half-second laser beam
+        defeatPoints: 5000,
+        description: 'Fires laser projectiles down corridors',
+    },
+];
+
+const BOSS_CONFIG = {
+    spawnInterval: 5,             // boss every 5 levels
+    introScreenDuration: 180,     // 3 seconds at 60fps
+    defeatShakeIntensity: 10,
+    defeatShakeDuration: 24,
+    spriteScale: 1.5,             // boss sprites rendered 1.5x larger
+    hpBarWidth: 30,
+    hpBarHeight: 4,
+    hpBarOffsetY: -8,
+    hpBarBgColor: '#333',
+    hpBarFillColor: '#ff4444',
+    hpBarBorderColor: '#fff',
+    fakePelletColor: '#ffaa00',   // slightly off-color fake pellets
+    rakeColor: '#8b4513',
+    laserColor: '#00ff00',
+    laserWidth: 3,
+};
+
 // ==================== TIMING ====================
 const MODE_TIMERS = [180, 1200, 300, 1200, 300, 1200, 300, -1];
 const FRIGHT_TIME = 360;
@@ -333,6 +443,48 @@ const RANK_BADGES = [
     { id: 'regular',  name: 'Regular',  emoji: '🍕', minDonuts: 1000 },
     { id: 'beginner', name: 'Beginner', emoji: '🍩', minDonuts: 0 }
 ];
+
+// ==================== ACHIEVEMENTS ====================
+const ACHIEVEMENTS_STORAGE_KEY = 'comeRosquillas_achievements'
+
+const ACHIEVEMENTS = [
+    // ===== SKILL =====
+    { id: 'combo_master', title: 'Combo Master', description: 'Achieve an 8x ghost combo', icon: '🔥', category: 'skill', target: 8 },
+    { id: 'perfect_level', title: 'Perfect Level', description: 'Complete a level without losing a life', icon: '✨', category: 'skill', target: 1 },
+    { id: 'speed_demon', title: 'Speed Demon', description: 'Complete a level in under 90 seconds', icon: '⚡', category: 'skill', target: 1 },
+    { id: 'ghost_streak', title: 'Ghost Streak', description: 'Eat all 4 ghosts with one power pellet', icon: '👻', category: 'skill', target: 4 },
+    { id: 'untouchable', title: 'Untouchable', description: 'Score 50,000+ without dying', icon: '🛡️', category: 'skill', target: 50000 },
+
+    // ===== MILESTONE =====
+    { id: 'century_club', title: 'Century Club', description: 'Score 100,000 points in a single game', icon: '💯', category: 'milestone', target: 100000 },
+    { id: 'rising_star', title: 'Rising Star', description: 'Score 50,000 points in a single game', icon: '⭐', category: 'milestone', target: 50000 },
+    { id: 'marathon', title: 'Marathon Runner', description: 'Reach level 20', icon: '🏃', category: 'milestone', target: 20 },
+    { id: 'ghost_hunter', title: 'Ghost Hunter', description: 'Eat 100 ghosts (lifetime)', icon: '🏹', category: 'milestone', target: 100 },
+    { id: 'donut_connoisseur', title: 'Donut Connoisseur', description: 'Eat 500 donuts (lifetime)', icon: '🍩', category: 'milestone', target: 500 },
+    { id: 'veteran', title: 'Veteran Player', description: 'Play 50 games', icon: '🎖️', category: 'milestone', target: 50 },
+
+    // ===== DISCOVERY =====
+    { id: 'completionist', title: 'Completionist', description: 'Collect all 5 power-up types', icon: '🗂️', category: 'discovery', target: 5 },
+    { id: 'theme_tourist', title: 'Theme Tourist', description: 'Play on all maze themes', icon: '🗺️', category: 'discovery', target: MAZE_LAYOUTS.length },
+    { id: 'combo_alchemist', title: 'Combo Alchemist', description: 'Trigger a power-up combo', icon: '💥', category: 'discovery', target: 1 },
+    { id: 'daily_challenger', title: 'Daily Challenger', description: 'Complete a daily challenge', icon: '📅', category: 'discovery', target: 1 },
+    { id: 'endless_explorer', title: 'Endless Explorer', description: 'Reach endless mode', icon: '♾️', category: 'discovery', target: 1 },
+
+    // ===== FUNNY =====
+    { id: 'doh_moment', title: "D'oh Moment", description: 'Die within 5 seconds of level start', icon: '😵', category: 'funny', target: 1 },
+    { id: 'ghost_whisperer', title: 'Ghost Whisperer', description: 'Survive 60 seconds without a power pellet', icon: '🤫', category: 'funny', target: 1 },
+    { id: 'donut_addict', title: 'Donut Addict', description: 'Eat 1,000 donuts (lifetime)', icon: '🤤', category: 'funny', target: 1000 },
+    { id: 'pacifist', title: 'Pacifist', description: 'Complete a level without eating any ghosts', icon: '☮️', category: 'funny', target: 1 },
+    { id: 'close_call', title: 'Close Call', description: 'Finish a level with only 1 life left', icon: '😅', category: 'funny', target: 1 },
+    { id: 'button_masher', title: 'Button Masher', description: 'Change direction 200+ times in one level', icon: '🕹️', category: 'funny', target: 200 },
+]
+
+const ACHIEVEMENT_CATEGORIES = [
+    { id: 'skill', name: 'Skill', emoji: '🎯' },
+    { id: 'milestone', name: 'Milestone', emoji: '🏅' },
+    { id: 'discovery', name: 'Discovery', emoji: '🔍' },
+    { id: 'funny', name: 'Funny', emoji: '😂' },
+]
 
 // Get current difficulty settings from localStorage (defaults to 'normal')
 function getDifficultySettings() {
@@ -418,35 +570,6 @@ const AUDIO_JUICE = {
 }
 // ==================== CAMERA EFFECTS ====================
 const CAMERA_CONFIG = {
-    shake: {
-        ghostCollision:  { intensity: 5, duration: 18 },
-        comboLight:      { intensity: 3, duration: 12 },
-        comboMedium:     { intensity: 5, duration: 14 },
-        comboHeavy:      { intensity: 8, duration: 18 },
-        powerPellet:     { intensity: 2, duration: 10 },
-    },
-    zoom: {
-        levelStartScale:    1.5,
-        levelStartDuration: 60,
-        levelCompleteScale: 0.9,
-        levelCompleteDuration: 40,
-        deathScale:         1.2,
-        deathDuration:      45,
-        powerPulseScale:    1.02,
-        powerPulseDuration: 12,
-    },
-    follow: {
-        lerpSpeed:      0.08,
-        lookahead:      2.5,
-        edgePadding:    3,
-        viewportRatio:  0.8,
-    },
-    fpsThreshold: 45,
-    fpsCheckInterval: 120,
-}
-
-// ==================== CAMERA EFFECTS ====================
-const CAMERA_CONFIG = {
     // Screen shake intensities (pixels)
     shake: {
         ghostCollision:  { intensity: 5, duration: 18 },   // medium shake on death
@@ -454,6 +577,7 @@ const CAMERA_CONFIG = {
         comboMedium:     { intensity: 5, duration: 14 },    // 4x combo
         comboHeavy:      { intensity: 8, duration: 18 },    // 8x combo
         powerPellet:     { intensity: 2, duration: 10 },    // light pulse on power pickup
+        bossDefeat:      { intensity: 10, duration: 24 },   // heavy shake on boss defeat
     },
     // Zoom effects
     zoom: {
@@ -662,6 +786,58 @@ function getRandomPowerUpType() {
 const POWER_UP_COMBOS = {
     duff_beer_power_pellet: { scoreMultiplier: 1.5, label: 'DUFF COMBO!' },
 }
+
+// Returns boss config for a given level, or null if no boss
+function getBossForLevel(level) {
+    if (level % BOSS_CONFIG.spawnInterval !== 0) return null
+    // Find the highest-tier boss whose level threshold is met
+    let boss = null
+    for (const b of BOSS_GHOSTS) {
+        if (level >= b.level) boss = b
+    }
+    return boss ? { ...boss } : null
+}
+
+// ==================== ACHIEVEMENT DEFINITIONS ====================
+const ACHIEVEMENT_STORAGE_KEY = 'comeRosquillas_achievements';
+
+const ACHIEVEMENT_CATEGORIES = {
+    skill: { name: 'Skill', emoji: '🎯', color: '#ff4444' },
+    milestone: { name: 'Milestone', emoji: '🏅', color: '#ffd800' },
+    discovery: { name: 'Discovery', emoji: '🔍', color: '#44aaff' },
+    funny: { name: 'Funny', emoji: '😂', color: '#ff69b4' }
+};
+
+const ACHIEVEMENTS = [
+    // ── Skill ──
+    { id: 'combo_master', title: 'Combo Master', description: 'Reach an 8x ghost combo', icon: '🔥', category: 'skill', target: 8, stat: 'maxCombo' },
+    { id: 'perfect_level', title: 'Perfect Level', description: 'Clear a level without losing a life', icon: '✨', category: 'skill', target: 1, stat: 'perfectLevels' },
+    { id: 'speed_demon', title: 'Speed Demon', description: 'Clear a level in under 90 seconds', icon: '⚡', category: 'skill', target: 1, stat: 'speedLevels' },
+    { id: 'ghost_streak', title: 'Ghost Streak', description: 'Eat 4 ghosts in one power pellet', icon: '👻', category: 'skill', target: 4, stat: 'maxGhostStreak' },
+    { id: 'untouchable', title: 'Untouchable', description: 'Clear 3 levels without losing a life', icon: '🛡️', category: 'skill', target: 3, stat: 'consecutivePerfect' },
+
+    // ── Milestone ──
+    { id: 'century_club', title: 'Century Club', description: 'Score 100,000 points in a single game', icon: '💯', category: 'milestone', target: 100000, stat: 'bestScore' },
+    { id: 'marathon', title: 'Marathon Runner', description: 'Reach level 20', icon: '🏃', category: 'milestone', target: 20, stat: 'highestLevel' },
+    { id: 'ghost_hunter', title: 'Ghost Hunter', description: 'Eat 100 ghosts total', icon: '🏹', category: 'milestone', target: 100, stat: 'totalGhostsEaten' },
+    { id: 'donut_hoarder', title: 'Donut Hoarder', description: 'Eat 5,000 donuts total', icon: '🍩', category: 'milestone', target: 5000, stat: 'totalDonutsEaten' },
+    { id: 'veteran', title: 'Veteran Player', description: 'Play 50 games', icon: '🎖️', category: 'milestone', target: 50, stat: 'totalGames' },
+    { id: 'first_blood', title: 'First Blood', description: 'Eat your first ghost', icon: '🩸', category: 'milestone', target: 1, stat: 'totalGhostsEaten' },
+    { id: 'high_roller', title: 'High Roller', description: 'Score 50,000 points in a single game', icon: '🎰', category: 'milestone', target: 50000, stat: 'bestScore' },
+
+    // ── Discovery ──
+    { id: 'completionist', title: 'Completionist', description: 'Collect all special items in a level', icon: '📦', category: 'discovery', target: 1, stat: 'allItemsLevel' },
+    { id: 'theme_tourist', title: 'Theme Tourist', description: 'Play in all 6 map themes', icon: '🗺️', category: 'discovery', target: 6, stat: 'themesVisited' },
+    { id: 'power_collector', title: 'Power Collector', description: 'Collect 5 different power-up types', icon: '⭐', category: 'discovery', target: 5, stat: 'powerUpTypes' },
+    { id: 'boss_slayer', title: 'Boss Slayer', description: 'Defeat a boss ghost', icon: '⚔️', category: 'discovery', target: 1, stat: 'bossesDefeated' },
+
+    // ── Funny ──
+    { id: 'doh_moment', title: "D'oh Moment", description: 'Die within 5 seconds of starting a level', icon: '🤦', category: 'funny', target: 1, stat: 'quickDeaths' },
+    { id: 'ghost_whisperer', title: 'Ghost Whisperer', description: 'Survive 60 seconds without using a power pellet', icon: '🤫', category: 'funny', target: 1, stat: 'noPowerSurvival' },
+    { id: 'donut_addict', title: 'Donut Addict', description: 'Eat 1,000 donuts total', icon: '🤤', category: 'funny', target: 1000, stat: 'totalDonutsEaten' },
+    { id: 'speed_dies', title: 'Need for Speed', description: 'Use 3 Duff Beers in a single game', icon: '🍺', category: 'funny', target: 3, stat: 'duffBeersUsed' },
+    { id: 'pacifist', title: 'Pacifist Run', description: 'Complete a level without eating any ghosts', icon: '☮️', category: 'funny', target: 1, stat: 'pacifistLevels' },
+];
 
 // ==================== CUTSCENE DEFINITIONS ====================
 // Levels that trigger cutscenes: 2, 5, 9, 14
