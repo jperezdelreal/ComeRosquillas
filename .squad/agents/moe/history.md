@@ -364,3 +364,22 @@ Each sprint: 3-4 features + Nelson QA pass. Track success metrics per feature. I
 **Issues Closed:** #80 with summary of 10 new issues created
 
 **Perpetual Motion:** Workflow resumes — next issue auto-assigned when ready
+
+
+### Test PR Reviews — #116 and #117 (2026-03-14)
+
+**PRs Reviewed:**
+- **PR #116** (Nelson, closes #107) — Game Class Instantiation Tests: 63 tests, all `new Game()`. Approved.
+- **PR #117** (Nelson, closes #106) — Real Gameplay Tests: 53 tests with real Game instances. Approved.
+
+**Verdict: Both APPROVED.** 713 total tests, 0 failures confirmed locally.
+
+**Quality Assessment:**
+- Both PRs instantiate the real `Game` class — no more inline logic re-implementation. This is the testing pattern we want going forward.
+- PR #116 uses const-to-var regex + indirect eval. PR #117 uses IIFE wrapping. Both work; IIFE is cleaner. Not worth standardizing yet — let it evolve naturally.
+- Mocking is minimal and correct: SoundManager, HighScoreManager, I18n, loop() stub, Sprites Proxy. Only what's necessary to avoid canvas/audio in jsdom.
+- No false positives found. State transitions driven by real `update()` loop. Scoring verified through real `checkDots()`/`checkCollisions()`. Difficulty tests compare separate Game instances with different presets.
+- Two weak tests in both PRs: pause/dying state set directly via assignment instead of input simulation. Noted but acceptable — the real state machine transitions are tested elsewhere.
+- PR #117 helper functions (placeHomer, placeGhost, findCell, findAllCells) are reusable test utilities — good investment.
+
+**Key Pattern Established:** Loading browser-global scripts in Vitest via eval with globalThis exports. This is our standard for testing the Game class until/unless we modularize game-logic.js.
