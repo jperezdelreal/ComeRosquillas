@@ -88,6 +88,10 @@
             // Boss hazard state
             this._rakeSlowTimer = 0;
 
+            // Animation system state
+            this._celebrationTimer = 0;
+            this._lowFPS = false;
+
             // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
             this._bfsCache = new Map();
             this._bfsCacheFrame = 0;
@@ -243,6 +247,14 @@
                 }
             });
             
+            // Re-render UI on language change
+            if (typeof I18n !== 'undefined') {
+                I18n.onChange(() => {
+                    if (this.state === ST_START) this.showStartScreen()
+                    this.updateHUD()
+                })
+            }
+
             this.showStartScreen();
             this.updateHUD();
 
@@ -281,7 +293,7 @@
                     e.preventDefault();
                     this.state = ST_PAUSED;
                     this.sound.stopMusic();
-                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P or SPACE to continue');
+                    this.showMessage(t('game.paused'), t('game.pause_hint'));
                     if (typeof a11y !== 'undefined') a11y.onPause();
                 } else if (this.state === ST_PAUSED && (e.code === 'KeyP' || e.code === 'Space')) {
                     e.preventDefault();
@@ -295,11 +307,11 @@
                 } else if (e.code === 'KeyM') {
                     const muted = this.sound.toggleMute();
                     if (muted !== undefined) {
-                        this.addFloatingText(CANVAS_W / 2, 40, muted ? '🔇 MUTED' : '🔊 MUSIC ON', '#ffd800');
+                        this.addFloatingText(CANVAS_W / 2, 40, muted ? t('hud.muted') : t('hud.music_on'), '#ffd800');
                     }
                 } else if (e.code === 'KeyD') {
                     this._debugOverlay = !this._debugOverlay;
-                    this.addFloatingText(CANVAS_W / 2, 40, this._debugOverlay ? '🔍 DEBUG ON' : '🔍 DEBUG OFF', '#0f0');
+                    this.addFloatingText(CANVAS_W / 2, 40, this._debugOverlay ? t('hud.debug_on') : t('hud.debug_off'), '#0f0');
                     if (this.settingsMenu) {
                         this.settingsMenu.settings.debugOverlay = this._debugOverlay;
                         this.settingsMenu.saveSettings();
@@ -362,8 +374,9 @@
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
                 if (typeof a11y !== 'undefined') a11y.onGameOver(this.score);
-                const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
+                const gameOverQuotes = I18n.getGameOverQuotes();
+                const quote = gameOverQuotes[Math.floor(Math.random() * gameOverQuotes.length)];
+                this.showMessage("D'OH!", `${t('game.game_over_rank', rank).replace('\\n', '<br>')}<br>${t('game.score', this.score)}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}${t('game.press_enter_retry')}`);
                 if (this.achievements) this.achievements.notify('game_over', this);
             }
         }
@@ -375,29 +388,29 @@
             const rank = this.highScores.getRank();
             let scoreTable = '';
             if (scores.length > 0) {
-                scoreTable = '<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">HIGH SCORES</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">';
+                scoreTable = `<br><div style="font-size: 16px; color: #ffd800; margin-top: 8px;">${t('start.high_scores')}</div><div style="font-size: 14px; line-height: 1.6; color: #fff; margin-top: 4px;">`;
                 const topScores = scores.slice(0, 5);
                 topScores.forEach((s, i) => {
                     const comboStr = s.combo > 1 ? ` | 🔥${s.combo}x` : '';
-                    const lvlStr = (typeof ENDLESS_MODE !== 'undefined' && s.level >= ENDLESS_MODE.startLevel) ? `∞${s.level}` : `Lvl ${s.level}`;
+                    const lvlStr = (typeof ENDLESS_MODE !== 'undefined' && s.level >= ENDLESS_MODE.startLevel) ? `∞${s.level}` : t('start.lvl', s.level);
                     scoreTable += `${i + 1}. ${s.name} - ${s.score} (${lvlStr}${comboStr})<br>`;
                 });
                 scoreTable += '</div>';
                 if (allTimeBest > 1) {
-                    scoreTable += `<div style="font-size: 13px; color: #ff69b4; margin-top: 4px;">Best Combo Ever: 🔥 ${allTimeBest}x</div>`;
+                    scoreTable += `<div style="font-size: 13px; color: #ff69b4; margin-top: 4px;">${t('start.best_combo', allTimeBest)}</div>`;
                 }
             }
             
             this.msgEl.innerHTML = `
-                <div class="title-large">&#127849; Come Rosquillas!</div>
-                <div class="catchphrase">"Mmm... donuts"</div>
+                <div class="title-large">&#127849; ${t('game.title')}</div>
+                <div class="catchphrase">${t('game.catchphrase')}</div>
                 <div class="subtitle">
-                    Homer's Donut Quest through Springfield<br><br>
-                    &#127850; Eat all the donuts<br>
-                    &#127866; Grab a Duff to chase the bad guys<br>
-                    &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
-                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; A = Achievements &nbsp; H = Share &nbsp; D = Daily<br><br>
-                    ${this._challengeBannerHtml()}${this._dailyChallengeBannerHtml()}Press ENTER or SPACE to start
+                    ${t('game.subtitle')}<br><br>
+                    &#127850; ${t('start.eat_donuts')}<br>
+                    &#127866; ${t('start.grab_duff')}<br>
+                    &#128123; ${t('start.beware_ghosts')}<br><br>
+                    ${t('start.controls_legend')}<br><br>
+                    ${this._challengeBannerHtml()}${this._dailyChallengeBannerHtml()}${t('start.press_enter')}
                     ${scoreTable}
                 </div>`;
             this.msgEl.style.display = 'block';
@@ -418,21 +431,21 @@
             
             this.msgEl.innerHTML = `
                 <div class="title-large" style="color: #ff69b4; animation: pulse 1s infinite;">
-                    &#11088; NEW HIGH SCORE! &#11088;
+                    ${t('highscore.title')}
                 </div>
                 <div class="subtitle" style="margin-top: 20px;">
-                    Score: ${this.score}<br>
-                    Level: ${this.isEndlessMode() ? `∞ ${this.level}` : this.level}<br>
-                    ${this.bestCombo > 1 ? `Best Combo: 🔥 ${this.bestCombo}x<br>` : ''}
+                    ${t('game.score', this.score)}<br>
+                    ${t('game.level', this.isEndlessMode() ? `∞ ${this.level}` : this.level)}<br>
+                    ${this.bestCombo > 1 ? `${t('highscore.best_combo', this.bestCombo)}<br>` : ''}
                     <br>
-                    Enter your initials:<br><br>
+                    ${t('highscore.enter_initials')}<br><br>
                     <div style="font-family: 'Permanent Marker', monospace; font-size: 36px; letter-spacing: 10px; margin: 16px 0;">
                         ${highlighted}
                     </div>
                     <br>
-                    Use &#8593;&#8595; to change letter<br>
-                    &#8592;&#8594; to move position<br>
-                    ENTER to confirm
+                    ${t('highscore.use_arrows')}<br>
+                    ${t('highscore.move_position')}<br>
+                    ${t('highscore.confirm')}
                 </div>`;
             this.msgEl.style.display = 'block';
             
@@ -509,7 +522,7 @@
             const challengeBanner = this._dailyChallenge
                 ? DailyChallenge.getBannerHtml(this._dailyChallenge)
                 : '';
-            this.showMessage('&#127849; READY!', challengeBanner + this._levelTitle());
+            this.showMessage(t('game.ready'), challengeBanner + this._levelTitle());
             this.updateHUD();
             if (typeof a11y !== 'undefined') a11y.onGameStart();
         }
@@ -772,15 +785,17 @@
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
                             if (typeof a11y !== 'undefined') a11y.onGameOver(this.score);
-                            const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                            this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
+                            const gameOverQuotes = I18n.getGameOverQuotes();
+                            const quote = gameOverQuotes[Math.floor(Math.random() * gameOverQuotes.length)];
+                            this.showMessage("D'OH!", `${t('game.game_over')}<br>${t('game.score', this.score)}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}${t('game.press_enter_retry')}`);
                         }
                     } else {
                         this.initEntities();
                         this.state = ST_READY;
                         this.stateTimer = 120;
-                        const quote = HOMER_DEATH_QUOTES[Math.floor(Math.random() * HOMER_DEATH_QUOTES.length)];
-                        this.showMessage(quote, `Lives: ${this.lives}`);
+                        const deathQuotes = I18n.getDeathQuotes();
+                        const quote = deathQuotes[Math.floor(Math.random() * deathQuotes.length)];
+                        this.showMessage(quote, t('game.lives', this.lives));
                     }
                 }
                 return;
@@ -814,13 +829,14 @@
                             this.state = ST_READY;
                             this.stateTimer = BOSS_CONFIG.introScreenDuration + 60;
                             this.showMessage(
-                                `⚠️ BOSS APPROACHING!`,
+                                t('hud.boss_approaching'),
                                 `${this._bossConfig.emoji} <b>${this._bossConfig.name}</b><br>${this._bossConfig.description}<br><br>"${this._bossConfig.quote}"`
                             );
                         } else {
                             this.state = ST_READY;
                             this.stateTimer = 150;
-                            this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                            const winQuotes = I18n.getWinQuotes();
+                            this.showMessage(this._levelTitle(), winQuotes[Math.floor(Math.random() * winQuotes.length)]);
                         }
                         this.updateHUD();
                     }
@@ -958,10 +974,12 @@
             ctx.globalAlpha = 1;
 
             this.drawMaze(ctx);
-            this.drawDots(ctx);
+            this.drawDots(ctx, this._lowFPS);
 
-            // Ambient theme particles (behind entities)
-            this._drawAmbientParticles(ctx);
+            // Ambient theme particles (behind entities) — skip when FPS is low
+            if (!this._lowFPS) {
+                this._drawAmbientParticles(ctx);
+            }
 
             // Bonus item
             if (this.bonusActive && this.bonusPos) {
@@ -1029,7 +1047,13 @@
                         }
                     }
                 }
-                Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE);
+                // Celebration pose when power-up just collected
+                if (this._celebrationTimer > 0) {
+                    Sprites.drawHomerCelebration(ctx, this.homer.x, this.homer.y, TILE, this.animFrame);
+                    this._celebrationTimer--;
+                } else {
+                    Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE, this.animFrame, this.homer.isMoving);
+                }
             }
 
             // Ghosts (skip offscreen)
@@ -1173,7 +1197,7 @@
                     ctx.font = 'bold 28px "Bangers", Arial';
                     ctx.textAlign = 'center';
                     ctx.fillStyle = '#ff4444';
-                    ctx.fillText('⚠️ BOSS APPROACHING! ⚠️', CANVAS_W / 2, CANVAS_H / 2 - 20);
+                    ctx.fillText(t('hud.boss_approaching'), CANVAS_W / 2, CANVAS_H / 2 - 20);
                     ctx.font = 'bold 20px "Bangers", Arial';
                     ctx.fillStyle = '#ffd800';
                     const pulse = 1 + Math.sin(this.animFrame * 0.15) * 0.1;
@@ -1598,7 +1622,7 @@
             });
         }
 
-        drawDots(ctx) {
+        drawDots(ctx, lowFPS) {
             // Collect dot positions, then batch draw (minimizes per-dot state changes)
             const dots = [];
             const powers = [];
@@ -1613,15 +1637,15 @@
                 }
             }
 
-            // Batch draw all donuts
-            const frame = this.animFrame;
+            // Batch draw all donuts (skip rotation when FPS is low)
+            const frame = lowFPS ? 0 : this.animFrame;
             for (let i = 0; i < dots.length; i += 2) {
                 Sprites.drawDonut(ctx, dots[i], dots[i + 1], frame);
             }
 
             // Power pellets (fewer, drawn individually)
             for (const p of powers) {
-                Sprites.drawDuff(ctx, p.x, p.y, frame);
+                Sprites.drawDuff(ctx, p.x, p.y, lowFPS ? 0 : this.animFrame);
             }
         }
 
@@ -1702,6 +1726,9 @@
                 for (let i = 0; i < PERF_CONFIG.fpsBufferSize; i++) sum += this._fpsBuffer[i];
                 const avg = sum / PERF_CONFIG.fpsBufferSize;
                 this._fpsDisplay = avg > 0 ? Math.round(1000 / avg) : 0;
+                // FPS guard: skip extra animation frames when below threshold
+                this._lowFPS = typeof ANIM !== 'undefined' &&
+                    this._fpsDisplay > 0 && this._fpsDisplay < ANIM.performance.minFPSForAnim;
             }
 
             this.update();

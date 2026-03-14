@@ -301,11 +301,12 @@ class Sprites {
             }
         }
 
-        // ---- DONUT ----
+        // ---- DONUT (4-frame spin, 0.5 rot/s) ----
         static drawDonut(ctx, x, y, animFrame) {
             const r = 4;
-            // Gentle donut rotation
-            const rotation = animFrame * 0.015;
+            const itemCfg = typeof ANIM !== 'undefined' ? ANIM.items : null;
+            const rotSpeed = itemCfg ? itemCfg.donutRotSpeed : 0.015;
+            const rotation = animFrame * rotSpeed;
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
@@ -347,35 +348,46 @@ class Sprites {
             ctx.restore();
         }
 
-        // ---- DUFF BEER (power pellet) ----
+        // ---- DUFF BEER (power pellet — scale 90-110%, 1s cycle) ----
         static drawDuff(ctx, x, y, animFrame) {
-            const pulse = Math.sin(animFrame * 0.08) * 1.5;
-            const r = 7 + pulse;
+            const itemCfg = typeof ANIM !== 'undefined' ? ANIM.items : null;
+            const pulseCycle = itemCfg ? itemCfg.pelletPulseCycle : 60;
+            const pulseMin = itemCfg ? itemCfg.pelletPulseMin : 0.9;
+            const pulseMax = itemCfg ? itemCfg.pelletPulseMax : 1.1;
+            const t = (Math.sin(animFrame * Math.PI * 2 / pulseCycle) + 1) / 2;
+            const scale = pulseMin + t * (pulseMax - pulseMin);
+            const r = 7;
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+
             // Can body
             ctx.fillStyle = COLORS.duffRed;
             ctx.beginPath();
-            ctx.roundRect(x - r * 0.7, y - r, r * 1.4, r * 2, 2);
+            ctx.roundRect(-r * 0.7, -r, r * 1.4, r * 2, 2);
             ctx.fill();
             // Duff label (white band)
             ctx.fillStyle = '#fff';
-            ctx.fillRect(x - r * 0.65, y - 3, r * 1.3, 7);
+            ctx.fillRect(-r * 0.65, -3, r * 1.3, 7);
             // "DUFF" text
             ctx.fillStyle = COLORS.duffRed;
             ctx.font = 'bold 6px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('DUFF', x, y + 1);
+            ctx.fillText('DUFF', 0, 1);
             // Top of can (silver)
             ctx.fillStyle = '#c0c0c0';
             ctx.beginPath();
-            ctx.ellipse(x, y - r + 1, r * 0.6, 2, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, -r + 1, r * 0.6, 2, 0, 0, Math.PI * 2);
             ctx.fill();
             // Glow effect
             ctx.strokeStyle = `rgba(255, 215, 0, ${0.3 + Math.sin(animFrame * 0.08) * 0.2})`;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+            ctx.arc(0, 0, r + 3, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.restore();
         }
 
         // ---- GHOSTS AS SIMPSONS CHARACTERS ----
@@ -384,15 +396,26 @@ class Sprites {
             const cy = ghost.y + TILE / 2;
             const r = TILE / 2 - 1;
 
+            // Body sway: subtle 1px horizontal wobble
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const sway = ghostCfg ? Math.sin(animFrame * Math.PI * 2 / ghostCfg.bodySwayCycle) * ghostCfg.bodySwayPx : 0;
+            const swayActive = sway !== 0 && ghost.mode !== GM_EATEN;
+            if (swayActive) {
+                ctx.save();
+                ctx.translate(sway, 0);
+            }
+
             if (ghost.mode === GM_EATEN) {
-                // Eyes track Homer's position when eaten, with trailing particles
+                // Trailing particles behind floating eyes
+                Sprites._drawEatenGhostTrail(ctx, ghost, animFrame);
                 const eyeDir = homer ? Sprites._eyeDirToward(cx, cy, homer) : ghost.dir;
-                Sprites._drawGhostEyes(ctx, cx, cy, eyeDir, animFrame, ghost.dir);
+                Sprites._drawGhostEyes(ctx, cx, cy, eyeDir);
                 return;
             }
 
             if (ghost.mode === GM_FRIGHTENED) {
                 Sprites._drawFrightenedGhost(ctx, cx, cy, r, animFrame, frightTimer);
+                if (swayActive) ctx.restore();
                 return;
             }
 
@@ -406,6 +429,8 @@ class Sprites {
                 case 2: Sprites._drawNelson(ctx, cx, cy, r, eyeDir, animFrame); break;
                 case 3: Sprites._drawSnake(ctx, cx, cy, r, eyeDir, animFrame); break;
             }
+
+            if (swayActive) ctx.restore();
 
             // Draw persistent icon label for colorblind mode
             if (typeof a11y !== 'undefined' && a11y.shouldDrawGhostIcon()) {
@@ -442,7 +467,10 @@ class Sprites {
 
         // -- Mr. Burns --
         static _drawBurns(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const wave = ghostCfg
+                ? Math.sin(frame * Math.PI * 2 / ghostCfg.bodySwayCycle)
+                : (frame % 20 < 10 ? 1 : -1);
 
             // Body (sickly yellow-green suit)
             ctx.fillStyle = '#9acd32';
@@ -521,7 +549,10 @@ class Sprites {
 
         // -- Sideshow Bob --
         static _drawSideshowBob(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const wave = ghostCfg
+                ? Math.sin(frame * Math.PI * 2 / ghostCfg.bodySwayCycle)
+                : (frame % 20 < 10 ? 1 : -1);
 
             // Body (teal/green prison suit or his outfit)
             ctx.fillStyle = '#228b8b';
@@ -598,7 +629,10 @@ class Sprites {
 
         // -- Nelson Muntz --
         static _drawNelson(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const wave = ghostCfg
+                ? Math.sin(frame * Math.PI * 2 / ghostCfg.bodySwayCycle)
+                : (frame % 20 < 10 ? 1 : -1);
 
             // Body (pink/salmon shirt + blue vest)
             ctx.fillStyle = '#ff8c69'; // Salmon/orange shirt
@@ -691,7 +725,10 @@ class Sprites {
 
         // -- Snake Jailbird --
         static _drawSnake(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const wave = ghostCfg
+                ? Math.sin(frame * Math.PI * 2 / ghostCfg.bodySwayCycle)
+                : (frame % 20 < 10 ? 1 : -1);
 
             // Body (orange prison jumpsuit)
             ctx.fillStyle = '#ff6600';
@@ -764,11 +801,22 @@ class Sprites {
             ctx.stroke();
         }
 
-        // -- Frightened Ghost (Simpsons-style scared face) --
+        // -- Frightened Ghost (X eyes, trembling mouth, sweat drops) --
         static _drawFrightenedGhost(ctx, cx, cy, r, frame, frightTimer) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const wave = ghostCfg
+                ? Math.sin(frame * Math.PI * 2 / ghostCfg.bodySwayCycle)
+                : (frame % 20 < 10 ? 1 : -1);
             const flashing = frightTimer < FRIGHT_FLASH_TIME && frame % 16 < 8;
             const color = flashing ? '#ffffff' : '#5555ff';
+
+            // Trembling offset (rapid horizontal shake)
+            const tremble = ghostCfg
+                ? Math.sin(frame * Math.PI * 2 / ghostCfg.frightenedTrembleCycle) * ghostCfg.frightenedTremblePx
+                : 0;
+
+            ctx.save();
+            if (tremble) ctx.translate(tremble, 0);
 
             ctx.fillStyle = color;
             ctx.beginPath();
@@ -780,28 +828,32 @@ class Sprites {
             ctx.closePath();
             ctx.fill();
 
-            // Scared face - swirly eyes (like Simpsons dizzy)
+            // X eyes (2-frame alternating sizes for agitation)
             const eyeColor = flashing ? '#555' : '#fff';
+            const xSize = frame % 8 < 4 ? 3 : 2.5;
             ctx.strokeStyle = eyeColor;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1.5;
             for (const ox of [-4, 4]) {
+                const ex = cx + ox;
+                const ey = cy - 3;
                 ctx.beginPath();
-                ctx.arc(cx + ox, cy - 3, 3, 0, Math.PI * 1.5);
+                ctx.moveTo(ex - xSize, ey - xSize);
+                ctx.lineTo(ex + xSize, ey + xSize);
                 ctx.stroke();
-                // Dot center
-                ctx.fillStyle = eyeColor;
                 ctx.beginPath();
-                ctx.arc(cx + ox, cy - 3, 1, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(ex + xSize, ey - xSize);
+                ctx.lineTo(ex - xSize, ey + xSize);
+                ctx.stroke();
             }
 
-            // Wavy mouth (terrified)
+            // Trembling wavy mouth (2-frame loop)
+            const mouthShift = frame % 6 < 3 ? 0 : 1;
             ctx.strokeStyle = eyeColor;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(cx - 6, cy + 3);
             for (let i = 0; i < 7; i++) {
-                ctx.lineTo(cx - 6 + i * 2, cy + 3 + (i % 2 === 0 ? -2 : 2));
+                ctx.lineTo(cx - 6 + i * 2, cy + 3 + ((i + mouthShift) % 2 === 0 ? -2 : 2));
             }
             ctx.stroke();
 
@@ -812,6 +864,8 @@ class Sprites {
                 ctx.ellipse(cx + r - 1, cy - 1, 1, 2, 0.3, 0, Math.PI * 2);
                 ctx.fill();
             }
+
+            ctx.restore();
         }
 
         // -- Ghost eyes only (eaten state) --
@@ -827,6 +881,32 @@ class Sprites {
                 ctx.arc(cx + ox + eye.ex, cy - 3 + eye.ey, 2, 0, Math.PI * 2);
                 ctx.fill();
             }
+        }
+
+        // -- Eaten ghost trailing particles (eyes floating back to ghost house) --
+        static _drawEatenGhostTrail(ctx, ghost, frame) {
+            const ghostCfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            if (!ghostCfg) return;
+            const cx = ghost.x + TILE / 2;
+            const cy = ghost.y + TILE / 2;
+            const trailDirX = -DX[ghost.dir];
+            const trailDirY = -DY[ghost.dir];
+            ctx.save();
+            for (let i = 0; i < ghostCfg.eatenTrailCount; i++) {
+                const t = i / ghostCfg.eatenTrailCount;
+                const age = (frame + i * 5) % ghostCfg.eatenTrailLifespan;
+                const alpha = (1 - t) * 0.5 * (1 - age / ghostCfg.eatenTrailLifespan);
+                const dist = ghostCfg.eatenTrailSpacing * (i + 1);
+                const px = cx + trailDirX * dist;
+                const py = cy + trailDirY * dist;
+                const sz = 2 + (1 - t) * 1.5;
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = ghost.color || '#aaaaff';
+                ctx.beginPath();
+                ctx.arc(px, py, sz, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
         }
 
         // ---- BONUS FRUIT (Springfield items by level) ----
@@ -910,7 +990,13 @@ class Sprites {
             const pulse = Math.sin(animFrame * 0.1) * 2;
             const bob = Math.sin(animFrame * 0.06) * 3;
             const r = 8 + pulse;
+            // Shimmer effect: 2-frame glow cycle
+            const itemCfg = typeof ANIM !== 'undefined' ? ANIM.items : null;
+            const shimmerAlpha = itemCfg
+                ? itemCfg.shimmerAlphaMin + (Math.sin(animFrame * Math.PI * 2 / itemCfg.shimmerCycle) + 1) / 2 * (itemCfg.shimmerAlphaMax - itemCfg.shimmerAlphaMin)
+                : 1;
             ctx.save();
+            ctx.globalAlpha = shimmerAlpha;
             ctx.translate(x, y + bob);
             ctx.strokeStyle = type.colors.glow.replace('0.3', `${0.3 + Math.sin(animFrame * 0.08) * 0.15}`);
             ctx.lineWidth = 2;

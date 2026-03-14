@@ -890,22 +890,31 @@ const COLORS = {
 // ==================== ANIMATION CONFIG ====================
 const ANIM = {
     homer: {
-        walkCycleFrames: 16,        // Frames per full walk cycle
+        walkCycleFrames: 16,        // 4-frame walk cycle × 4 directions
         walkBobHeight: 1.5,         // Vertical bob in pixels
         armSwingAngle: 0.35,        // Radians arm swing amplitude
+        mouthFrames: 4,             // Mouth open/close steps per walk frame
         idleBreatheCycle: 80,       // Frames for one breathe cycle
-        idleBreatheHeight: 1,       // Vertical breathe offset in pixels
+        idleBreatheHeight: 1,       // Vertical breathe offset in pixels (1px up/down)
         celebrationDuration: 30,    // Frames for power-up celebration pose
+        deathFrames: 8,             // 8-frame dissolve (rotate + shrink)
     },
     ghost: {
-        bodySwayCycle: 24,          // Frames per sway cycle (smoother than 20)
-        bodySwayPx: 1.5,            // Horizontal sway pixels
+        bodySwayCycle: 24,          // Frames per 2-frame wobble cycle
+        bodySwayPx: 1,              // Horizontal sway pixels (1px left/right)
+        eyeTrackSmooth: 0.75,       // Pupil rotation tracking factor (±45°)
         frightenedTrembleCycle: 8,  // Frames per tremble cycle
         frightenedTremblePx: 1,     // Horizontal tremble pixels
         eatenTrailCount: 5,         // Number of trailing particles
         eatenTrailSpacing: 6,       // Pixels between trail particles
+        eatenTrailLifespan: 20,     // Frames each trail particle lives
     },
     items: {
+        donutRotSpeed: 0.0524,      // ~0.5 rotations/sec at 60fps (π/60)
+        donutFrames: 4,             // 4-frame spin cycle
+        pelletPulseMin: 0.9,        // Power pellet scale min (90%)
+        pelletPulseMax: 1.1,        // Power pellet scale max (110%)
+        pelletPulseCycle: 60,       // 1s cycle at 60fps
         shimmerCycle: 20,           // Frames per shimmer cycle
         shimmerAlphaMin: 0.7,       // Min shimmer opacity
         shimmerAlphaMax: 1.0,       // Max shimmer opacity

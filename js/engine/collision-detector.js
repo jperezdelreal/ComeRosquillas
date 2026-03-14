@@ -51,6 +51,7 @@ Game.prototype.checkDots = function() {
         const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
         this.addFloatingText(cx, cy - 10, quote, COLORS.duffGold);
         this.addParticles(cx, cy, COLORS.duffGold, 8);
+        this._celebrationTimer = typeof ANIM !== 'undefined' ? ANIM.homer.celebrationDuration : 30;
         for (const g of this.ghosts) {
             if (g.mode !== GM_EATEN) {
                 g.mode = GM_FRIGHTENED;
