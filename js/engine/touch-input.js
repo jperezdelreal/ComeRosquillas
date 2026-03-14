@@ -264,15 +264,8 @@ class TouchInput {
         this.fullscreenButton.setAttribute('aria-label', isFS ? 'Exit fullscreen' : 'Enter fullscreen')
     }
 
-    // --- Orientation Warning ---
-
+    // Orientation warning removed — portrait is the natural orientation for this vertical game
     setupOrientationWarning() {
-        this._orientationOverlay = document.createElement('div')
-        this._orientationOverlay.id = 'orientationWarning'
-        this._orientationOverlay.innerHTML = `
-            <div class="orient-icon">📱↻</div>
-            <div class="orient-text">Rotate your device for the best experience</div>
-        `
-        document.body.appendChild(this._orientationOverlay)
+        // No-op: portrait mode is preferred
     }
 }
