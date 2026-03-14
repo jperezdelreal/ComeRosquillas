@@ -117,3 +117,23 @@
 - `getGhostSpeed(level)` = `BASE_SPEED * (0.9 + (level - 1) * 0.06)` — no cap (needs #54)
 - `getLevelFrightTime(level)` = `FRIGHT_TIME * (1 - ramp * 0.67)` — floor 119 frames
 - Ghost speed grows unbounded — endless mode (#54) should add caps.
+
+### 2026-07-24: Sprint 4 QA Scaffolding (Issue #71, PR #75)
+
+**Context:** Built Sprint 4 QA suite proactively while Barney (#70 Performance) and Lenny (#67 Social Sharing) are developing. Created 6 new test files with 48 running regression tests + 93 skipped scaffolds.
+
+**What Changed:**
+- **regression-sprint3.test.js** — 34 running tests. Comprehensive regression covering all Sprint 1-3 features: endless mode cycling, progressive difficulty ramp, combo scoring, leaderboard data integrity, stats dashboard, tutorial persistence, mobile touch controls, audio bus architecture, core constants.
+- **feature-performance.test.js** — 26 skipped. Scaffold for BFS cache, particle pooling (200 pre-allocated), batch rendering, FPS counter (EMA smoothing α=0.1), 60fps target verification.
+- **feature-social-sharing.test.js** — 27 skipped. Scaffold for share button, Web Share API payloads, clipboard fallback, canvas screenshot capture, QR code generation, seed URLs with deterministic PRNG.
+- **feature-ghost-debug.test.js** — 16 skipped. Scaffold for AI state overlays (mode colors, debug labels), target tile visualization, tuning sliders (speed/fright/scatter multipliers).
+- **feature-daily-challenges.test.js** — 15 skipped. Scaffold for daily rotation (UTC-based seed "daily-YYYYMMDD"), deterministic PRNG, challenge leaderboard (separate localStorage key).
+- **integration-sprint4.test.js** — 14 running + 9 skipped. Running: performance × endless mode (O(1) computation validation), performance × ghost AI (tile coordinates, squared distance), performance × audio (pitch/pan formulas), performance × mobile (swipe/scale/hit-test). Skipped: social sharing × leaderboard, sharing × stats, daily challenges × leaderboard.
+
+**Final Results:** 504 passing, 93 skipped, 0 failures across 22 test files.
+
+**Key Patterns Introduced:**
+- Performance scaffold tests validate computational complexity (O(1) formulas) and memory bounds
+- Social sharing tests model Web Share API, clipboard API, and canvas capture flows
+- Daily challenge tests use UTC date-based seed generation for deterministic PRNG
+- All Sprint 4 feature tests use `describe.skip()` — ready to unskip when features land
