@@ -338,6 +338,22 @@ function setDifficulty(level) {
     return DIFFICULTY_PRESETS[level];
 }
 
+// Load AI tuning profile from localStorage
+function loadAITuning() {
+    try {
+        const saved = localStorage.getItem(AI_TUNING_STORAGE_KEY)
+        if (saved) return { ...AI_TUNING_DEFAULTS, ...JSON.parse(saved) }
+    } catch (e) { console.warn('Failed to load AI tuning:', e) }
+    return { ...AI_TUNING_DEFAULTS }
+}
+
+// Save AI tuning profile to localStorage
+function saveAITuning(profile) {
+    try {
+        localStorage.setItem(AI_TUNING_STORAGE_KEY, JSON.stringify(profile))
+    } catch (e) { console.warn('Failed to save AI tuning:', e) }
+}
+
 // ==================== AUDIO JUICE ====================
 const AUDIO_JUICE = {
     // Chomp pitch progression
@@ -381,6 +397,40 @@ const PERF_CONFIG = {
     devMode: false,                     // set true to show FPS counter
     frameBudgetMs: 18,                  // max ms per frame before skipping (slight headroom over 16.67)
     levelTransitionWipeDuration: 30,    // frames for level transition wipe effect
+}
+
+// ==================== GHOST DEBUG ====================
+const GHOST_DEBUG = {
+    modeColors: {
+        [GM_SCATTER]: '#4488ff',
+        [GM_CHASE]: '#ff4444',
+        [GM_FRIGHTENED]: '#8844ff',
+        [GM_EATEN]: '#888888',
+    },
+    modeLabels: {
+        [GM_SCATTER]: 'SCT',
+        [GM_CHASE]: 'CHS',
+        [GM_FRIGHTENED]: 'FRT',
+        [GM_EATEN]: 'EAT',
+    },
+    modeIcons: {
+        [GM_SCATTER]: '🏠',
+        [GM_CHASE]: '🎯',
+        [GM_FRIGHTENED]: '😱',
+        [GM_EATEN]: '👻',
+    },
+    targetLineAlpha: 0.45,
+    breadcrumbAlpha: 0.3,
+    breadcrumbRadius: 2,
+    maxBreadcrumbs: 12,
+}
+
+// ==================== AI TUNING ====================
+const AI_TUNING_STORAGE_KEY = 'comeRosquillas_aiProfile'
+const AI_TUNING_DEFAULTS = {
+    aggression: 1.0,            // 0.5–2.0 — multiplier on chase speed bonus
+    chaseDistance: 8,            // 4–16 — Snake flee threshold (tiles)
+    scatterMultiplier: 1.0,     // 0.25–3.0 — scales scatter timer durations
 }
 
 // ==================== DAILY CHALLENGE ====================

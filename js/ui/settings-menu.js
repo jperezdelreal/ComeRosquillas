@@ -18,7 +18,12 @@ class SettingsMenu {
             musicVolume: 100,
             sfxVolume: 100,
             musicEnabled: true,
-            difficulty: 'normal'
+            difficulty: 'normal',
+            debugOverlay: false,
+            devConsole: false,
+            aiAggression: 1.0,
+            aiChaseDistance: 8,
+            aiScatterMult: 1.0,
         };
         
         this.loadSettings();
@@ -144,6 +149,65 @@ class SettingsMenu {
                             </button>
                         </div>
                     </section>
+                    
+                    <!-- Ghost AI Debug -->
+                    <section class="settings-section">
+                        <h3>🔍 Ghost AI Debug</h3>
+                        
+                        <div class="setting-row">
+                            <label for="debugOverlay">Show Ghost AI Debug Info</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="debugOverlay" ${this.settings.debugOverlay ? 'checked' : ''} />
+                                <span class="toggle-label">${this.settings.debugOverlay ? 'ON' : 'OFF'}</span>
+                                <span class="key-hint">(D key)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="devConsole">Dev Console</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="devConsole" ${this.settings.devConsole ? 'checked' : ''} />
+                                <span class="toggle-label">${this.settings.devConsole ? 'ON' : 'OFF'}</span>
+                                <span class="key-hint">(~ key)</span>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Advanced AI Tuning -->
+                    <section class="settings-section settings-advanced" style="border-top: 1px solid rgba(255,216,0,0.2); padding-top: 12px;">
+                        <h3>🧪 Advanced — AI Tuning</h3>
+                        
+                        <div class="setting-row">
+                            <label for="aiAggression">Aggression</label>
+                            <div class="slider-container">
+                                <input type="range" id="aiAggression" min="50" max="200" value="${Math.round((this.settings.aiAggression || 1.0) * 100)}" />
+                                <span class="slider-value">${Math.round((this.settings.aiAggression || 1.0) * 100)}%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="aiChaseDistance">Chase Distance</label>
+                            <div class="slider-container">
+                                <input type="range" id="aiChaseDistance" min="4" max="16" value="${this.settings.aiChaseDistance || 8}" />
+                                <span class="slider-value">${this.settings.aiChaseDistance || 8} tiles</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="aiScatterMult">Scatter Multiplier</label>
+                            <div class="slider-container">
+                                <input type="range" id="aiScatterMult" min="25" max="300" value="${Math.round((this.settings.aiScatterMult || 1.0) * 100)}" />
+                                <span class="slider-value">${Math.round((this.settings.aiScatterMult || 1.0) * 100)}%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label>AI Profile</label>
+                            <button class="settings-button settings-ai-reset" style="flex: 0; padding: 6px 14px; font-size: 14px;">
+                                Reset AI Defaults
+                            </button>
+                        </div>
+                    </section>
                 </div>
                 
                 <div class="settings-footer">
@@ -207,6 +271,68 @@ class SettingsMenu {
         difficultyRadios.forEach(radio => {
             radio.addEventListener('change', (e) => this.changeDifficulty(e.target.value));
         });
+        
+        // Debug overlay toggle
+        const debugToggle = this.overlay.querySelector('#debugOverlay');
+        if (debugToggle) {
+            debugToggle.addEventListener('change', (e) => {
+                this.settings.debugOverlay = e.target.checked;
+                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                this.saveSettings();
+                this._syncDebugToGame();
+            });
+        }
+        
+        // Dev console toggle
+        const devConsoleToggle = this.overlay.querySelector('#devConsole');
+        if (devConsoleToggle) {
+            devConsoleToggle.addEventListener('change', (e) => {
+                this.settings.devConsole = e.target.checked;
+                e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                this.saveSettings();
+                this._syncDebugToGame();
+            });
+        }
+        
+        // AI tuning sliders
+        const aggressionSlider = this.overlay.querySelector('#aiAggression');
+        if (aggressionSlider) {
+            aggressionSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value) / 100;
+                this.settings.aiAggression = val;
+                e.target.parentElement.querySelector('.slider-value').textContent = `${parseInt(e.target.value)}%`;
+                this.saveSettings();
+                this._syncAITuning();
+            });
+        }
+        
+        const chaseSlider = this.overlay.querySelector('#aiChaseDistance');
+        if (chaseSlider) {
+            chaseSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                this.settings.aiChaseDistance = val;
+                e.target.parentElement.querySelector('.slider-value').textContent = `${val} tiles`;
+                this.saveSettings();
+                this._syncAITuning();
+            });
+        }
+        
+        const scatterSlider = this.overlay.querySelector('#aiScatterMult');
+        if (scatterSlider) {
+            scatterSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value) / 100;
+                this.settings.aiScatterMult = val;
+                e.target.parentElement.querySelector('.slider-value').textContent = `${parseInt(e.target.value)}%`;
+                this.saveSettings();
+                this._syncAITuning();
+            });
+        }
+        
+        // AI reset button
+        const aiResetBtn = this.overlay.querySelector('.settings-ai-reset');
+        if (aiResetBtn) {
+            aiResetBtn.addEventListener('click', () => this.resetAIDefaults());
+        }
         
         // Keyboard navigation
         document.addEventListener('keydown', (e) => {
@@ -329,12 +455,19 @@ class SettingsMenu {
             musicVolume: 100,
             sfxVolume: 100,
             musicEnabled: true,
-            difficulty: 'normal'
+            difficulty: 'normal',
+            debugOverlay: false,
+            devConsole: false,
+            aiAggression: 1.0,
+            aiChaseDistance: 8,
+            aiScatterMult: 1.0,
         };
         
         this.saveSettings();
         this.updateUI();
         this.applySettings();
+        this._syncDebugToGame();
+        this._syncAITuning();
         
         // Reset difficulty in Barney's system if available
         if (typeof setDifficulty === 'function') {
@@ -360,6 +493,35 @@ class SettingsMenu {
         // Update difficulty radio
         const difficultyRadio = this.overlay.querySelector(`input[name="difficulty"][value="${this.settings.difficulty}"]`);
         if (difficultyRadio) difficultyRadio.checked = true;
+        
+        // Update debug toggles
+        const debugEl = this.overlay.querySelector('#debugOverlay');
+        if (debugEl) {
+            debugEl.checked = this.settings.debugOverlay;
+            debugEl.parentElement.querySelector('.toggle-label').textContent = this.settings.debugOverlay ? 'ON' : 'OFF';
+        }
+        const devEl = this.overlay.querySelector('#devConsole');
+        if (devEl) {
+            devEl.checked = this.settings.devConsole;
+            devEl.parentElement.querySelector('.toggle-label').textContent = this.settings.devConsole ? 'ON' : 'OFF';
+        }
+        
+        // Update AI tuning sliders
+        const agEl = this.overlay.querySelector('#aiAggression');
+        if (agEl) {
+            agEl.value = Math.round((this.settings.aiAggression || 1.0) * 100);
+            agEl.parentElement.querySelector('.slider-value').textContent = `${agEl.value}%`;
+        }
+        const cdEl = this.overlay.querySelector('#aiChaseDistance');
+        if (cdEl) {
+            cdEl.value = this.settings.aiChaseDistance || 8;
+            cdEl.parentElement.querySelector('.slider-value').textContent = `${cdEl.value} tiles`;
+        }
+        const smEl = this.overlay.querySelector('#aiScatterMult');
+        if (smEl) {
+            smEl.value = Math.round((this.settings.aiScatterMult || 1.0) * 100);
+            smEl.parentElement.querySelector('.slider-value').textContent = `${smEl.value}%`;
+        }
     }
     
     open() {
@@ -391,5 +553,34 @@ class SettingsMenu {
         } else {
             this.open();
         }
+    }
+    
+    // Sync debug overlay/devConsole state to the game instance
+    _syncDebugToGame() {
+        const game = this._game;
+        if (!game) return;
+        game._debugOverlay = this.settings.debugOverlay;
+        game._devConsole = this.settings.devConsole;
+    }
+    
+    // Push AI tuning values to game instance
+    _syncAITuning() {
+        const game = this._game;
+        if (!game || typeof game.setAITuning !== 'function') return;
+        game.setAITuning({
+            aggression: this.settings.aiAggression,
+            chaseDistance: this.settings.aiChaseDistance,
+            scatterMultiplier: this.settings.aiScatterMult,
+        });
+    }
+    
+    // Reset AI tuning sliders to defaults
+    resetAIDefaults() {
+        this.settings.aiAggression = 1.0;
+        this.settings.aiChaseDistance = 8;
+        this.settings.aiScatterMult = 1.0;
+        this.saveSettings();
+        this.updateUI();
+        this._syncAITuning();
     }
 }

@@ -751,6 +751,187 @@ class Sprites {
                     break;
             }
         }
+
+        // ==================== GHOST DEBUG OVERLAYS ====================
+
+        // Draw mode icon + label above a ghost
+        static drawGhostDebugLabel(ctx, ghost, animFrame) {
+            const cx = ghost.x + TILE / 2
+            const cy = ghost.y - 4
+            const mode = ghost.mode
+            const icon = GHOST_DEBUG.modeIcons[mode] || '?'
+            const label = GHOST_DEBUG.modeLabels[mode] || '?'
+            const color = GHOST_DEBUG.modeColors[mode] || '#fff'
+
+            ctx.save()
+            ctx.font = 'bold 8px monospace'
+            ctx.textAlign = 'center'
+            ctx.fillStyle = 'rgba(0,0,0,0.6)'
+            ctx.fillRect(cx - 18, cy - 9, 36, 11)
+            ctx.fillStyle = color
+            ctx.fillText(`${icon}${label}`, cx, cy)
+            ctx.restore()
+        }
+
+        // Draw dotted line from ghost to its target tile
+        static drawTargetLine(ctx, ghost, target) {
+            if (!target) return
+            const gx = ghost.x + TILE / 2
+            const gy = ghost.y + TILE / 2
+            const tx = target.x * TILE + TILE / 2
+            const ty = target.y * TILE + TILE / 2
+
+            ctx.save()
+            ctx.globalAlpha = GHOST_DEBUG.targetLineAlpha
+            ctx.strokeStyle = ghost.color
+            ctx.setLineDash([4, 4])
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.moveTo(gx, gy)
+            ctx.lineTo(tx, ty)
+            ctx.stroke()
+            ctx.setLineDash([])
+            ctx.restore()
+        }
+
+        // Draw target tile outline
+        static drawTargetTile(ctx, target, color) {
+            if (!target) return
+            ctx.save()
+            ctx.globalAlpha = 0.5
+            ctx.strokeStyle = color
+            ctx.lineWidth = 2
+            ctx.strokeRect(target.x * TILE + 1, target.y * TILE + 1, TILE - 2, TILE - 2)
+            ctx.restore()
+        }
+
+        // Burns personality: crosshair at target
+        static drawBurnsCrosshair(ctx, target) {
+            if (!target) return
+            const tx = target.x * TILE + TILE / 2
+            const ty = target.y * TILE + TILE / 2
+            const sz = 8
+
+            ctx.save()
+            ctx.globalAlpha = 0.7
+            ctx.strokeStyle = '#ffd800'
+            ctx.lineWidth = 1.5
+            // Horizontal
+            ctx.beginPath()
+            ctx.moveTo(tx - sz, ty); ctx.lineTo(tx + sz, ty)
+            ctx.stroke()
+            // Vertical
+            ctx.beginPath()
+            ctx.moveTo(tx, ty - sz); ctx.lineTo(tx, ty + sz)
+            ctx.stroke()
+            // Circle
+            ctx.beginPath()
+            ctx.arc(tx, ty, sz * 0.6, 0, Math.PI * 2)
+            ctx.stroke()
+            ctx.restore()
+        }
+
+        // Bob Patiño personality: speed lines trailing behind
+        static drawBobSpeedLines(ctx, ghost, animFrame) {
+            const cx = ghost.x + TILE / 2
+            const cy = ghost.y + TILE / 2
+            ctx.save()
+            ctx.globalAlpha = 0.4
+            ctx.strokeStyle = ghost.color
+            ctx.lineWidth = 1
+            for (let i = 1; i <= 3; i++) {
+                const offset = i * 6 + (animFrame % 8)
+                const dx = -DX[ghost.dir] * offset
+                const dy = -DY[ghost.dir] * offset
+                ctx.beginPath()
+                ctx.moveTo(cx + dx - 3, cy + dy - 3)
+                ctx.lineTo(cx + dx + 3, cy + dy + 3)
+                ctx.stroke()
+            }
+            ctx.restore()
+        }
+
+        // Nelson personality: zigzag path preview
+        static drawNelsonZigzag(ctx, ghost, target) {
+            if (!target) return
+            const gx = ghost.x + TILE / 2
+            const gy = ghost.y + TILE / 2
+            const tx = target.x * TILE + TILE / 2
+            const ty = target.y * TILE + TILE / 2
+
+            ctx.save()
+            ctx.globalAlpha = 0.45
+            ctx.strokeStyle = '#ff8c00'
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.moveTo(gx, gy)
+            const steps = 6
+            for (let i = 1; i <= steps; i++) {
+                const t = i / steps
+                const mx = gx + (tx - gx) * t
+                const my = gy + (ty - gy) * t
+                const zigOffset = (i % 2 === 0 ? 8 : -8)
+                ctx.lineTo(mx + zigOffset, my)
+            }
+            ctx.lineTo(tx, ty)
+            ctx.stroke()
+            ctx.restore()
+        }
+
+        // Snake personality: speed variance percentage badge
+        static drawSnakeSpeedBadge(ctx, ghost, baseSpeed) {
+            const variance = baseSpeed > 0
+                ? Math.round(((ghost.speed / baseSpeed) - 1) * 100)
+                : 0
+            const label = `${variance >= 0 ? '+' : ''}${variance}%`
+            const cx = ghost.x + TILE / 2
+            const cy = ghost.y + TILE + 6
+
+            ctx.save()
+            ctx.font = 'bold 7px monospace'
+            ctx.textAlign = 'center'
+            ctx.fillStyle = 'rgba(0,0,0,0.6)'
+            ctx.fillRect(cx - 14, cy - 6, 28, 9)
+            ctx.fillStyle = variance > 0 ? '#ff6666' : variance < 0 ? '#66ff66' : '#fff'
+            ctx.fillText(label, cx, cy + 1)
+            ctx.restore()
+        }
+
+        // Breadcrumb dots along recent path
+        static drawBreadcrumbs(ctx, crumbs, color) {
+            if (!crumbs || crumbs.length === 0) return
+            ctx.save()
+            ctx.fillStyle = color
+            for (let i = 0; i < crumbs.length; i++) {
+                ctx.globalAlpha = GHOST_DEBUG.breadcrumbAlpha * ((i + 1) / crumbs.length)
+                ctx.beginPath()
+                ctx.arc(crumbs[i].x, crumbs[i].y, GHOST_DEBUG.breadcrumbRadius, 0, Math.PI * 2)
+                ctx.fill()
+            }
+            ctx.restore()
+        }
+
+        // Dev console panel (FPS, entity count, collision checks)
+        static drawDevConsole(ctx, stats, animFrame) {
+            const x = 4, y = CANVAS_H - 60
+            const lines = [
+                `FPS: ${stats.fps}`,
+                `Entities: ${stats.entityCount}`,
+                `Collisions: ${stats.collisionChecks}/f`,
+                `Ghosts: ${stats.ghostModes}`,
+            ]
+
+            ctx.save()
+            ctx.fillStyle = 'rgba(0,0,0,0.75)'
+            ctx.fillRect(x, y, 140, lines.length * 12 + 6)
+            ctx.font = '9px monospace'
+            ctx.textAlign = 'left'
+            ctx.fillStyle = '#0f0'
+            lines.forEach((line, i) => {
+                ctx.fillText(line, x + 4, y + 12 + i * 12)
+            })
+            ctx.restore()
+        }
     }
 
     // ==================== GAME ====================

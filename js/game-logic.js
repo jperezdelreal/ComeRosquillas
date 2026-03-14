@@ -64,6 +64,13 @@
             this._lastFrameTime = performance.now();
             this._frameSkipped = false;
 
+            // Ghost debug overlay state
+            this._debugOverlay = false;
+            this._devConsole = false;
+            this._collisionChecks = 0;
+            this._ghostBreadcrumbs = [[], [], [], []];
+            this._aiTuning = typeof loadAITuning === 'function' ? loadAITuning() : { ...AI_TUNING_DEFAULTS };
+
             // Level transition wipe
             this._wipeTimer = 0;
             this._wipeDirection = 1;
@@ -80,6 +87,18 @@
             if (typeof SettingsMenu !== 'undefined') {
                 this.settingsMenu = new SettingsMenu(this.sound);
                 this.settingsMenu._game = this;
+                // Sync debug state from saved settings
+                this._debugOverlay = this.settingsMenu.settings.debugOverlay || false;
+                this._devConsole = this.settingsMenu.settings.devConsole || false;
+                if (this.settingsMenu.settings.aiAggression !== undefined ||
+                    this.settingsMenu.settings.aiChaseDistance !== undefined ||
+                    this.settingsMenu.settings.aiScatterMult !== undefined) {
+                    this._aiTuning = {
+                        aggression: this.settingsMenu.settings.aiAggression || 1.0,
+                        chaseDistance: this.settingsMenu.settings.aiChaseDistance || 8,
+                        scatterMultiplier: this.settingsMenu.settings.aiScatterMult || 1.0,
+                    };
+                }
                 
                 // Hook up settings button
                 const settingsBtn = document.getElementById('settingsBtn');
@@ -126,11 +145,26 @@
                 this.shareMenu = new ShareMenu(this);
             }
             
+            // Initialize daily challenge system
+            if (typeof DailyChallenge !== 'undefined') {
+                this.dailyChallenge = new DailyChallenge(this);
+            }
+            this._dailyChallenge = null;
+            this._dailyTimeUp = false;
+            
             // Allow 'H' key to open share menu from game-over/start screens
             document.addEventListener('keydown', (e) => {
                 if (e.code === 'KeyH' && (this.state === ST_GAME_OVER || this.state === ST_START)) {
                     e.preventDefault();
                     if (this.shareMenu) this.shareMenu.toggle();
+                }
+            });
+            
+            // Allow 'D' key to open daily challenge from start/pause/gameover screens
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyD' && (this.state === ST_START || this.state === ST_PAUSED || this.state === ST_GAME_OVER)) {
+                    e.preventDefault();
+                    if (this.dailyChallenge) this.dailyChallenge.toggle();
                 }
             });
             
@@ -183,6 +217,19 @@
                     const muted = this.sound.toggleMute();
                     if (muted !== undefined) {
                         this.addFloatingText(CANVAS_W / 2, 40, muted ? '🔇 MUTED' : '🔊 MUSIC ON', '#ffd800');
+                    }
+                } else if (e.code === 'KeyD') {
+                    this._debugOverlay = !this._debugOverlay;
+                    this.addFloatingText(CANVAS_W / 2, 40, this._debugOverlay ? '🔍 DEBUG ON' : '🔍 DEBUG OFF', '#0f0');
+                    if (this.settingsMenu) {
+                        this.settingsMenu.settings.debugOverlay = this._debugOverlay;
+                        this.settingsMenu.saveSettings();
+                    }
+                } else if (e.code === 'Backquote') {
+                    this._devConsole = !this._devConsole;
+                    if (this.settingsMenu) {
+                        this.settingsMenu.settings.devConsole = this._devConsole;
+                        this.settingsMenu.saveSettings();
                     }
                 }
 
@@ -268,8 +315,8 @@
                     &#127850; Eat all the donuts<br>
                     &#127866; Grab a Duff to chase the bad guys<br>
                     &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
-                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; H = Share<br><br>
-                    ${this._challengeBannerHtml()}Press ENTER or SPACE to start
+                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; H = Share &nbsp; D = Daily<br><br>
+                    ${this._challengeBannerHtml()}${this._dailyChallengeBannerHtml()}Press ENTER or SPACE to start
                     ${scoreTable}
                 </div>`;
             this.msgEl.style.display = 'block';
@@ -341,12 +388,23 @@
             this._gameDonutsEaten = 0;
             this._gameGhostsEaten = 0;
             this._gameStartTime = Date.now();
+            this._dailyTimeUp = false;
             this.initLevel();
+            
+            // Apply daily challenge modifiers after level init
+            if (this._dailyChallenge && typeof DailyChallenge !== 'undefined') {
+                DailyChallenge.applyModifiers(this, this._dailyChallenge);
+            }
+            
             this.state = ST_READY;
             this.stateTimer = 150;
             this.sound.play('start');
             this.sound.setLevelTempo(this.level);
-            this.showMessage('&#127849; READY!', this._levelTitle());
+            
+            const challengeBanner = this._dailyChallenge
+                ? DailyChallenge.getBannerHtml(this._dailyChallenge)
+                : '';
+            this.showMessage('&#127849; READY!', challengeBanner + this._levelTitle());
             this.updateHUD();
         }
 
@@ -440,10 +498,11 @@
             const effectiveLevel = this.getEffectiveLevel();
             const scatterReduction = Math.pow(1 - DIFFICULTY_CURVE.scatterReductionPerLevel, effectiveLevel - 1);
             const chaseGrowth = Math.pow(1 + DIFFICULTY_CURVE.chaseLengtheningPerLevel, effectiveLevel - 1);
+            const scatterMod = this._aiTuning ? this._aiTuning.scatterMultiplier : 1.0;
             return MODE_TIMERS.map((t, i) => {
                 if (t < 0) return t;
                 if (i % 2 === 0) {
-                    return Math.max(ENDLESS_MODE.minScatterFrames, Math.round(t * scatterReduction));
+                    return Math.max(ENDLESS_MODE.minScatterFrames, Math.round(t * scatterReduction * scatterMod));
                 }
                 return Math.round(t * chaseGrowth);
             });
@@ -461,7 +520,10 @@
             }
             if (type === 'ghost') {
                 const levelMultiplier = Math.pow(1 + DIFFICULTY_CURVE.ghostSpeedPerLevel, effectiveLevel - 1);
-                let base = BASE_SPEED * 0.9 * levelMultiplier * difficulty.ghostSpeedMultiplier;
+                const aggressionMod = this._aiTuning ? this._aiTuning.aggression : 1.0;
+                const dailyBonus = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
+                    ? 1 + DailyChallenge.getGhostSpeedBonus(this._dailyChallenge) : 1;
+                let base = BASE_SPEED * 0.9 * levelMultiplier * difficulty.ghostSpeedMultiplier * aggressionMod * dailyBonus;
                 if (ghost) {
                     if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
                     if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
@@ -589,6 +651,10 @@
                     this.lives--;
                     this.updateHUD();
                     if (this.lives <= 0) {
+                        // Submit daily challenge score if active
+                        if (this._dailyChallenge && this.dailyChallenge) {
+                            this._submitDailyScore();
+                        }
                         // Check if score qualifies for high score table
                         if (this.highScores.isHighScore(this.score)) {
                             this.state = ST_HIGH_SCORE_ENTRY;
@@ -643,6 +709,12 @@
             }
 
             if (this.state !== ST_PLAYING) return;
+
+            // Daily challenge: speed run time-up
+            if (this._dailyTimeUp && this._dailyChallenge) {
+                this._endDailyChallenge();
+                return;
+            }
 
             this.updateGhostMode();
             this.moveHomer();
@@ -747,9 +819,11 @@
             if (tile.col < 0 || tile.col >= COLS || tile.row < 0 || tile.row >= ROWS) return;
 
             const cell = this.maze[tile.row][tile.col];
+            const _dailyMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
+                ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
             if (cell === DOT) {
                 this.maze[tile.row][tile.col] = EMPTY;
-                this.score += 10;
+                this.score += Math.round(10 * _dailyMul);
                 this.dotsEaten++;
                 this._gameDonutsEaten++;
                 if (this.animFrame % 2 === 0) this.sound.play('chomp');
@@ -760,7 +834,7 @@
                 if (this.dotsEaten === 70 || this.dotsEaten === 170) this.spawnBonus();
             } else if (cell === POWER) {
                 this.maze[tile.row][tile.col] = EMPTY;
-                this.score += 50;
+                this.score += Math.round(50 * _dailyMul);
                 this.dotsEaten++;
                 this.ghostsEaten = 0;
                 this.comboDisplayTimer = 0;
@@ -931,6 +1005,13 @@
             g.y += DY[g.dir] * g.speed;
             if (g.x < -TILE) g.x = COLS * TILE;
             if (g.x > COLS * TILE) g.x = -TILE;
+
+            // Track breadcrumbs for debug overlay
+            if (this._debugOverlay && this.animFrame % 6 === 0) {
+                const crumbs = this._ghostBreadcrumbs[g.idx];
+                crumbs.push({ x: g.x + TILE / 2, y: g.y + TILE / 2 });
+                if (crumbs.length > GHOST_DEBUG.maxBreadcrumbs) crumbs.shift();
+            }
         }
 
         // BFS pathfinding to find optimal next direction (with 3-frame cache)
@@ -1047,8 +1128,8 @@
                         (gTile.col - hTile.col) ** 2 + (gTile.row - hTile.row) ** 2
                     );
                     
-                    // If within 8 tiles, flee to scatter corner
-                    if (distToHomer < 8) {
+                    const fleeThreshold = this._aiTuning ? this._aiTuning.chaseDistance : 8;
+                    if (distToHomer < fleeThreshold) {
                         return { x: g.scatterX, y: g.scatterY };
                     }
                     // Otherwise chase Homer
@@ -1061,8 +1142,10 @@
         }
 
         checkCollisions() {
+            this._collisionChecks = 0;
             for (const g of this.ghosts) {
                 if (g.inHouse) continue;
+                this._collisionChecks++;
                 const dx = (this.homer.x + TILE / 2) - (g.x + TILE / 2);
                 const dy = (this.homer.y + TILE / 2) - (g.y + TILE / 2);
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1074,7 +1157,9 @@
                         this._gameGhostsEaten++;
                         // Combo multiplier: 1x → 2x → 4x → 8x
                         const comboMultiplier = Math.min(8, Math.pow(2, this.ghostsEaten - 1));
-                        const pts = 200 * comboMultiplier;
+                        const _dcMul = (typeof DailyChallenge !== 'undefined' && this._dailyChallenge)
+                            ? DailyChallenge.getScoreMultiplier(this._dailyChallenge) : 1;
+                        const pts = Math.round(200 * comboMultiplier * _dcMul);
                         this.score += pts;
 
                         // Milestone: trigger burst, shake, and audio at 2x, 4x, 8x
@@ -1125,6 +1210,31 @@
             };
         }
 
+        _submitDailyScore() {
+            if (!this.dailyChallenge || !this._dailyChallenge) return;
+            this.dailyChallenge.submitScore(
+                this.initialsEntry ? this.initialsEntry.name : 'AAA',
+                this.score, this.level,
+                this._gameGhostsEaten, this._gameDonutsEaten
+            );
+            this.dailyChallenge.endChallenge();
+        }
+
+        _endDailyChallenge() {
+            if (this._dailyChallenge && this.dailyChallenge) {
+                this._submitDailyScore();
+            }
+            this.highScores.recordGameEnd(this._buildGameStats());
+            this.state = ST_GAME_OVER;
+            this.sound.stopMusic();
+            this.sound.play('gameOver');
+            const challenge = this._dailyChallenge;
+            const banner = challenge ? `${challenge.emoji} ${challenge.name} — Time's Up!<br>` : '';
+            this.showMessage("⏱️ TIME!", `${banner}Score: ${this.score}<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
+            this._dailyChallenge = null;
+            this._dailyTimeUp = false;
+        }
+
         _shareButtonHtml() {
             if (typeof ShareMenu === 'undefined') return '';
             return `<button onclick="if(window._game&&window._game.shareMenu)window._game.shareMenu.open()" style="
@@ -1146,6 +1256,19 @@
                 border:2px solid #F06292;border-radius:10px;padding:10px 16px;margin:0 0 12px;
                 color:#fff;font-size:16px;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">
                 ⚔️ Challenge: Beat ${target.toLocaleString()} points!</div>`;
+        }
+
+        _dailyChallengeBannerHtml() {
+            if (typeof DailyChallenge === 'undefined') return '';
+            const challenge = DailyChallenge.getTodaysChallenge();
+            const badge = DailyChallenge.getChallengeBadge();
+            const badgeHtml = badge ? `<span style="font-size:12px;color:#e0d0ff;">${badge.emoji} ${badge.name}</span><br>` : '';
+            return `<div style="background:linear-gradient(180deg,${challenge.color}33 0%,${challenge.color}11 100%);
+                border:2px solid ${challenge.color};border-radius:10px;padding:8px 14px;margin:0 0 10px;
+                color:#fff;font-size:14px;text-shadow:1px 1px 0 rgba(0,0,0,0.3);cursor:pointer;"
+                onclick="if(window._game&&window._game.dailyChallenge)window._game.dailyChallenge.open()">
+                ${challenge.emoji} Daily: ${challenge.name} — ${challenge.description}<br>
+                ${badgeHtml}<span style="font-size:12px;color:#ffd800;">Press D or click to play!</span></div>`;
         }
 
         updateHUD() {
@@ -1701,6 +1824,74 @@
             return `${this.currentLayout.name} - Level ${this.level}`;
         }
 
+        // Get the current target tile for a ghost (used by debug overlay)
+        _getGhostTarget(g) {
+            if (g.inHouse || g.mode === GM_FRIGHTENED) return null;
+            if (g.mode === GM_EATEN) return { x: 14, y: 12 };
+            if (g.mode === GM_SCATTER) return { x: g.scatterX, y: g.scatterY };
+            return this.getChaseTarget(g);
+        }
+
+        // Apply updated AI tuning at runtime
+        setAITuning(profile) {
+            this._aiTuning = { ...AI_TUNING_DEFAULTS, ...profile };
+            if (typeof saveAITuning === 'function') saveAITuning(this._aiTuning);
+            // Recompute mode timers and ghost speeds immediately
+            this._levelModeTimers = this.getLevelModeTimers();
+            for (const g of this.ghosts) {
+                if (g.mode !== GM_FRIGHTENED && g.mode !== GM_EATEN) {
+                    g.speed = this.getSpeed('ghost', g);
+                }
+            }
+        }
+
+        // Debug overlay render pass (separate from main draw, zero cost when off)
+        drawDebugOverlay() {
+            if (!this._debugOverlay && !this._devConsole) return;
+            if (this.state !== ST_PLAYING && this.state !== ST_READY) return;
+
+            const ctx = this.ctx;
+            const baseGhostSpeed = BASE_SPEED * 0.9;
+
+            if (this._debugOverlay && this.ghosts) {
+                for (const g of this.ghosts) {
+                    if (g.x < -TILE * 2 || g.x > CANVAS_W + TILE) continue;
+
+                    const target = this._getGhostTarget(g);
+
+                    // Breadcrumbs
+                    Sprites.drawBreadcrumbs(ctx, this._ghostBreadcrumbs[g.idx], g.color);
+
+                    // Target line + tile outline
+                    Sprites.drawTargetLine(ctx, g, target);
+                    Sprites.drawTargetTile(ctx, target, g.color);
+
+                    // Personality indicators
+                    switch (g.idx) {
+                        case 0: Sprites.drawBurnsCrosshair(ctx, target); break;
+                        case 1: Sprites.drawBobSpeedLines(ctx, g, this.animFrame); break;
+                        case 2: Sprites.drawNelsonZigzag(ctx, g, target); break;
+                        case 3: Sprites.drawSnakeSpeedBadge(ctx, g, baseGhostSpeed); break;
+                    }
+
+                    // Mode icon + label
+                    Sprites.drawGhostDebugLabel(ctx, g, this.animFrame);
+                }
+            }
+
+            if (this._devConsole) {
+                const ghostModes = this.ghosts
+                    ? this.ghosts.map(g => GHOST_DEBUG.modeLabels[g.mode] || '?').join(' ')
+                    : '';
+                Sprites.drawDevConsole(ctx, {
+                    fps: this._fpsDisplay,
+                    entityCount: 1 + (this.ghosts ? this.ghosts.length : 0),
+                    collisionChecks: this._collisionChecks,
+                    ghostModes,
+                }, this.animFrame);
+            }
+        }
+
         // ==================== GAME LOOP ====================
         loop() {
             const now = performance.now();
@@ -1720,6 +1911,7 @@
 
             this.update();
             this.draw();
+            this.drawDebugOverlay();
 
             // FPS counter overlay in dev mode
             if (PERF_CONFIG.devMode) {
