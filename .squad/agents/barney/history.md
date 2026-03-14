@@ -264,4 +264,41 @@
 
 **Key Lesson:** Power-up effects that modify speeds must be wired into the central `getSpeed()` method, not just tracked in arrays. Level-scoped flags like `_specialItemSpawned` need explicit resets in level init.
 
+### Ghost Personality Enhancements & Boss Ghosts (Issue #96)
+**Date:** 2026-03-14  
+**Context:** Added visual personality traits for 4 ghosts + boss ghost system every 5 levels
+
+**Technical Decisions:**
+- `GHOST_PERSONALITY_VISUALS` in config.js — data-driven visual config per personality (crown, speed lines, wobble, smoke)
+- `BOSS_GHOSTS` array in config.js — one entry per boss tier (Fat Tony, Krusty, Sideshow Bob, Mr. Burns Mega)
+- `BOSS_CONFIG` object centralizes HP bar, scale, timing, and trap appearance constants
+- `getBossForLevel(level)` returns matching boss config or null — returns highest-tier boss whose level threshold is met
+- Boss spawns as 5th ghost in `initEntities()` with `isBoss: true`, `bossHp`, and ability timers
+- Boss HP system: when boss is frightened and hit, decrement HP instead of eating — only eaten when HP reaches 1
+- Boss defeat awards `defeatPoints` (5000) + heavy screen shake + boss defeat audio
+
+**Personality Behaviors:**
+- Burns: BFS recalculates every frame during chase mode (not just once per tile) — smarter pathfinding
+- Bob Patiño: `speedMultiplier: 1.2` in config replaces hardcoded `1 + 0.05 * ramp`
+- Nelson: Random laugh pause via `_laughTimer` — skips movement for 60 frames, shows "HA HA!" text
+- Snake: `speedVariance: 0.15` (±15%) in config replaces hardcoded `0.95 + Math.random() * 0.1`
+
+**Boss Abilities:**
+- Krusty: `_fakePellets[]` array — colored circles at boss position, do nothing on collection + laugh SFX
+- Sideshow Bob: Teleports to random walkable tile every `teleportInterval` frames, leaves `_rakeTraps[]` that slow Homer
+- Mr. Burns Mega: Fires `_laserBeams[]` projectiles in facing direction, collision triggers death
+- All traps/beams have lifetime counters and auto-expire
+
+**Rendering Architecture:**
+- Nelson wobble: `ctx.save()/translate()/restore()` bracket around ghost draw call
+- Boss scale: `ctx.save()/scale(1.5)/restore()` around boss ghost draw — HP bar drawn outside scale transform
+- Personality visuals: 4 new static methods on `Sprites` class (drawBurnsCrown, drawPersonalitySpeedLines, drawSnakeSmokeTrail, drawBossHpBar)
+- Boss intro overlay: semi-transparent banner with boss emoji, name, description — rendered in draw() with alpha fade
+
+**Key Files:**
+- `js/config.js`: GHOST_PERSONALITY_VISUALS, BOSS_GHOSTS, BOSS_CONFIG, getBossForLevel(), CAMERA_CONFIG.shake.bossDefeat
+- `js/game-logic.js`: initEntities() boss spawn, updateBossAbilities(), updateNelsonLaugh(), checkBossTraps(), draw() personality/boss rendering
+- `js/engine/renderer.js`: Sprites.drawBurnsCrown, drawPersonalitySpeedLines, drawSnakeSmokeTrail, drawBossHpBar
+- `js/engine/audio.js`: _bossIntro(), _bossDefeat(), _krustyLaugh()
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
