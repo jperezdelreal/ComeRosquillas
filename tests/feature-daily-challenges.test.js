@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
 // ---- Daily Challenge Rotation ----
 
-describe.skip('Daily Challenges — Rotation', () => {
+describe('Daily Challenges — Rotation', () => {
   function getDailySeed(date = new Date()) {
     const y = date.getUTCFullYear()
     const m = String(date.getUTCMonth() + 1).padStart(2, '0')
@@ -48,7 +48,7 @@ describe.skip('Daily Challenges — Rotation', () => {
 
 // ---- Deterministic Seeds ----
 
-describe.skip('Daily Challenges — Deterministic Seed PRNG', () => {
+describe('Daily Challenges — Deterministic Seed PRNG', () => {
   function seededRandom(seed) {
     let h = 0
     for (let i = 0; i < seed.length; i++) {
@@ -95,7 +95,7 @@ describe.skip('Daily Challenges — Deterministic Seed PRNG', () => {
 
 // ---- Challenge Leaderboard ----
 
-describe.skip('Daily Challenges — Challenge Leaderboard', () => {
+describe('Daily Challenges — Challenge Leaderboard', () => {
   const CHALLENGE_KEY = 'comeRosquillas_dailyChallenge'
 
   beforeEach(() => { localStorage.clear() })

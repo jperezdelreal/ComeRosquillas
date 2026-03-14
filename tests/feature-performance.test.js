@@ -11,7 +11,7 @@ import {
 
 // ---- BFS Cache ----
 
-describe.skip('Performance — BFS Path Cache', () => {
+describe('Performance — BFS Path Cache', () => {
   // BFS cache stores shortest paths from each walkable tile to every other
   // Cache key: `${fromX},${fromY}` → Map of `${toX},${toY}` → nextDirection
 
@@ -84,7 +84,7 @@ describe.skip('Performance — BFS Path Cache', () => {
 
 // ---- Particle Pool ----
 
-describe.skip('Performance — Particle Pool', () => {
+describe('Performance — Particle Pool', () => {
   const POOL_SIZE = 200
 
   function createParticlePool(size) {
@@ -158,7 +158,7 @@ describe.skip('Performance — Particle Pool', () => {
 
 // ---- Batch Rendering ----
 
-describe.skip('Performance — Batch Rendering', () => {
+describe('Performance — Batch Rendering', () => {
   it('dots should be rendered in a single batch draw call', () => {
     // Instead of individual fillRect per dot, use Path2D or single beginPath
     // All dots share the same fill style → one beginPath, multiple rects, one fill
@@ -199,7 +199,7 @@ describe.skip('Performance — Batch Rendering', () => {
 
 // ---- FPS Counter ----
 
-describe.skip('Performance — FPS Counter', () => {
+describe('Performance — FPS Counter', () => {
   function calculateFPS(frameTimes) {
     if (frameTimes.length < 2) return 0
     const totalMs = frameTimes[frameTimes.length - 1] - frameTimes[0]
@@ -269,7 +269,7 @@ describe.skip('Performance — FPS Counter', () => {
 
 // ---- 60fps Verification ----
 
-describe.skip('Performance — 60fps Target', () => {
+describe('Performance — 60fps Target', () => {
   it('frame budget is 16.67ms at 60fps', () => {
     expect(1000 / 60).toBeCloseTo(16.67, 1)
   })

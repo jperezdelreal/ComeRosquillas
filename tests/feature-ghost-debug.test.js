@@ -10,7 +10,7 @@ import {
 
 // ---- AI State Overlay ----
 
-describe.skip('Ghost Debug — AI State Overlay', () => {
+describe('Ghost Debug — AI State Overlay', () => {
   const MODE_COLORS = {
     [GM_SCATTER]: '#4488ff',    // blue — scatter
     [GM_CHASE]: '#ff4444',      // red — chase
@@ -53,7 +53,7 @@ describe.skip('Ghost Debug — AI State Overlay', () => {
 
 // ---- Target Tile Visualization ----
 
-describe.skip('Ghost Debug — Target Tile Visualization', () => {
+describe('Ghost Debug — Target Tile Visualization', () => {
   it('should draw a line from ghost to its target tile', () => {
     // Dotted line: ghost position → target tile
     const ghostPos = { x: 12 * TILE, y: 14 * TILE }
@@ -94,7 +94,7 @@ describe.skip('Ghost Debug — Target Tile Visualization', () => {
 
 // ---- Tuning Sliders ----
 
-describe.skip('Ghost Debug — Tuning Sliders', () => {
+describe('Ghost Debug — Tuning Sliders', () => {
   it('should allow adjusting ghost speed multiplier (0.5x – 2.0x)', () => {
     const minSpeedMult = 0.5
     const maxSpeedMult = 2.0
