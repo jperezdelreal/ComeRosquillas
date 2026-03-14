@@ -22,7 +22,7 @@ const OPP = [DOWN, LEFT, UP, RIGHT];
 
 // ==================== GAME STATES ====================
 const ST_START = 0, ST_READY = 1, ST_PLAYING = 2, ST_DYING = 3,
-    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7, ST_HIGH_SCORE_ENTRY = 8, ST_BOSS_INTRO = 9;
+    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7, ST_HIGH_SCORE_ENTRY = 8;
 
 // ==================== GHOST MODES ====================
 const GM_SCATTER = 0, GM_CHASE = 1, GM_FRIGHTENED = 2, GM_EATEN = 3;
@@ -198,30 +198,58 @@ const MAZE_MOES_TAVERN = [
 // ==================== MAZE LAYOUT DEFINITIONS ====================
 const MAZE_LAYOUTS = [
     {
-        name: 'Springfield',
+        name: 'Springfield Streets',
         template: MAZE_TEMPLATE,
-        wallColors: { main: '#2244aa', dark: '#1a3388', light: '#3366cc', border: '#5577ee' }
-    },
-    {
-        name: 'Planta Nuclear',
-        template: MAZE_NUCLEAR_PLANT,
-        wallColors: { main: '#2d6b2d', dark: '#1a4a1a', light: '#3d8b3d', border: '#55cc55' }
-    },
-    {
-        name: 'Kwik-E-Mart',
-        template: MAZE_KWIK_E_MART,
-        wallColors: { main: '#8b2252', dark: '#6b1a42', light: '#ab3272', border: '#dd4488' }
+        wallColors: { main: '#2244aa', dark: '#1a3388', light: '#3366cc', border: '#5577ee' },
+        floorColor: '#0a0a1a',
+        ambientColor: 'rgba(34, 68, 170, 0.05)',
+        decorations: ['street_sign', 'lamp_post']
     },
     {
         name: "Moe's Tavern",
         template: MAZE_MOES_TAVERN,
-        wallColors: { main: '#7a5c2e', dark: '#5a3c1e', light: '#9a7c4e', border: '#cc9944' }
+        wallColors: { main: '#7a5c2e', dark: '#5a3c1e', light: '#9a7c4e', border: '#cc9944' },
+        floorColor: '#1a0f08',
+        ambientColor: 'rgba(122, 92, 46, 0.08)',
+        decorations: ['beer_mug', 'neon_duff']
+    },
+    {
+        name: 'Kwik-E-Mart',
+        template: MAZE_KWIK_E_MART,
+        wallColors: { main: '#8b2252', dark: '#6b1a42', light: '#ab3272', border: '#dd4488' },
+        floorColor: '#1a0a15',
+        ambientColor: 'rgba(139, 34, 82, 0.06)',
+        decorations: ['squishee', 'shelf']
+    },
+    {
+        name: 'Springfield Elementary',
+        template: MAZE_NUCLEAR_PLANT,
+        wallColors: { main: '#4a4a4a', dark: '#2a2a2a', light: '#6a6a6a', border: '#8a8a8a' },
+        floorColor: '#0d0d15',
+        ambientColor: 'rgba(74, 74, 74, 0.07)',
+        decorations: ['chalkboard', 'desk']
+    },
+    {
+        name: 'Nuclear Plant',
+        template: MAZE_KWIK_E_MART,
+        wallColors: { main: '#2d6b2d', dark: '#1a4a1a', light: '#3d8b3d', border: '#55cc55' },
+        floorColor: '#080d08',
+        ambientColor: 'rgba(45, 107, 45, 0.09)',
+        decorations: ['radiation', 'control_panel']
+    },
+    {
+        name: 'Simpsons House',
+        template: MAZE_TEMPLATE,
+        wallColors: { main: '#d4a373', dark: '#b4834f', light: '#f4c393', border: '#ffddaa' },
+        floorColor: '#1a120a',
+        ambientColor: 'rgba(212, 163, 115, 0.06)',
+        decorations: ['couch', 'photo_frame']
     }
 ];
 
-// Returns the maze layout for a given level (cycles every 2 levels)
+// Returns the maze layout for a given level (cycles through 6 themes)
 function getMazeLayout(level) {
-    const idx = Math.floor((level - 1) / 2) % MAZE_LAYOUTS.length;
+    const idx = (level - 1) % MAZE_LAYOUTS.length;
     return MAZE_LAYOUTS[idx];
 }
 
@@ -234,18 +262,6 @@ const GHOST_CFG = [
     { name: 'Nelson',      color: '#ff8c00', skinColor: '#ffd800', startX: 14, startY: 14, scatterX: 27, scatterY: 30, homeX: 14, homeY: 14, exitDelay: 100, personality: 'wobble' },
     { name: 'Snake',       color: '#44bb44', skinColor: '#f5d0a0', startX: 16, startY: 14, scatterX: 0,  scatterY: 30, homeX: 16, homeY: 14, exitDelay: 150, personality: 'erratic' }
 ];
-
-// ==================== BOSS GHOSTS ====================
-const BOSS_GHOSTS = [
-    { level: 5,  name: 'Fat Tony',        color: '#8b4789', hp: 2, speed: 0.6, blocking: true, bonus: 5000, portrait: 'fat_tony' },
-    { level: 10, name: 'Krusty el Payaso', color: '#00ff00', hp: 1, speed: 1.0, fakePellets: true, bonus: 5000, portrait: 'krusty' },
-    { level: 15, name: 'Sideshow Bob',    color: '#cc2200', hp: 1, speed: 1.2, teleport: true, traps: true, bonus: 5000, portrait: 'bob_boss' },
-    { level: 20, name: 'Mr. Burns MEGA',  color: '#9acd32', hp: 3, speed: 0.8, lasers: true, bonus: 5000, portrait: 'burns_mega' }
-];
-
-function getBossForLevel(level) {
-    return BOSS_GHOSTS.find(b => b.level === level) || null;
-}
 
 // ==================== TIMING ====================
 const MODE_TIMERS = [180, 1200, 300, 1200, 300, 1200, 300, -1];

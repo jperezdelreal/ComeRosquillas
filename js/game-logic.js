@@ -94,11 +94,6 @@
             this._wipeTimer = 0;
             this._wipeDirection = 1;
 
-            // Boss ghost state
-            this.bossGhost = null;
-            this.bossIntroTimer = 0;
-            this.bossDefeated = false;
-
             // Pre-render some decorations
             this.cloudOffset = 0;
 
@@ -467,6 +462,8 @@
             this.bonusPos = null;
             this.ghostsEaten = 0;
             this.comboDisplayTimer = 0;
+            this._specialItemSpawned = false;
+            this._specialItem = null;
         }
 
         initEntities() {
@@ -496,53 +493,12 @@
                     inHouse: i > 0,
                     exitTimer: Math.round(cfg.exitDelay * (1 - ramp * DIFFICULTY_CURVE.exitDelayReduction)),
                     idx: i,
-                    _lastDecisionTile: -1,
-                    laughTimer: 0,
-                    wobbleOffset: 0,
-                    speedVariation: 1.0
+                    _lastDecisionTile: -1
                 };
                 ghost.speed = this.getSpeed('ghost', ghost);
                 return ghost;
             });
 
-            // Check for boss level
-            if (typeof getBossForLevel === 'function') {
-                const bossCfg = getBossForLevel(this.level);
-                if (bossCfg) {
-                    this.createBossGhost(bossCfg);
-                } else {
-                    this.bossGhost = null;
-                }
-            }
-            this.bossDefeated = false;
-        }
-
-        createBossGhost(cfg) {
-            this.bossGhost = {
-                x: 14 * TILE,
-                y: 11 * TILE,
-                dir: LEFT,
-                mode: GM_CHASE,
-                color: cfg.color,
-                name: cfg.name,
-                hp: cfg.hp,
-                maxHp: cfg.hp,
-                speed: BASE_SPEED * cfg.speed,
-                blocking: !!cfg.blocking,
-                fakePellets: !!cfg.fakePellets,
-                teleport: !!cfg.teleport,
-                traps: !!cfg.traps,
-                lasers: !!cfg.lasers,
-                bonus: cfg.bonus,
-                portrait: cfg.portrait,
-                isBoss: true,
-                inHouse: false,
-                idx: -1,
-                _lastDecisionTile: -1,
-                teleportCooldown: 0,
-                laserTimer: 0
-            };
-            this.bossIntroTimer = 180;
         }
 
         // ---- DIFFICULTY CURVE ----
@@ -597,7 +553,12 @@
             const speedCap = BASE_SPEED * ENDLESS_MODE.maxSpeedMultiplier;
             
             if (type === 'homer') {
-                return Math.min(speedCap, BASE_SPEED * (1 + (effectiveLevel - 1) * 0.05));
+                let speed = Math.min(speedCap, BASE_SPEED * (1 + (effectiveLevel - 1) * 0.05));
+                if (this.hasPowerUp('speed_boost')) {
+                    const pu = this._activePowerUps.find(p => p.type.effect === 'speed_boost');
+                    if (pu) speed *= pu.type.effectValue;
+                }
+                return Math.min(speedCap * 2, speed);
             }
             if (type === 'ghost') {
                 const levelMultiplier = Math.pow(1 + DIFFICULTY_CURVE.ghostSpeedPerLevel, effectiveLevel - 1);
@@ -608,6 +569,10 @@
                 if (ghost) {
                     if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
                     if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
+                }
+                if (this.hasPowerUp('slow_ghosts')) {
+                    const pu = this._activePowerUps.find(p => p.type.effect === 'slow_ghosts');
+                    if (pu) base *= pu.type.effectValue;
                 }
                 return Math.min(speedCap, base);
             }
@@ -1496,6 +1461,7 @@
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
                         this.updateHUD();
                     } else if (g.mode !== GM_EATEN) {
+                        if (this.hasPowerUp('invincibility')) continue;
                         this.state = ST_DYING;
                         this.stateTimer = 90;
                         this.sound.stopMusic();
@@ -1658,13 +1624,19 @@
             if (hasZoom && this._cameraZoom < 1.0) {
                 ctx.save();
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.fillStyle = COLORS.pathDark;
+                ctx.fillStyle = this.currentLayout.floorColor || COLORS.pathDark;
                 ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
                 ctx.restore();
             }
 
-            ctx.fillStyle = COLORS.pathDark;
+            ctx.fillStyle = this.currentLayout.floorColor || COLORS.pathDark;
             ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            // Ambient color overlay for theme atmosphere
+            if (this.currentLayout.ambientColor) {
+                ctx.fillStyle = this.currentLayout.ambientColor;
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+            }
 
             // Subtle starfield background for non-wall cells
             if (!this._stars) {
@@ -1834,34 +1806,7 @@
                 ctx.restore();
             }
 
-            // Active power-up timer bars
-            if (this._activePowerUps && this._activePowerUps.length > 0) {
-                let barY = 52;
-                for (const pu of this._activePowerUps) {
-                    const pct = pu.timer / pu.startTimer;
-                    const barW = 80;
-                    const barH = 8;
-                    const barX = CANVAS_W / 2 - barW / 2;
-                    const warning = pu.timer <= Math.floor(pu.startTimer * 0.25);
-                    ctx.save();
-                    ctx.globalAlpha = warning ? (0.5 + Math.sin(this.animFrame * 0.3) * 0.5) : 0.85;
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(barX, barY, barW, barH);
-                    ctx.fillStyle = pu.type.colors.primary;
-                    ctx.fillRect(barX, barY, barW * pct, barH);
-                    ctx.strokeStyle = '#fff';
-                    ctx.lineWidth = 0.5;
-                    ctx.strokeRect(barX, barY, barW, barH);
-                    ctx.font = '7px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillStyle = '#fff';
-                    ctx.fillText(`${pu.type.emoji} ${Math.ceil(pu.timer / 60)}s`, CANVAS_W / 2, barY + barH - 1);
-                    ctx.restore();
-                    barY += barH + 3;
-                }
-            }
-
-            // Endless mode badge (pulsing infinity symbol)
+            // Endless mode badge(pulsing infinity symbol)
             if (this.isEndlessMode() && this.state === ST_PLAYING) {
                 const pulse = 0.85 + Math.sin(this.animFrame * 0.08) * 0.15;
                 ctx.save();
@@ -2030,6 +1975,196 @@
             ctx.font = 'bold 7px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('☢ Planta Nuclear', 14 * TILE, 13 * TILE - 2);
+
+            // Draw theme-specific decorations
+            this.drawThemeDecorations(ctx);
+        }
+
+        drawThemeDecorations(ctx) {
+            if (!this.currentLayout.decorations) return;
+
+            const decorations = this.currentLayout.decorations;
+            const themeName = this.currentLayout.name;
+
+            // Draw 3-4 decorative elements per theme (strategic positions)
+            const decorationPositions = [
+                { r: 2, c: 2 }, { r: 2, c: 25 },
+                { r: 28, c: 2 }, { r: 28, c: 25 }
+            ];
+
+            decorationPositions.forEach((pos, idx) => {
+                const x = pos.c * TILE;
+                const y = pos.r * TILE;
+                const decType = decorations[idx % decorations.length];
+
+                ctx.save();
+                
+                switch(decType) {
+                    case 'street_sign':
+                        // Springfield Streets - Street sign pole
+                        ctx.fillStyle = '#555';
+                        ctx.fillRect(x + 10, y + 8, 2, 12);
+                        ctx.fillStyle = '#2244aa';
+                        ctx.fillRect(x + 4, y + 5, 14, 6);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 4px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('MAIN', x + 11, y + 9);
+                        break;
+                        
+                    case 'lamp_post':
+                        // Springfield Streets - Lamp post with glow
+                        ctx.fillStyle = '#444';
+                        ctx.fillRect(x + 11, y + 6, 2, 14);
+                        const lampGlow = 0.6 + Math.sin(this.animFrame * 0.05 + idx) * 0.2;
+                        ctx.fillStyle = `rgba(255, 215, 0, ${lampGlow})`;
+                        ctx.shadowColor = '#ffd700';
+                        ctx.shadowBlur = 4;
+                        ctx.beginPath();
+                        ctx.arc(x + 12, y + 8, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'beer_mug':
+                        // Moe's Tavern - Beer mug
+                        ctx.fillStyle = '#cc9944';
+                        ctx.fillRect(x + 7, y + 8, 8, 10);
+                        ctx.fillStyle = '#f4d596';
+                        ctx.fillRect(x + 7, y + 8, 8, 4);
+                        ctx.fillStyle = '#fff';
+                        ctx.globalAlpha = 0.5;
+                        ctx.fillRect(x + 8, y + 10, 2, 6);
+                        ctx.globalAlpha = 1;
+                        // Foam on top
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 7, y + 6, 8, 3);
+                        break;
+                        
+                    case 'neon_duff':
+                        // Moe's Tavern - Duff neon sign
+                        const neonGlow = 0.5 + Math.sin(this.animFrame * 0.08 + idx) * 0.3;
+                        ctx.shadowColor = '#cc0000';
+                        ctx.shadowBlur = 6;
+                        ctx.fillStyle = `rgba(204, 0, 0, ${neonGlow})`;
+                        ctx.font = 'bold 8px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('DUFF', x + 12, y + 14);
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'squishee':
+                        // Kwik-E-Mart - Squishee machine
+                        ctx.fillStyle = '#dd4488';
+                        ctx.fillRect(x + 6, y + 6, 10, 12);
+                        ctx.fillStyle = '#ab3272';
+                        ctx.fillRect(x + 7, y + 7, 8, 8);
+                        // Liquid inside
+                        const squisheeColor = idx % 2 === 0 ? '#00ccff' : '#ff00ff';
+                        ctx.fillStyle = squisheeColor;
+                        ctx.fillRect(x + 8, y + 9, 6, 4);
+                        break;
+                        
+                    case 'shelf':
+                        // Kwik-E-Mart - Store shelf
+                        ctx.fillStyle = '#8b2252';
+                        ctx.fillRect(x + 4, y + 8, 14, 2);
+                        ctx.fillRect(x + 4, y + 14, 14, 2);
+                        // Products on shelf
+                        ctx.fillStyle = '#dd4488';
+                        ctx.fillRect(x + 6, y + 5, 3, 3);
+                        ctx.fillRect(x + 11, y + 5, 3, 3);
+                        ctx.fillRect(x + 6, y + 11, 3, 3);
+                        ctx.fillRect(x + 11, y + 11, 3, 3);
+                        break;
+                        
+                    case 'chalkboard':
+                        // Springfield Elementary - Chalkboard
+                        ctx.fillStyle = '#2a2a2a';
+                        ctx.fillRect(x + 4, y + 6, 14, 10);
+                        ctx.strokeStyle = '#8a8a8a';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 4, y + 6, 14, 10);
+                        // Chalk writing
+                        ctx.strokeStyle = '#ccc';
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(x + 6, y + 9);
+                        ctx.lineTo(x + 16, y + 9);
+                        ctx.moveTo(x + 6, y + 12);
+                        ctx.lineTo(x + 16, y + 12);
+                        ctx.stroke();
+                        break;
+                        
+                    case 'desk':
+                        // Springfield Elementary - School desk
+                        ctx.fillStyle = '#6a6a6a';
+                        ctx.fillRect(x + 6, y + 10, 10, 6);
+                        ctx.fillStyle = '#4a4a4a';
+                        ctx.fillRect(x + 7, y + 16, 2, 4);
+                        ctx.fillRect(x + 13, y + 16, 2, 4);
+                        break;
+                        
+                    case 'radiation':
+                        // Nuclear Plant - Radiation symbol
+                        const radGlow = 0.5 + Math.sin(this.animFrame * 0.06 + idx) * 0.3;
+                        ctx.fillStyle = `rgba(85, 204, 85, ${radGlow})`;
+                        ctx.shadowColor = '#55cc55';
+                        ctx.shadowBlur = 8;
+                        ctx.font = 'bold 12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('☢', x + 12, y + 16);
+                        ctx.shadowBlur = 0;
+                        break;
+                        
+                    case 'control_panel':
+                        // Nuclear Plant - Control panel
+                        ctx.fillStyle = '#2d6b2d';
+                        ctx.fillRect(x + 4, y + 8, 14, 10);
+                        // Buttons and lights
+                        const colors = ['#55cc55', '#ff0000', '#ffff00'];
+                        for (let i = 0; i < 3; i++) {
+                            const btnGlow = 0.6 + Math.sin(this.animFrame * 0.07 + idx + i) * 0.4;
+                            ctx.fillStyle = colors[i];
+                            ctx.globalAlpha = btnGlow;
+                            ctx.beginPath();
+                            ctx.arc(x + 7 + i * 4, y + 12, 1.5, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        ctx.globalAlpha = 1;
+                        break;
+                        
+                    case 'couch':
+                        // Simpsons House - Orange couch
+                        ctx.fillStyle = '#d4a373';
+                        ctx.fillRect(x + 4, y + 10, 14, 8);
+                        ctx.fillStyle = '#b4834f';
+                        ctx.fillRect(x + 4, y + 10, 14, 2);
+                        // Cushions
+                        ctx.fillStyle = '#f4c393';
+                        ctx.fillRect(x + 6, y + 11, 4, 3);
+                        ctx.fillRect(x + 12, y + 11, 4, 3);
+                        break;
+                        
+                    case 'photo_frame':
+                        // Simpsons House - Family photo frame
+                        ctx.fillStyle = '#ffddaa';
+                        ctx.fillRect(x + 7, y + 8, 8, 10);
+                        ctx.strokeStyle = '#d4a373';
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(x + 7, y + 8, 8, 10);
+                        // Simple photo (blue sky + yellow figure)
+                        ctx.fillStyle = '#87ceeb';
+                        ctx.fillRect(x + 8, y + 9, 6, 4);
+                        ctx.fillStyle = '#ffd800';
+                        ctx.beginPath();
+                        ctx.arc(x + 11, y + 15, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                }
+                
+                ctx.restore();
+            });
         }
 
         drawDots(ctx) {
