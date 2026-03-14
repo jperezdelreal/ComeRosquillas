@@ -203,7 +203,15 @@ const MAZE_LAYOUTS = [
         wallColors: { main: '#2244aa', dark: '#1a3388', light: '#3366cc', border: '#5577ee' },
         floorColor: '#0a0a1a',
         ambientColor: 'rgba(34, 68, 170, 0.05)',
-        decorations: ['street_sign', 'lamp_post']
+        decorations: ['street_sign', 'lamp_post'],
+        particles: {
+            colors: ['#ffd800', '#ffaa00', '#ff8800'],
+            style: 'float',
+            spawnRate: 0.02,
+            sizeRange: [1, 2.5],
+            speedRange: [0.2, 0.6],
+            lifeRange: [60, 120]
+        }
     },
     {
         name: "Moe's Tavern",
@@ -211,7 +219,15 @@ const MAZE_LAYOUTS = [
         wallColors: { main: '#7a5c2e', dark: '#5a3c1e', light: '#9a7c4e', border: '#cc9944' },
         floorColor: '#1a0f08',
         ambientColor: 'rgba(122, 92, 46, 0.08)',
-        decorations: ['beer_mug', 'neon_duff']
+        decorations: ['beer_mug', 'neon_duff'],
+        particles: {
+            colors: ['#f4d596', '#ffffff', '#ffeecc'],
+            style: 'rise',
+            spawnRate: 0.04,
+            sizeRange: [1, 3],
+            speedRange: [0.3, 0.8],
+            lifeRange: [40, 90]
+        }
     },
     {
         name: 'Kwik-E-Mart',
@@ -219,7 +235,15 @@ const MAZE_LAYOUTS = [
         wallColors: { main: '#8b2252', dark: '#6b1a42', light: '#ab3272', border: '#dd4488' },
         floorColor: '#1a0a15',
         ambientColor: 'rgba(139, 34, 82, 0.06)',
-        decorations: ['squishee', 'shelf']
+        decorations: ['squishee', 'shelf'],
+        particles: {
+            colors: ['#00ccff', '#ff00ff', '#ffff00'],
+            style: 'sparkle',
+            spawnRate: 0.025,
+            sizeRange: [0.5, 2],
+            speedRange: [0.1, 0.4],
+            lifeRange: [20, 60]
+        }
     },
     {
         name: 'Springfield Elementary',
@@ -227,7 +251,15 @@ const MAZE_LAYOUTS = [
         wallColors: { main: '#4a4a4a', dark: '#2a2a2a', light: '#6a6a6a', border: '#8a8a8a' },
         floorColor: '#0d0d15',
         ambientColor: 'rgba(74, 74, 74, 0.07)',
-        decorations: ['chalkboard', 'desk']
+        decorations: ['chalkboard', 'desk'],
+        particles: {
+            colors: ['#cccccc', '#ffffff', '#e0e0e0'],
+            style: 'float',
+            spawnRate: 0.03,
+            sizeRange: [0.5, 1.5],
+            speedRange: [0.15, 0.4],
+            lifeRange: [50, 100]
+        }
     },
     {
         name: 'Nuclear Plant',
@@ -235,7 +267,15 @@ const MAZE_LAYOUTS = [
         wallColors: { main: '#2d6b2d', dark: '#1a4a1a', light: '#3d8b3d', border: '#55cc55' },
         floorColor: '#080d08',
         ambientColor: 'rgba(45, 107, 45, 0.09)',
-        decorations: ['radiation', 'control_panel']
+        decorations: ['radiation', 'control_panel'],
+        particles: {
+            colors: ['#55cc55', '#88ff88', '#00ff00'],
+            style: 'rise',
+            spawnRate: 0.035,
+            sizeRange: [1.5, 3.5],
+            speedRange: [0.2, 0.5],
+            lifeRange: [50, 110]
+        }
     },
     {
         name: 'Simpsons House',
@@ -243,7 +283,15 @@ const MAZE_LAYOUTS = [
         wallColors: { main: '#d4a373', dark: '#b4834f', light: '#f4c393', border: '#ffddaa' },
         floorColor: '#1a120a',
         ambientColor: 'rgba(212, 163, 115, 0.06)',
-        decorations: ['couch', 'photo_frame']
+        decorations: ['couch', 'photo_frame'],
+        particles: {
+            colors: ['#ffddaa', '#f4c393', '#ffd800'],
+            style: 'float',
+            spawnRate: 0.02,
+            sizeRange: [0.8, 2],
+            speedRange: [0.1, 0.35],
+            lifeRange: [70, 140]
+        }
     }
 ];
 
