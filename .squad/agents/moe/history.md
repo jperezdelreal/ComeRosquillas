@@ -364,3 +364,21 @@ Each sprint: 3-4 features + Nelson QA pass. Track success metrics per feature. I
 **Issues Closed:** #80 with summary of 10 new issues created
 
 **Perpetual Motion:** Workflow resumes — next issue auto-assigned when ready
+
+### PR Review — Event System & Accessibility (2026-07-15)
+
+**2 PRs reviewed, both LGTM:** #111 (procedural events, Barney), #112 (accessibility, Lenny).
+
+**PR #111 — Procedural Event System (closes #90):**
+Config-driven design with 10 mini-events in PROCEDURAL_EVENTS constant. New `js/engine/event-system.js` module extends Game.prototype (established pattern). Events: Double Trouble (8 ghosts), Speed Run (90s timer), Ghost Frenzy (no scatter), Donut Feast (extra dots), Invincibility Rush (3x fright), No Power-Ups, Darkness (fog of war), Reverse Day (inverted controls), Golden Hour (2x score), Bonus Stage (no ghosts). Clean effects-object pattern — zero coupling between event definitions and game systems. Technically sound: Fisher-Yates shuffle, canvas evenodd clip, staggered exit timers.
+
+**PR #112 — Accessibility Enhancements (closes #91):**
+Full-stack a11y: AccessibilityManager singleton (`a11y`) in `js/ui/accessibility.js`. Colorblind modes (protanopia, deuteranopia, tritanopia) with ghost icon identifiers. High contrast, reduce motion (suppresses particles + shake), large text (1.2x scale). ARIA live regions, roles, labels, skip-link, focus-visible. Space as alt pause key. Event subtitles, ghost proximity warning. Settings menu integration with persistence. OS prefers-reduced-motion auto-detection with user override.
+
+**Merge Overlap Identified:** Both PRs independently add identical a11y hooks in collision-detector.js, level-manager.js, scoring-system.js, game-logic.js. Recommended merge order: #112 first (creates the a11y module), then rebase #111 onto main (overlapping hooks resolve trivially).
+
+**Key Learnings:**
+- Config-driven event systems scale well — adding event N+1 is just a data entry
+- Accessibility module as singleton with defensive typeof checks enables cross-branch compatibility
+- When multiple PRs touch same files with identical changes, establish merge order upfront to minimize conflict resolution work
+- 597 tests passing on both PRs — test infrastructure continues to provide confidence
