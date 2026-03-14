@@ -383,3 +383,13 @@ Each sprint: 3-4 features + Nelson QA pass. Track success metrics per feature. I
 - PR #117 helper functions (placeHomer, placeGhost, findCell, findAllCells) are reusable test utilities — good investment.
 
 **Key Pattern Established:** Loading browser-global scripts in Vitest via eval with globalThis exports. This is our standard for testing the Game class until/unless we modularize game-logic.js.
+### README & Docs Update (2025-07-25)
+
+**Task:** Rewrite README.md and update docs site index.astro to reflect all shipped features (20+ across Sprints 1-5 + Roadmap v2).
+
+**What was done:**
+- README completely rewritten: hero section, 18-feature table, controls (keyboard + mobile), getting started, tech stack, project structure. Removed stale "Future Enhancements" (all items shipped).
+- Docs site index.astro: expanded from 3 generic feature cards to 9 specific cards (ghosts, bosses, power-ups, achievements, mini-events, languages, accessibility, procedural audio).
+- PR #122 opened on branch squad/update-readme-docs.
+
+**Lesson:** README had drifted badly — listed shipped features as "Future Enhancements." Docs need a refresh pass after every major sprint batch. Add to post-sprint checklist.
