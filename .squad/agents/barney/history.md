@@ -333,4 +333,32 @@
 - `js/engine/level-manager.js`: Level transitions, difficulty, cutscenes
 - `js/engine/ai-controller.js`: Ghost AI, BFS, boss abilities
 
+### Procedural Event System (Issue #90)
+**Date:** 2026-03-14  
+**Context:** Implemented 10 random mini-events that trigger on ~20% of levels
+
+**Technical Decisions:**
+- Config-driven event definitions in `PROCEDURAL_EVENTS` with `effects` object per event
+- New module `js/engine/event-system.js` extends Game.prototype (same pattern as other extracted modules)
+- Events selected after `initLevel()` completes, effects applied to existing game state
+- Darkness uses Canvas `fill('evenodd')` with circular cutout + radial gradient edge
+- Ghost Frenzy: zeroes scatter timers and sets infinite chase (`-1`)
+- Double Trouble: clones 4 ghosts from GHOST_CFG with staggered exit timers
+- Speed Run: frame-based countdown with death trigger when timer hits 0
+
+**Key Architecture Pattern:**
+- Each event defines an `effects` object with optional properties
+- Game systems check specific effect properties — zero coupling between events
+- Adding new events: just add to the array in config.js with appropriate effect properties
+
+**Key Files:**
+- `js/config.js`: PROCEDURAL_EVENTS constant (10 events + tuning params)
+- `js/engine/event-system.js`: Event selection, effects, HUD, fog of war, bonuses
+- `js/game-logic.js`: State vars, update/draw hooks, level transition wiring
+- `js/engine/audio.js`: _eventFanfare() SFX
+- `js/engine/entity-manager.js`: Reverse controls
+- `js/engine/collision-detector.js`: Event bonus on level complete
+- `js/engine/level-manager.js`: Event selection in transitions
+- `js/engine/scoring-system.js`: Event indicator in HUD
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
