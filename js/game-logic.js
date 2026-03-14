@@ -41,6 +41,19 @@
             this._allTimeBestCombo = this._loadBestCombo();
             this.screenShakeTimer = 0;
             this.screenShakeIntensity = 0;
+            this._shakeMaxDuration = 0;
+
+            // Camera juice state
+            this._cameraEffectsEnabled = true;
+            this._cameraAutoDisabled = false;
+            this._cameraFpsCheckFrame = 0;
+            this._cameraZoom = 1.0;
+            this._cameraZoomTarget = 1.0;
+            this._cameraZoomTimer = 0;
+            this._cameraZoomDuration = 0;
+            this._cameraZoomStart = 1.0;
+            this._cameraOffsetX = 0;
+            this._cameraOffsetY = 0;
 
             // Per-game stats tracking
             this._gameDonutsEaten = 0;
@@ -98,6 +111,10 @@
                         chaseDistance: this.settingsMenu.settings.aiChaseDistance || 8,
                         scatterMultiplier: this.settingsMenu.settings.aiScatterMult || 1.0,
                     };
+                }
+                // Sync camera effects from saved settings
+                if (this.settingsMenu.settings.cameraEffects !== undefined) {
+                    this._cameraEffectsEnabled = this.settingsMenu.settings.cameraEffects;
                 }
                 
                 // Hook up settings button
@@ -401,6 +418,12 @@
             this.sound.play('start');
             this.sound.setLevelTempo(this.level);
             
+            // Camera: zoom in from 150% on level start
+            if (typeof CAMERA_CONFIG !== 'undefined') {
+                this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
+                this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
+            }
+            
             const challengeBanner = this._dailyChallenge
                 ? DailyChallenge.getBannerHtml(this._dailyChallenge)
                 : '';
@@ -602,6 +625,66 @@
             } catch (e) {}
         }
 
+        _isCameraEnabled() {
+            return typeof CAMERA_CONFIG !== 'undefined' &&
+                   this._cameraEffectsEnabled && !this._cameraAutoDisabled;
+        }
+        triggerShake(preset) {
+            if (!this._isCameraEnabled()) return;
+            const cfg = CAMERA_CONFIG.shake[preset];
+            if (!cfg) return;
+            this.screenShakeTimer = cfg.duration;
+            this.screenShakeIntensity = cfg.intensity;
+            this._shakeMaxDuration = cfg.duration;
+        }
+        triggerZoom(targetScale, duration) {
+            if (!this._isCameraEnabled()) return;
+            this._cameraZoomStart = this._cameraZoom;
+            this._cameraZoomTarget = targetScale;
+            this._cameraZoomDuration = duration;
+            this._cameraZoomTimer = duration;
+        }
+        _updateCamera() {
+            if (typeof CAMERA_CONFIG === 'undefined') return;
+            if (this._cameraEffectsEnabled && !this._cameraAutoDisabled) {
+                this._cameraFpsCheckFrame++;
+                if (this._cameraFpsCheckFrame >= CAMERA_CONFIG.fpsCheckInterval) {
+                    this._cameraFpsCheckFrame = 0;
+                    if (this._fpsDisplay > 0 && this._fpsDisplay < CAMERA_CONFIG.fpsThreshold) {
+                        this._cameraAutoDisabled = true;
+                        this._cameraZoom = 1.0;
+                        this._cameraOffsetX = 0;
+                        this._cameraOffsetY = 0;
+                    }
+                }
+            }
+            if (!this._isCameraEnabled()) return;
+            if (this._cameraZoomTimer > 0) {
+                this._cameraZoomTimer--;
+                const t = 1 - (this._cameraZoomTimer / this._cameraZoomDuration);
+                const ease = 1 - Math.pow(1 - t, 3);
+                this._cameraZoom = this._cameraZoomStart + (this._cameraZoomTarget - this._cameraZoomStart) * ease;
+            } else if (Math.abs(this._cameraZoom - 1.0) > 0.001) {
+                this._cameraZoom += (1.0 - this._cameraZoom) * 0.1;
+            } else {
+                this._cameraZoom = 1.0;
+            }
+            if (this.homer && (this.state === ST_PLAYING || this.state === ST_READY)) {
+                const cfg = CAMERA_CONFIG.follow;
+                const cx = CANVAS_W / 2, cy = CANVAS_H / 2;
+                const hx = this.homer.x + TILE / 2, hy = this.homer.y + TILE / 2;
+                const lx = DX[this.homer.dir] * TILE * cfg.lookahead;
+                const ly = DY[this.homer.dir] * TILE * cfg.lookahead;
+                let tx = (cx - hx - lx) * (1 - cfg.viewportRatio);
+                let ty = (cy - hy - ly) * (1 - cfg.viewportRatio);
+                const mo = cfg.edgePadding * TILE;
+                tx = Math.max(-mo, Math.min(mo, tx));
+                ty = Math.max(-mo, Math.min(mo, ty));
+                this._cameraOffsetX += (tx - this._cameraOffsetX) * cfg.lerpSpeed;
+                this._cameraOffsetY += (ty - this._cameraOffsetY) * cfg.lerpSpeed;
+            }
+        }
+
         // ---- UPDATE ----
         update() {
             this.animFrame++;
@@ -634,6 +717,9 @@
 
             // Update screen shake
             if (this.screenShakeTimer > 0) this.screenShakeTimer--;
+
+            // Update camera juice
+            this._updateCamera();
 
             if (this.state === ST_READY) {
                 this.stateTimer--;
@@ -694,6 +780,10 @@
                         this.level++;
                         this.initLevel();
                         this.sound.setLevelTempo(this.level);
+                        if (typeof CAMERA_CONFIG !== 'undefined') {
+                            this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
+                            this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
+                        }
                         this.state = ST_READY;
                         this.stateTimer = 150;
                         this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
@@ -841,6 +931,10 @@
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
                 this.sound.setFrightMode(true);
+                this.triggerShake('powerPellet');
+                if (typeof CAMERA_CONFIG !== 'undefined') {
+                    this.triggerZoom(CAMERA_CONFIG.zoom.powerPulseScale, CAMERA_CONFIG.zoom.powerPulseDuration);
+                }
                 // Haptic: double-pulse on power pellet pickup
                 if (this.touchInput) this.touchInput.vibrate([15, 10, 25]);
                 const quote = HOMER_POWER_QUOTES[Math.floor(Math.random() * HOMER_POWER_QUOTES.length)];
@@ -863,6 +957,9 @@
                 this.stateTimer = 150;
                 this.sound.stopMusic();
                 this.sound.play('levelComplete');
+                if (typeof CAMERA_CONFIG !== 'undefined') {
+                    this.triggerZoom(CAMERA_CONFIG.zoom.levelCompleteScale, CAMERA_CONFIG.zoom.levelCompleteDuration);
+                }
                 const quote = HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)];
                 const levelLabel = this.isEndlessMode()
                     ? `∞ ENDLESS ${this.currentLayout.name} ${this.level}`
@@ -1168,8 +1265,8 @@
                             this.addParticles(g.x + TILE / 2, g.y + TILE / 2, '#ffd800', 15);
                             this.addFloatingText(g.x + TILE / 2, g.y - TILE, `${comboMultiplier}x COMBO!`, '#ffd800');
                             // Screen shake scales with milestone tier
-                            this.screenShakeTimer = 12;
-                            this.screenShakeIntensity = comboMultiplier <= 2 ? 3 : comboMultiplier <= 4 ? 5 : 8;
+                            const shakePreset = comboMultiplier <= 2 ? 'comboLight' : comboMultiplier <= 4 ? 'comboMedium' : 'comboHeavy';
+                            this.triggerShake(shakePreset);
                         }
                         this.comboDisplayTimer = 120;
 
@@ -1190,6 +1287,10 @@
                         this.stateTimer = 90;
                         this.sound.stopMusic();
                         this.sound.play('die');
+                        this.triggerShake('ghostCollision');
+                        if (typeof CAMERA_CONFIG !== 'undefined') {
+                            this.triggerZoom(CAMERA_CONFIG.zoom.deathScale, CAMERA_CONFIG.zoom.deathDuration);
+                        }
                         // Haptic: strong buzz on ghost collision (death)
                         if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
                         return;
@@ -1308,14 +1409,29 @@
             
             const ctx = this.ctx;
 
-            // Smooth camera shake (sine-based instead of random for less jarring motion)
-            if (this.screenShakeTimer > 0) {
-                const decay = this.screenShakeTimer / 12;
-                const intensity = this.screenShakeIntensity * decay;
-                const sx = Math.sin(this.animFrame * 1.1) * intensity;
-                const sy = Math.cos(this.animFrame * 1.7) * intensity;
+            const hasShake = this.screenShakeTimer > 0;
+            const hasZoom = this._isCameraEnabled() && Math.abs(this._cameraZoom - 1.0) > 0.001;
+            const hasFollow = this._isCameraEnabled() &&
+                (Math.abs(this._cameraOffsetX) > 0.1 || Math.abs(this._cameraOffsetY) > 0.1);
+            const hasCameraTransform = hasShake || hasZoom || hasFollow;
+            if (hasCameraTransform) {
                 ctx.save();
-                ctx.translate(sx, sy);
+                if (hasZoom) {
+                    ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
+                    ctx.scale(this._cameraZoom, this._cameraZoom);
+                    ctx.translate(-CANVAS_W / 2, -CANVAS_H / 2);
+                }
+                if (hasFollow) ctx.translate(this._cameraOffsetX, this._cameraOffsetY);
+                if (hasShake) {
+                    const decay = this.screenShakeTimer / (this._shakeMaxDuration || 18);
+                    const intensity = this.screenShakeIntensity * decay;
+                    ctx.translate(Math.sin(this.animFrame * 1.1) * intensity, Math.cos(this.animFrame * 1.7) * intensity);
+                }
+            }
+            if (hasZoom && this._cameraZoom < 1.0) {
+                ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = COLORS.pathDark; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.restore();
             }
 
             ctx.fillStyle = COLORS.pathDark;
@@ -1455,9 +1571,10 @@
                 this.drawGhostLegend(ctx);
             }
 
-            // Restore screen shake transform
-            if (this.screenShakeTimer > 0) {
-                ctx.restore();
+            if (hasCameraTransform) ctx.restore();
+            if (this.state === ST_LEVEL_DONE && this._isCameraEnabled() && typeof CAMERA_CONFIG !== 'undefined') {
+                const fp = 1 - (this.stateTimer / 150);
+                if (fp > 0.6) { ctx.save(); ctx.globalAlpha = (fp - 0.6) * 2.5; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H); ctx.restore(); }
             }
 
             // Level transition wipe effect (circular iris wipe)

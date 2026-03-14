@@ -388,6 +388,34 @@ const AUDIO_JUICE = {
     // Fright mode music shift (semitones down for eerie feel)
     frightDetune: -200,                 // cents detune for fright melody
 }
+// ==================== CAMERA EFFECTS ====================
+const CAMERA_CONFIG = {
+    shake: {
+        ghostCollision:  { intensity: 5, duration: 18 },
+        comboLight:      { intensity: 3, duration: 12 },
+        comboMedium:     { intensity: 5, duration: 14 },
+        comboHeavy:      { intensity: 8, duration: 18 },
+        powerPellet:     { intensity: 2, duration: 10 },
+    },
+    zoom: {
+        levelStartScale:    1.5,
+        levelStartDuration: 60,
+        levelCompleteScale: 0.9,
+        levelCompleteDuration: 40,
+        deathScale:         1.2,
+        deathDuration:      45,
+        powerPulseScale:    1.02,
+        powerPulseDuration: 12,
+    },
+    follow: {
+        lerpSpeed:      0.08,
+        lookahead:      2.5,
+        edgePadding:    3,
+        viewportRatio:  0.8,
+    },
+    fpsThreshold: 45,
+    fpsCheckInterval: 120,
+}
 
 // ==================== PERFORMANCE ====================
 const PERF_CONFIG = {
