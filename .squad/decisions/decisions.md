@@ -329,3 +329,97 @@ this.screenShakeIntensity = 5;     // max pixel offset
 **For Lenny:** If UI overlays need to avoid shaking (e.g., HUD), they should be rendered outside the save/restore block or use HTML DOM (which is unaffected).
 
 **Status:** Implemented in PR #46
+
+---
+
+## Power-Up Variety System Architecture
+
+**Date:** 2026-07-25  
+**Author:** Barney (Game Dev)  
+**Issue:** #92  
+**Status:** Implemented
+
+### Decision
+
+Power-ups are implemented as a **data-driven config array** (`POWER_UP_TYPES` in config.js) rather than hard-coded per-item logic. Each item type is a plain object with `id`, `effect`, `effectValue`, `duration`, `probability`, `colors`, etc. The game logic switches on `effect` type, not item `id`.
+
+### Why This Pattern
+
+1. **Adding new items requires only a config entry** — no game-logic changes needed for items that use existing effect types (speed_boost, slow_ghosts, invincibility, bonus_points, collect_token)
+2. **Weighted probability** via cumulative roll — easy to tune spawn rates by changing `probability` values
+3. **New cell type `SPECIAL_ITEM = 6`** — avoids conflicting with DOT/POWER/WALL/EMPTY semantics
+4. **Active effects stored in array** — supports multiple simultaneous effects and per-effect timers
+
+### Integration Points
+
+- **Lenny:** HUD timer bars are canvas-rendered (draw() loop), not DOM. If Lenny wants to style them differently, coordinate on rendering approach.
+- **Nelson:** Test coverage needed for spawn logic edge cases (no empty tiles, token accumulation, combo stacking)
+- **Settings Menu:** Could add a "Power-Ups Enabled" toggle that checks `POWER_UP_TYPES` availability
+
+### Key Constants
+
+- `SPECIAL_ITEM = 6` — maze cell type
+- `POWER_UP_TYPES` — item definitions array
+- `POWER_UP_COMBOS` — cross-item synergy rules
+- Spawn threshold: 40% dots eaten per level
+
+---
+
+## Achievement System Architecture Decision
+
+**Date:** 2026-03-14  
+**Author:** Lenny (UI Dev)  
+**Context:** Issue #98 — Achievement System & Badges
+
+### Decision: Event-Driven Achievement Manager with DOM Toasts
+
+**What:**
+Implemented AchievementManager at `js/ui/achievements.js` using an event-driven `notify(event, game)` pattern. Game-logic.js calls `notify()` at 12 key game events; the manager checks unlock conditions internally.
+
+**Why this pattern over stat-tracking:**
+- Cleaner separation: game logic doesn't need to know achievement IDs or thresholds
+- Single entry point: `notify('ghost_eaten', game)` vs multiple `maxStat()`/`incrementStat()` calls
+- Idempotent: safe to call `_unlock()` repeatedly — checks before acting
+- Self-contained: all condition checking lives in achievements.js, not scattered across game-logic.js
+
+**Why DOM toasts over Canvas-drawn:**
+- Toasts survive game state transitions (they're above the game canvas)
+- CSS animations are smoother and don't interfere with game render loop
+- Easier to style, responsive, and accessible
+- Confetti uses a separate fixed-position canvas overlay (not the game canvas)
+
+**Key data stored in localStorage:**
+- `comeRosquillas_achievements`: `{ unlocked: {id: timestamp}, powerUpTypes: [ids], themes: [names] }`
+- Lifetime stats (ghosts, donuts, games) read from HighScoreManager — no duplication
+
+**Impact on other modules:**
+- `ACHIEVEMENT_CATEGORIES` is an array (not object) — modules iterating over it should use `for...of`
+- Stats dashboard now has 3 tabs: Leaderboard, Stats, Achievements
+- Share text includes badge display when achievements are unlocked
+
+**Status:** Implemented in PR #108
+
+---
+
+## Camera Juice System — Architecture Decision
+
+**Date:** 2026-03-14
+**Author:** Lenny (UI Dev)
+**Issue:** #94 — Screen Shake & Camera Juice
+
+### Decision
+
+Camera effects extend the existing `screenShakeTimer`/`screenShakeIntensity` system via preset-based `triggerShake()` and `triggerZoom()` methods. All parameters centralized in `CAMERA_CONFIG` constant. Effects are toggleable in settings and auto-disable on low FPS (<45).
+
+### Key Points
+
+- **Backward compatible**: combo shakes still work via presets that map to same intensity values
+- **Single transform pipeline**: zoom + follow + shake combined in one `ctx.save()/restore()` pair
+- **Performance guard**: FPS monitored every 120 frames, effects disabled if sustained < 45 FPS
+- **Settings persistence**: `cameraEffects` boolean stored in `comeRosquillasSettings` localStorage key
+- **Cross-branch safe**: all `CAMERA_CONFIG` access guarded with `typeof !== 'undefined'`
+
+### Impact on Other Agents
+
+- **Barney**: new game events (boss defeat etc.) can call `this.triggerShake('ghostCollision')` for camera feedback
+- **Nelson**: existing camera juice tests in `feature-camera-juice.test.js` validate math formulas independently
