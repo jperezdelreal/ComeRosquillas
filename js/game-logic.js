@@ -46,6 +46,27 @@
             this._gameGhostsEaten = 0;
             this._gameStartTime = 0;
 
+            // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
+            this._bfsCache = new Map();
+            this._bfsCacheFrame = 0;
+
+            // Particle object pool (pre-allocate to avoid GC churn)
+            this._particlePool = [];
+            for (let i = 0; i < PERF_CONFIG.particlePoolSize; i++) {
+                this._particlePool.push({ x: 0, y: 0, vx: 0, vy: 0, life: 0, color: '', size: 0, active: false });
+            }
+
+            // FPS counter (ring buffer)
+            this._fpsBuffer = new Float64Array(PERF_CONFIG.fpsBufferSize);
+            this._fpsIndex = 0;
+            this._fpsDisplay = 0;
+            this._lastFrameTime = performance.now();
+            this._frameSkipped = false;
+
+            // Level transition wipe
+            this._wipeTimer = 0;
+            this._wipeDirection = 1;
+
             // Pre-render some decorations
             this.cloudOffset = 0;
 
@@ -98,6 +119,19 @@
             if (typeof StatsDashboard !== 'undefined') {
                 this.statsDashboard = new StatsDashboard(this.highScores);
             }
+            
+            // Initialize share menu
+            if (typeof ShareMenu !== 'undefined') {
+                this.shareMenu = new ShareMenu(this);
+            }
+            
+            // Allow 'H' key to open share menu from game-over/start screens
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyH' && (this.state === ST_GAME_OVER || this.state === ST_START)) {
+                    e.preventDefault();
+                    if (this.shareMenu) this.shareMenu.toggle();
+                }
+            });
             
             this.showStartScreen();
             this.updateHUD();
@@ -189,7 +223,7 @@
                 this.state = ST_GAME_OVER;
                 this.sound.play('gameOver');
                 const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>Press ENTER to try again`);
+                this.showMessage("D'OH!", `Game Over!<br>High Score #${rank}!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
             }
         }
 
@@ -286,6 +320,8 @@
             this.level = 1;
             this.extraLifeGiven = false;
             this.floatingTexts = [];
+            // Return all active particles to pool
+            for (const p of this.particles) p.active = false;
             this.particles = [];
             this.bestCombo = 0;
             this.comboDisplayTimer = 0;
@@ -451,13 +487,24 @@
 
         addParticles(x, y, color, count) {
             for (let i = 0; i < count; i++) {
-                this.particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 3,
-                    vy: (Math.random() - 0.5) * 3,
-                    life: 30 + Math.random() * 20,
-                    color, size: 1 + Math.random() * 2
-                });
+                // Find inactive particle from pool
+                let p = null;
+                for (let j = 0; j < this._particlePool.length; j++) {
+                    if (!this._particlePool[j].active) {
+                        p = this._particlePool[j];
+                        break;
+                    }
+                }
+                if (!p) break; // pool exhausted
+                p.x = x;
+                p.y = y;
+                p.vx = (Math.random() - 0.5) * 3;
+                p.vy = (Math.random() - 0.5) * 3;
+                p.life = 30 + Math.random() * 20;
+                p.color = color;
+                p.size = 1 + Math.random() * 2;
+                p.active = true;
+                this.particles.push(p);
             }
         }
 
@@ -492,14 +539,20 @@
                 return t.life > 0;
             });
 
-            // Update particles
-            this.particles = this.particles.filter(p => {
+            // Update particles (return dead ones to pool)
+            const aliveParticles = [];
+            for (const p of this.particles) {
                 p.life--;
                 p.x += p.vx;
                 p.y += p.vy;
                 p.vy += 0.05;
-                return p.life > 0;
-            });
+                if (p.life > 0) {
+                    aliveParticles.push(p);
+                } else {
+                    p.active = false;
+                }
+            }
+            this.particles = aliveParticles;
 
             // Update combo display timer
             if (this.comboDisplayTimer > 0) this.comboDisplayTimer--;
@@ -533,7 +586,7 @@
                             this.state = ST_GAME_OVER;
                             this.sound.play('gameOver');
                             const quote = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
-                            this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>Press ENTER to try again`);
+                            this.showMessage("D'OH!", `Game Over!<br>Score: ${this.score}<br><br>"${quote}"<br><br>${this._shareButtonHtml()}Press ENTER to try again`);
                         }
                     } else {
                         this.initEntities();
@@ -548,6 +601,11 @@
 
             if (this.state === ST_LEVEL_DONE) {
                 this.stateTimer--;
+                // Trigger wipe effect as level ends
+                if (this.stateTimer === PERF_CONFIG.levelTransitionWipeDuration) {
+                    this._wipeTimer = PERF_CONFIG.levelTransitionWipeDuration;
+                }
+                if (this._wipeTimer > 0) this._wipeTimer--;
                 if (this.stateTimer <= 0) {
                     // Check if this level should trigger a cutscene
                     const cutsceneIndex = CUTSCENE_LEVELS.indexOf(this.level);
@@ -862,8 +920,19 @@
             if (g.x > COLS * TILE) g.x = -TILE;
         }
 
-        // BFS pathfinding to find optimal next direction
+        // BFS pathfinding to find optimal next direction (with 3-frame cache)
         bfsNextDirection(startCol, startRow, targetCol, targetRow, possibleDirs, canPassDoors) {
+            // Cache lookup: invalidate every 3 frames
+            if (this.animFrame - this._bfsCacheFrame >= PERF_CONFIG.bfsCacheTTL) {
+                this._bfsCache.clear();
+                this._bfsCacheFrame = this.animFrame;
+            }
+            const cacheKey = `${startCol},${startRow},${targetCol},${targetRow}`;
+            if (this._bfsCache.has(cacheKey)) {
+                const cached = this._bfsCache.get(cacheKey);
+                if (possibleDirs.includes(cached)) return cached;
+            }
+
             // Limit search depth for performance
             const MAX_SEARCH_DEPTH = 20;
             const queue = [];
@@ -888,6 +957,7 @@
                             const row = Math.floor(node / COLS);
                             for (const d of possibleDirs) {
                                 if (startCol + DX[d] === col && startRow + DY[d] === row) {
+                                    this._bfsCache.set(cacheKey, d);
                                     return d;
                                 }
                             }
@@ -1077,11 +1147,12 @@
             
             const ctx = this.ctx;
 
-            // Screen shake offset
+            // Smooth camera shake (sine-based instead of random for less jarring motion)
             if (this.screenShakeTimer > 0) {
-                const intensity = this.screenShakeIntensity * (this.screenShakeTimer / 12);
-                const sx = (Math.random() - 0.5) * 2 * intensity;
-                const sy = (Math.random() - 0.5) * 2 * intensity;
+                const decay = this.screenShakeTimer / 12;
+                const intensity = this.screenShakeIntensity * decay;
+                const sx = Math.sin(this.animFrame * 1.1) * intensity;
+                const sy = Math.cos(this.animFrame * 1.7) * intensity;
                 ctx.save();
                 ctx.translate(sx, sy);
             }
@@ -1126,9 +1197,11 @@
                 Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE);
             }
 
-            // Ghosts
+            // Ghosts (skip offscreen)
             if (this.state === ST_PLAYING || this.state === ST_READY) {
                 for (const g of this.ghosts) {
+                    // Offscreen culling
+                    if (g.x < -TILE * 2 || g.x > CANVAS_W + TILE || g.y < -TILE * 2 || g.y > CANVAS_H + TILE) continue;
                     // Ghost shadow
                     ctx.fillStyle = 'rgba(0,0,0,0.25)';
                     ctx.beginPath();
@@ -1143,7 +1216,7 @@
                         ctx.arc(g.x + TILE / 2, g.y + TILE / 2, TILE * 0.7, 0, Math.PI * 2);
                         ctx.fill();
                     }
-                    Sprites.drawGhost(ctx, g, this.animFrame, this.frightTimer);
+                    Sprites.drawGhost(ctx, g, this.animFrame, this.frightTimer, this.homer);
                 }
             }
 
@@ -1225,6 +1298,20 @@
             if (this.screenShakeTimer > 0) {
                 ctx.restore();
             }
+
+            // Level transition wipe effect (circular iris wipe)
+            if (this._wipeTimer > 0) {
+                const progress = 1 - (this._wipeTimer / PERF_CONFIG.levelTransitionWipeDuration);
+                const maxRadius = Math.sqrt(CANVAS_W * CANVAS_W + CANVAS_H * CANVAS_H) / 2;
+                const radius = maxRadius * (1 - progress);
+                ctx.save();
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.rect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.arc(CANVAS_W / 2, CANVAS_H / 2, radius, 0, Math.PI * 2, true);
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
         drawMaze(ctx) {
@@ -1288,18 +1375,29 @@
         }
 
         drawDots(ctx) {
+            // Collect dot positions, then batch draw (minimizes per-dot state changes)
+            const dots = [];
+            const powers = [];
             for (let r = 0; r < ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const cell = this.maze[r][c];
-                    const cx = c * TILE + TILE / 2;
-                    const cy = r * TILE + TILE / 2;
-
                     if (cell === DOT) {
-                        Sprites.drawDonut(ctx, cx, cy, this.animFrame);
+                        dots.push(c * TILE + TILE / 2, r * TILE + TILE / 2);
                     } else if (cell === POWER) {
-                        Sprites.drawDuff(ctx, cx, cy, this.animFrame);
+                        powers.push({ x: c * TILE + TILE / 2, y: r * TILE + TILE / 2 });
                     }
                 }
+            }
+
+            // Batch draw all donuts
+            const frame = this.animFrame;
+            for (let i = 0; i < dots.length; i += 2) {
+                Sprites.drawDonut(ctx, dots[i], dots[i + 1], frame);
+            }
+
+            // Power pellets (fewer, drawn individually)
+            for (const p of powers) {
+                Sprites.drawDuff(ctx, p.x, p.y, frame);
             }
         }
 
@@ -1567,8 +1665,32 @@
 
         // ==================== GAME LOOP ====================
         loop() {
+            const now = performance.now();
+            const dt = now - this._lastFrameTime;
+            this._lastFrameTime = now;
+
+            // FPS ring buffer
+            this._fpsBuffer[this._fpsIndex] = dt;
+            this._fpsIndex = (this._fpsIndex + 1) % PERF_CONFIG.fpsBufferSize;
+            // Update display FPS every 30 frames
+            if (this.animFrame % 30 === 0) {
+                let sum = 0;
+                for (let i = 0; i < PERF_CONFIG.fpsBufferSize; i++) sum += this._fpsBuffer[i];
+                const avg = sum / PERF_CONFIG.fpsBufferSize;
+                this._fpsDisplay = avg > 0 ? Math.round(1000 / avg) : 0;
+            }
+
             this.update();
             this.draw();
+
+            // FPS counter overlay in dev mode
+            if (PERF_CONFIG.devMode) {
+                this.ctx.fillStyle = '#0f0';
+                this.ctx.font = '10px monospace';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`${this._fpsDisplay} FPS`, 4, 12);
+            }
+
             requestAnimationFrame(() => this.loop());
         }
     }

@@ -373,6 +373,16 @@ const AUDIO_JUICE = {
     frightDetune: -200,                 // cents detune for fright melody
 }
 
+// ==================== PERFORMANCE ====================
+const PERF_CONFIG = {
+    bfsCacheTTL: 3,                     // frames to cache BFS pathfinding results
+    particlePoolSize: 100,              // pre-allocated particle pool size
+    fpsBufferSize: 60,                  // ring buffer size for FPS counter
+    devMode: false,                     // set true to show FPS counter
+    frameBudgetMs: 18,                  // max ms per frame before skipping (slight headroom over 16.67)
+    levelTransitionWipeDuration: 30,    // frames for level transition wipe effect
+}
+
 // ==================== SIMPSONS COLOR PALETTE ====================
 const COLORS = {
     simpsonYellow: '#ffd800',
