@@ -76,11 +76,18 @@
             // Achievement tracking state
             this._levelHitsTaken = 0;
             this._levelPlayStartTime = 0;
+            this._levelStartTime = 0;
             this._levelGhostsEatenCount = 0;
+            this._levelGhostsEaten = 0;
             this._levelDirectionChanges = 0;
             this._noPowerPelletFrames = 0;
             this._scoreAtLastDeath = 0;
             this._lastCollectedPowerUpId = null;
+            this._consecutivePerfectLevels = 0;
+            this._themesVisitedSet = new Set();
+            this._powerUpTypesSet = new Set();
+            this._noPowerTimer = 0;
+            this._gameDuffBeersUsed = 0;
 
             // Power-up system state
             this._specialItem = null;
@@ -88,15 +95,8 @@
             this._burnsTokens = 0;
             this._powerUpComboActive = false;
 
-            // Achievement tracking state
-            this._levelStartTime = 0;
-            this._levelHitsTaken = 0;
-            this._levelGhostsEaten = 0;
-            this._consecutivePerfectLevels = 0;
-            this._themesVisitedSet = new Set();
-            this._powerUpTypesSet = new Set();
-            this._noPowerTimer = 0;
-            this._gameDuffBeersUsed = 0;
+            // Boss hazard state
+            this._rakeSlowTimer = 0;
 
             // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
             this._bfsCache = new Map();
@@ -997,6 +997,14 @@
             this.checkCollisions();
             this.checkBossTraps();
 
+            // Rake slow timer: restore Homer's speed after penalty expires
+            if (this._rakeSlowTimer > 0) {
+                this._rakeSlowTimer--;
+                if (this._rakeSlowTimer <= 0) {
+                    this.homer.speed = this.getSpeed('homer');
+                }
+            }
+
             // Spatial audio update (throttled for performance)
             if (this.animFrame % AUDIO_JUICE.spatialUpdateInterval === 0) {
                 this.sound.updateSpatial(this.homer.x, this.homer.y, this.ghosts);
@@ -1801,9 +1809,9 @@
                     this._rakeTraps.splice(i, 1);
                     this.addFloatingText(hx, hy - TILE, 'RAKE!', '#8b4513');
                     this.addParticles(hx, hy, '#8b4513', 6);
-                    // Brief speed penalty
+                    // Brief speed penalty (frame-based timer, 60 frames ≈ 1 second)
                     this.homer.speed *= 0.3;
-                    setTimeout(() => { if (this.homer) this.homer.speed = this.getSpeed('homer'); }, 1000);
+                    this._rakeSlowTimer = 60;
                 }
             }
 
