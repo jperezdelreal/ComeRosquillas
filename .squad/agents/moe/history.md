@@ -256,3 +256,39 @@ Feature lists are easy. Strategic roadmaps require understanding **player psycho
 **Sprint 4 Preview:** Social Virality pillar — Social Sharing, Daily Challenges. Builds on Sprint 3's engagement foundation.
 
 **Decision Document:** `.squad/decisions/inbox/moe-sprint3-plan.md`
+
+### Sprint 4 Planning Ceremony (2026-07-24)
+
+**Context:** Sprint 3 fully shipped — Progressive Difficulty & Endless Mode (#54), Audio Feedback (#55), Leaderboard & Stats (#56), QA with 456 tests and 0 failures (#57). "Deep Engagement" pillar complete. Issue #65 (roadmap exhausted) closed.
+
+**Sprint 4 Scope — "Social Virality" + Launch Readiness (Final Sprint):**
+
+| Issue | Feature | Owner | Priority |
+|-------|---------|-------|----------|
+| #67 | Social Sharing & Viral Hooks | Lenny | P1 |
+| #68 | Ghost Personality Visual Indicators (Debug Mode) | Barney | P2 |
+| #69 | Daily Challenge Mode | Lenny | P1 |
+| #70 | Performance Optimization & Polish | Barney | P0 |
+| #71 | Sprint 4 QA & Regression Testing | Nelson | P1 |
+
+**Strategic Rationale:**
+- Sprint 3 keeps players engaged. Sprint 4 makes them come back (daily challenges) and bring friends (social sharing).
+- Performance is P0 — 60fps on mobile is prerequisite for everything else. A shared laggy game hurts more than helps.
+- Ghost debug mode (P2) serves advanced players and development — valuable but not launch-critical.
+- Barney gets engine-level work (performance + ghost debug — he built both systems).
+- Lenny gets UI-heavy features (sharing + daily challenges — extends his established `js/ui/` pattern and Sprint 3 leaderboard).
+- Nelson gets the most comprehensive QA pass yet — 4 feature PRs, full regression across Sprints 1-3, performance profiling. Target: 500+ tests, 0 failures.
+
+**What This Sprint Completes:**
+- All 10 roadmap items shipped across 4 sprints
+- Player journey fully realized: Immediate Fun → Deep Engagement → Social Virality
+- Game is feature-complete per strategic roadmap
+
+**Risks Identified:**
+- Lenny has 2 substantial issues — daily challenge share integration can defer if needed
+- Performance unknowns until profiling — Barney should profile early and flag blockers
+- Web Share API has inconsistent cross-browser support — Nelson must test fallback paths
+
+**Dependency Graph:** All 4 feature issues parallel → QA (#71) after all land
+
+**Decision Document:** `.squad/decisions/inbox/moe-sprint4-plan.md`
