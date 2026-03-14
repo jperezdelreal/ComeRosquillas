@@ -68,6 +68,8 @@ class SoundManager {
             case 'levelComplete': this._levelComplete(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
             case 'extraLife': this._extraLife(now); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
             case 'gameOver': this._gameOver(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
+            case 'specialItem': this._specialItem(now, data); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'powerUpWarning': this._powerUpWarning(now); break;
         }
     }
 

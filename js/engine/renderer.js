@@ -752,6 +752,148 @@ class Sprites {
             }
         }
 
+        // ==================== SPECIAL ITEMS (POWER-UP VARIETY) ====================
+
+        static drawSpecialItem(ctx, x, y, type, animFrame) {
+            const pulse = Math.sin(animFrame * 0.1) * 2;
+            const bob = Math.sin(animFrame * 0.06) * 3;
+            const r = 8 + pulse;
+
+            ctx.save();
+            ctx.translate(x, y + bob);
+
+            // Glow ring
+            ctx.strokeStyle = type.colors.glow.replace('0.3', `${0.3 + Math.sin(animFrame * 0.08) * 0.15}`);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, r + 4, 0, Math.PI * 2);
+            ctx.stroke();
+
+            switch (type.id) {
+                case 'duff_beer':
+                    // Duff can (similar to power pellet but with speed arrows)
+                    ctx.fillStyle = type.colors.primary;
+                    ctx.beginPath();
+                    ctx.roundRect(-r * 0.5, -r * 0.7, r, r * 1.4, 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(-r * 0.45, -2, r * 0.9, 5);
+                    ctx.fillStyle = type.colors.primary;
+                    ctx.font = 'bold 5px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('DUFF', 0, 1);
+                    // Speed arrows
+                    ctx.fillStyle = type.colors.secondary;
+                    ctx.font = 'bold 7px Arial';
+                    ctx.fillText('»', r * 0.7, 0);
+                    break;
+
+                case 'donut_box':
+                    // Pink box with donuts inside
+                    ctx.fillStyle = type.colors.primary;
+                    ctx.fillRect(-r * 0.7, -r * 0.5, r * 1.4, r);
+                    ctx.strokeStyle = type.colors.secondary;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(-r * 0.7, -r * 0.5, r * 1.4, r);
+                    // Lid
+                    ctx.fillStyle = type.colors.primary;
+                    ctx.fillRect(-r * 0.8, -r * 0.55, r * 1.6, 3);
+                    // Mini donuts peeking out
+                    ctx.fillStyle = '#ff69b4';
+                    ctx.beginPath();
+                    ctx.arc(-3, 0, 2, 0, Math.PI * 2);
+                    ctx.arc(3, 0, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Star sparkle
+                    if (animFrame % 20 < 10) {
+                        ctx.fillStyle = '#ffd800';
+                        Sprites._drawStar(ctx, r * 0.6, -r * 0.4, 3);
+                    }
+                    break;
+
+                case 'chili_pepper':
+                    // Red pepper shape
+                    ctx.fillStyle = type.colors.primary;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -r * 0.8);
+                    ctx.quadraticCurveTo(r * 0.6, -r * 0.2, r * 0.4, r * 0.6);
+                    ctx.quadraticCurveTo(0, r * 0.8, -r * 0.2, r * 0.5);
+                    ctx.quadraticCurveTo(-r * 0.4, -r * 0.2, 0, -r * 0.8);
+                    ctx.fill();
+                    // Stem
+                    ctx.fillStyle = '#228b22';
+                    ctx.fillRect(-1, -r * 0.8, 3, 4);
+                    // Heat waves
+                    if (animFrame % 12 < 6) {
+                        ctx.strokeStyle = type.colors.secondary;
+                        ctx.lineWidth = 1;
+                        ctx.globalAlpha = 0.6;
+                        for (let i = 0; i < 3; i++) {
+                            const wx = -4 + i * 4;
+                            ctx.beginPath();
+                            ctx.moveTo(wx, -r);
+                            ctx.quadraticCurveTo(wx + 2, -r - 4, wx, -r - 6);
+                            ctx.stroke();
+                        }
+                        ctx.globalAlpha = 1;
+                    }
+                    break;
+
+                case 'burns_token':
+                    // Gold coin with $ symbol
+                    ctx.fillStyle = type.colors.secondary;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#8b6914';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    // Dollar sign
+                    ctx.fillStyle = type.colors.primary;
+                    ctx.font = 'bold 8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('$', 0, 0);
+                    // Sparkle
+                    ctx.fillStyle = '#fff';
+                    ctx.globalAlpha = 0.5 + Math.sin(animFrame * 0.15) * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(r * 0.3, -r * 0.3, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                    break;
+
+                case 'lard_lad':
+                    // Donut statue silhouette
+                    ctx.fillStyle = type.colors.primary;
+                    // Body
+                    ctx.beginPath();
+                    ctx.arc(0, 2, r * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Head
+                    ctx.beginPath();
+                    ctx.arc(0, -r * 0.3, r * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Giant donut held above head
+                    ctx.strokeStyle = type.colors.secondary;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, -r * 0.7, r * 0.3, 0, Math.PI * 2);
+                    ctx.stroke();
+                    // Rainbow glow for invincibility hint
+                    const hue = (animFrame * 4) % 360;
+                    ctx.strokeStyle = `hsl(${hue}, 80%, 60%)`;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r + 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
+            }
+
+            ctx.restore();
+        }
+
         // ==================== GHOST DEBUG OVERLAYS ====================
 
         // Draw mode icon + label above a ghost
