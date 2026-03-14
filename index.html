@@ -924,7 +924,7 @@
                 z-index: 100;
             }
             #bottomBar {
-                display: none;
+                display: none !important;
             }
         }
 
@@ -932,13 +932,13 @@
         @media (max-width: 700px) {
             body {
                 align-items: flex-start;
-                padding-top: 10px;
+                padding-top: 6px;
             }
             #gameContainer {
                 width: 100%;
                 padding: 0 5px;
             }
-            #hud, #bottomBar {
+            #hud {
                 font-size: 12px;
             }
             #hud .score, #hud .level, #hud .lives-container {
@@ -958,12 +958,6 @@
             #hud .high-score { font-size: 13px !important; }
             #bestComboDisplay { font-size: 12px !important; }
             #settingsBtn { width: 40px; height: 40px; font-size: 22px; top: 12px; left: 12px; }
-            .touch-action-btn {
-                width: 42px; height: 42px; font-size: 22px; top: 12px;
-            }
-            #touchPauseBtn { right: 12px; }
-            #touchMuteBtn { right: 62px; }
-            #touchFullscreenBtn { right: 112px; }
             #message .title-large { font-size: 36px; }
             #message .catchphrase { font-size: 20px; }
             #message .subtitle { font-size: 16px; }
@@ -971,12 +965,18 @@
 
         /* Portrait touch — Game Boy layout: canvas top, controls below (LAST for override) */
         @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+            html, body {
+                margin: 0;
+                padding: 0;
+            }
             body {
                 align-items: flex-start;
+                justify-content: flex-start;
                 padding: 0;
                 overflow: hidden;
                 height: 100vh;
                 height: 100dvh;
+                min-height: 0;
             }
             #gameContainer {
                 width: 100%;
@@ -986,6 +986,7 @@
                 flex-direction: column;
                 filter: none;
                 padding: 0;
+                margin: 0;
                 max-width: 100%;
             }
             #hud {
@@ -995,43 +996,51 @@
                 border-left: none;
                 border-right: none;
                 border-top: none;
+                padding: 5px 10px;
             }
             canvas {
-                flex: 0 0 auto;
+                flex: 0 1 auto;
                 width: 100%;
                 max-width: 100%;
                 height: auto;
                 min-height: 0;
                 border: none;
                 border-bottom: 2px solid rgba(255, 216, 0, 0.3);
-                max-height: calc(100vh - 170px);
-                max-height: calc(100dvh - 170px);
-                object-fit: contain;
+                max-height: calc(100vh - 230px);
+                max-height: calc(100dvh - 230px);
+            }
+            #bottomBar {
+                display: none !important;
             }
             #touchControlsBar {
                 display: flex !important;
                 height: auto !important;
                 overflow: visible;
-                flex: 1 0 auto;
-                min-height: 120px;
+                flex: 1 0 0px;
+                min-height: 190px;
                 align-items: center;
                 justify-content: space-between;
-                padding: 10px 24px;
-                background: linear-gradient(180deg, #150826 0%, #0d0221 50%, #120720 100%);
+                padding: 12px 20px;
+                background: linear-gradient(180deg, #1a0a3a 0%, #0d0221 60%, #120720 100%);
+                border-top: 2px solid rgba(255, 216, 0, 0.2);
             }
             #touchDpad {
                 position: static;
-                width: 130px;
-                height: 130px;
-                flex: 0 0 130px;
+                display: block;
+                width: 160px;
+                height: 160px;
+                flex: 0 0 160px;
+            }
+            #touchBtnCluster {
+                gap: 14px;
             }
             .touch-action-btn {
                 position: static;
                 top: auto;
                 right: auto;
-                width: 48px;
-                height: 48px;
-                font-size: 22px;
+                width: 56px;
+                height: 56px;
+                font-size: 26px;
             }
             #touchSettingsBtn {
                 display: flex !important;
