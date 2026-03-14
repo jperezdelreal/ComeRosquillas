@@ -41,6 +41,19 @@
             this._allTimeBestCombo = this._loadBestCombo();
             this.screenShakeTimer = 0;
             this.screenShakeIntensity = 0;
+            this._shakeMaxDuration = 0;
+
+            // Camera juice state
+            this._cameraEffectsEnabled = true;
+            this._cameraAutoDisabled = false;
+            this._cameraFpsCheckFrame = 0;
+            this._cameraZoom = 1.0;
+            this._cameraZoomTarget = 1.0;
+            this._cameraZoomTimer = 0;
+            this._cameraZoomDuration = 0;
+            this._cameraZoomStart = 1.0;
+            this._cameraOffsetX = 0;
+            this._cameraOffsetY = 0;
 
             // Camera juice state
             this._cameraEffectsEnabled = true;
@@ -661,8 +674,8 @@
             if (!cfg) return;
             this.screenShakeTimer = cfg.duration;
             this.screenShakeIntensity = cfg.intensity;
+            this._shakeMaxDuration = cfg.duration;
         }
-
         triggerZoom(targetScale, duration) {
             if (!this._isCameraEnabled()) return;
             this._cameraZoomStart = this._cameraZoom;
@@ -1596,36 +1609,23 @@
             const hasFollow = this._isCameraEnabled() &&
                 (Math.abs(this._cameraOffsetX) > 0.1 || Math.abs(this._cameraOffsetY) > 0.1);
             const hasCameraTransform = hasShake || hasZoom || hasFollow;
-
             if (hasCameraTransform) {
                 ctx.save();
                 if (hasZoom) {
-                    const cx = CANVAS_W / 2;
-                    const cy = CANVAS_H / 2;
-                    ctx.translate(cx, cy);
+                    ctx.translate(CANVAS_W / 2, CANVAS_H / 2);
                     ctx.scale(this._cameraZoom, this._cameraZoom);
-                    ctx.translate(-cx, -cy);
+                    ctx.translate(-CANVAS_W / 2, -CANVAS_H / 2);
                 }
-                if (hasFollow) {
-                    ctx.translate(this._cameraOffsetX, this._cameraOffsetY);
-                }
+                if (hasFollow) ctx.translate(this._cameraOffsetX, this._cameraOffsetY);
                 if (hasShake) {
-                    const maxDur = typeof CAMERA_CONFIG !== 'undefined'
-                        ? Math.max(...Object.values(CAMERA_CONFIG.shake).map(s => s.duration))
-                        : 18;
-                    const decay = this.screenShakeTimer / maxDur;
+                    const decay = this.screenShakeTimer / (this._shakeMaxDuration || 18);
                     const intensity = this.screenShakeIntensity * decay;
-                    ctx.translate(
-                        Math.sin(this.animFrame * 1.1) * intensity,
-                        Math.cos(this.animFrame * 1.7) * intensity
-                    );
+                    ctx.translate(Math.sin(this.animFrame * 1.1) * intensity, Math.cos(this.animFrame * 1.7) * intensity);
                 }
             }
             if (hasZoom && this._cameraZoom < 1.0) {
-                ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctx.fillStyle = this.currentLayout.floorColor || COLORS.pathDark;
-                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.fillStyle = COLORS.pathDark; ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
                 ctx.restore();
             }
 
