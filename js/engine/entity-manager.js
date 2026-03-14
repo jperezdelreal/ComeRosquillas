@@ -115,9 +115,11 @@ Game.prototype.moveHomer = function() {
     if (canMove) {
         h.x += DX[h.dir] * h.speed;
         h.y += DY[h.dir] * h.speed;
+        h.isMoving = true;
     } else {
         h.x = center.x - TILE / 2;
         h.y = center.y - TILE / 2;
+        h.isMoving = false;
     }
 
     if (h.x < -TILE) h.x = COLS * TILE;
