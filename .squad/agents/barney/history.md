@@ -362,3 +362,30 @@
 - `js/engine/scoring-system.js`: Event indicator in HUD
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+
+### Enhanced Animation System (Issue #93)
+**Date:** 2026-07-25  
+**Context:** Full sprite animation system — Homer walk cycle, ghost effects, item animations, FPS guard
+
+**Technical Decisions:**
+- `ANIM` config object in `config.js` centralizes all animation constants (frame counts, speeds, offsets)
+- Homer walk cycle activates via `isMoving` flag tracked in `moveHomer()` (entity-manager.js)
+- Ghost body sway uses sine-based wave (`ANIM.ghost.bodySwayCycle = 24 frames`) instead of hard `frame % 20` toggle — smoother motion
+- Frightened ghosts have X eyes (cross-stroke pattern) + trembling (`ANIM.ghost.frightenedTremblePx = 1px`)
+- Eaten ghosts trail colored particles behind floating eyes (`ANIM.ghost.eatenTrailCount = 5`)
+- Power pellet (Duff) pulse uses `ctx.scale()` with 90-110% range on 1s cycle — coordinates stay at origin
+- FPS guard: `_lowFPS` flag set every 30 frames; when true, skips ambient particles and freezes donut/pellet animations
+
+**Key Architecture:**
+- `drawHomer()` already accepted `animFrame` and `isMoving` params but the call site (`game-logic.js:1005`) wasn't passing them — fixed
+- `_celebrationTimer` triggers `drawHomerCelebration()` for 30 frames on power pellet collect (via collision-detector.js)
+- Ghost body sway applied in `drawGhost()` wrapper via `ctx.translate(sway, 0)`, not inside each character method
+- Each ghost character method (`_drawBurns`, `_drawSideshowBob`, etc.) has sine-based `wave` for skirt undulation
+- `drawDuff()` now uses `ctx.save/translate/scale/restore` pattern — all coordinates relative to (0,0)
+
+**Key Files:**
+- `js/config.js`: ANIM config (homer, ghost, items, performance sections)
+- `js/engine/renderer.js`: Sprite drawing with animation enhancements
+- `js/game-logic.js`: Animation state, FPS guard, draw pipeline
+- `js/engine/entity-manager.js`: `homer.isMoving` tracking
+- `js/engine/collision-detector.js`: `_celebrationTimer` trigger
