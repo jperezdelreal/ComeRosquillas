@@ -88,6 +88,10 @@
             // Boss hazard state
             this._rakeSlowTimer = 0;
 
+            // Animation system state
+            this._celebrationTimer = 0;
+            this._lowFPS = false;
+
             // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
             this._bfsCache = new Map();
             this._bfsCacheFrame = 0;
@@ -281,7 +285,7 @@
                     e.preventDefault();
                     this.state = ST_PAUSED;
                     this.sound.stopMusic();
-                    this.showMessage('PAUSA', '¡Ay, caramba!<br>Press P or SPACE to continue');
+                    this.showMessage(t('game.paused'), t('game.pause_hint'));
                     if (typeof a11y !== 'undefined') a11y.onPause();
                 } else if (this.state === ST_PAUSED && (e.code === 'KeyP' || e.code === 'Space')) {
                     e.preventDefault();
@@ -958,10 +962,12 @@
             ctx.globalAlpha = 1;
 
             this.drawMaze(ctx);
-            this.drawDots(ctx);
+            this.drawDots(ctx, this._lowFPS);
 
-            // Ambient theme particles (behind entities)
-            this._drawAmbientParticles(ctx);
+            // Ambient theme particles (behind entities) — skip when FPS is low
+            if (!this._lowFPS) {
+                this._drawAmbientParticles(ctx);
+            }
 
             // Bonus item
             if (this.bonusActive && this.bonusPos) {
@@ -1029,7 +1035,13 @@
                         }
                     }
                 }
-                Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE);
+                // Celebration pose when power-up just collected
+                if (this._celebrationTimer > 0) {
+                    Sprites.drawHomerCelebration(ctx, this.homer.x, this.homer.y, TILE, this.animFrame);
+                    this._celebrationTimer--;
+                } else {
+                    Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE, this.animFrame, this.homer.isMoving);
+                }
             }
 
             // Ghosts (skip offscreen)
@@ -1598,7 +1610,7 @@
             });
         }
 
-        drawDots(ctx) {
+        drawDots(ctx, lowFPS) {
             // Collect dot positions, then batch draw (minimizes per-dot state changes)
             const dots = [];
             const powers = [];
@@ -1613,15 +1625,15 @@
                 }
             }
 
-            // Batch draw all donuts
-            const frame = this.animFrame;
+            // Batch draw all donuts (skip rotation when FPS is low)
+            const frame = lowFPS ? 0 : this.animFrame;
             for (let i = 0; i < dots.length; i += 2) {
                 Sprites.drawDonut(ctx, dots[i], dots[i + 1], frame);
             }
 
             // Power pellets (fewer, drawn individually)
             for (const p of powers) {
-                Sprites.drawDuff(ctx, p.x, p.y, frame);
+                Sprites.drawDuff(ctx, p.x, p.y, lowFPS ? 0 : this.animFrame);
             }
         }
 
@@ -1702,6 +1714,9 @@
                 for (let i = 0; i < PERF_CONFIG.fpsBufferSize; i++) sum += this._fpsBuffer[i];
                 const avg = sum / PERF_CONFIG.fpsBufferSize;
                 this._fpsDisplay = avg > 0 ? Math.round(1000 / avg) : 0;
+                // FPS guard: skip extra animation frames when below threshold
+                this._lowFPS = typeof ANIM !== 'undefined' &&
+                    this._fpsDisplay > 0 && this._fpsDisplay < ANIM.performance.minFPSForAnim;
             }
 
             this.update();
