@@ -221,4 +221,47 @@
 - `js/game-logic.js`: _debugOverlay, _devConsole, _ghostBreadcrumbs, _aiTuning, _getGhostTarget(), setAITuning(), drawDebugOverlay()
 - `js/ui/settings-menu.js`: Debug toggle, dev console toggle, AI tuning sliders, _syncDebugToGame(), _syncAITuning(), resetAIDefaults()
 
+### Power-Up Variety System (Issue #92)
+**Date:** 2026-07-25  
+**Context:** Full data-driven power-up system with 5 special item types
+
+**Technical Decisions:**
+- New cell type `SPECIAL_ITEM = 6` for maze grid placement (walkable, non-dot)
+- `POWER_UP_TYPES` array in config.js is fully data-driven — add new items by adding entries
+- Weighted probability system: `getRandomPowerUpType()` uses cumulative weight rolls
+- One special item spawns per level at 40% dots eaten, placed on random EMPTY tile 5+ tiles from Homer
+- Active power-ups stored in `_activePowerUps[]` array with timer countdown per frame
+- Speed effects recalculate via existing `getSpeed()` method — no special-casing in movement code
+- Invincibility handled in `checkCollisions()` — bounces ghosts instead of triggering death
+- Burns Token uses counter pattern (`_burnsTokens`) — collect 3 for extra life, resets after reward
+
+**Architecture Patterns:**
+- Config-driven item definitions: type, duration, probability, points, colors, effect, effectValue
+- Effect types map to switch cases in `collectSpecialItem()` — extensible pattern
+- Timer bars rendered in canvas draw() loop, not DOM — consistent with existing HUD approach
+- `hasPowerUp(effectId)` utility for checking active effects anywhere in game logic
+- Combo stacking: `POWER_UP_COMBOS` object defines cross-item synergies
+- Audio: `_specialItemSfx()` switches on effect type for unique sounds per item
+- Visual effects: motion blur trail (speed), rainbow aura (invincibility), heat particles (slow)
+
+**Key Files:**
+- `js/config.js`: POWER_UP_TYPES, SPECIAL_ITEM, getRandomPowerUpType(), POWER_UP_COMBOS
+- `js/game-logic.js`: updateSpecialItems, spawnSpecialItem, collectSpecialItem, updateActivePowerUps, hasPowerUp, draw() HUD timers + visual effects
+- `js/engine/renderer.js`: Sprites.drawSpecialItem() with per-type canvas sprites
+- `js/engine/audio.js`: _specialItemSfx(), _powerUpWarning()
+- `js/engine/high-scores.js`: totalItemsCollected in lifetime stats
+
+### PR #102 Review Fixes (Issue #92)
+**Date:** 2026-07-25  
+**Context:** Fixed 4 bugs flagged by Moe's code review on the power-up PR
+
+**Fixes Applied:**
+- `getSpeed()` now checks `_activePowerUps` and applies `effectValue` multipliers for speed_boost (2x Homer) and slow_ghosts (0.5x ghosts) — previously returned normal speed ignoring active power-ups
+- `checkCollisions()` now has `hasPowerUp('invincibility')` guard before death — Lard Lad's invincibility was tracked but never checked
+- `_specialItemSpawned` resets to `false` in `initLevel()` — was stuck `true` after first level, blocking all future spawns
+- Removed center-screen duplicate power-up timer bars, kept top-right HUD version
+- Removed all boss ghost dead code: `BOSS_GHOSTS`, `getBossForLevel()`, `ST_BOSS_INTRO`, `createBossGhost()`, and ghost personality props (`laughTimer`, `wobbleOffset`, `speedVariation`) — belongs in issue #96
+
+**Key Lesson:** Power-up effects that modify speeds must be wired into the central `getSpeed()` method, not just tracked in arrays. Level-scoped flags like `_specialItemSpawned` need explicit resets in level init.
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->

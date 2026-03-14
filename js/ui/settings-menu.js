@@ -621,6 +621,7 @@ class SettingsMenu {
         this._syncAITuning();
     }
     
+    // Push camera effects preference to game instance
     _syncCameraToGame() {
         const game = this._game;
         if (!game) return;

@@ -68,6 +68,8 @@ class SoundManager {
             case 'levelComplete': this._levelComplete(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
             case 'extraLife': this._extraLife(now); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
             case 'gameOver': this._gameOver(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
+            case 'specialItem': this._specialItemSfx(now, data); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'powerUpWarning': this._powerUpWarning(now); break;
         }
     }
 
@@ -289,6 +291,49 @@ class SoundManager {
         lfo.stop(t + 3.1);
         wah.stop(t + 3.1);
         this._osc('sine', [[100, 0], [80, 0.8], [60, 1.5]], t, t + 2.5, 0.06);
+    }
+
+    // ==================== SFX: SPECIAL ITEM PICKUP ====================
+
+    _specialItemSfx(t, type) {
+        if (!type) {
+            this._osc('sine', [[600, 0], [900, 0.06], [1200, 0.12], [1600, 0.18]], t, t + 0.35, 0.1);
+            this._noise(t, 0.15, 0.03, 4000, 'highpass');
+            return;
+        }
+        switch (type.effect) {
+            case 'speed_boost':
+                this._osc('sawtooth', [[200, 0], [400, 0.08], [800, 0.16], [1200, 0.24]], t, t + 0.4, 0.09);
+                this._osc('sine', [[300, 0], [600, 0.1], [1000, 0.2]], t + 0.05, t + 0.35, 0.06);
+                this._noise(t, 0.3, 0.04, 3000, 'highpass');
+                break;
+            case 'bonus_points':
+                this._osc('sine', [[523, 0], [659, 0.06], [784, 0.12], [1047, 0.18], [1319, 0.24]], t, t + 0.5, 0.1);
+                this._osc('triangle', [[1047, 0.1], [1319, 0.2], [1568, 0.3]], t, t + 0.5, 0.05);
+                this._noise(t + 0.1, 0.2, 0.04, 6000, 'highpass');
+                break;
+            case 'slow_ghosts':
+                this._osc('sawtooth', [[80, 0], [60, 0.15], [100, 0.3]], t, t + 0.5, 0.1);
+                this._osc('sine', [[150, 0], [200, 0.1], [120, 0.25]], t, t + 0.4, 0.06);
+                this._noise(t + 0.05, 0.4, 0.05, 2000, 'bandpass');
+                break;
+            case 'collect_token':
+                this._osc('sine', [[2000, 0], [2500, 0.03], [3000, 0.06]], t, t + 0.15, 0.08);
+                this._osc('triangle', [[1500, 0], [2000, 0.04]], t + 0.02, t + 0.12, 0.04);
+                this._noise(t, 0.08, 0.03, 5000, 'highpass');
+                break;
+            case 'invincibility':
+                this._osc('square', [[523, 0], [659, 0.08], [784, 0.16], [1047, 0.24], [1319, 0.32]], t, t + 0.55, 0.09);
+                this._osc('triangle', [[262, 0], [330, 0.08], [392, 0.16], [523, 0.24]], t, t + 0.45, 0.05);
+                this._osc('sine', [[131, 0], [165, 0.16], [196, 0.32]], t, t + 0.5, 0.07);
+                this._noise(t + 0.15, 0.3, 0.03, 4000, 'highpass');
+                break;
+        }
+    }
+
+    _powerUpWarning(t) {
+        this._osc('square', [[800, 0], [600, 0.06]], t, t + 0.12, 0.06);
+        this._osc('square', [[700, 0.15], [500, 0.21]], t, t + 0.27, 0.06);
     }
 
     // ==================== SPATIAL AUDIO ====================
