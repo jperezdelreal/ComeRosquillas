@@ -149,4 +149,102 @@
 - Per-game stat tracking must reset in startNewGame() and capture in game-end handlers
 - Script load order: stats-dashboard.js after tutorial.js, before renderer.js
 
+### Social Sharing & Viral Hooks (Issue #67)
+
+**Architecture decisions:**
+- Created `js/ui/share-menu.js` following the established `js/ui/` modular pattern
+- ShareMenu overlay uses z-index: 1600 (above stats dashboard at 1500, settings at 1000)
+- Web Share API with graceful fallback to clipboard copy + toast notification
+- Canvas screenshot via `toDataURL('image/png')` with score overlay bar appended to bottom
+- QR code generated procedurally on Canvas 2D — no external library (Version 2-like pattern with finder/timing/alignment)
+- Referral tracking stored in localStorage key: `comeRosquillas_referrals` (array of {ref, seed, timestamp})
+- Challenge URLs use query params: `?ref=challenge&seed=X&target=Y`
+
+**Share menu features:**
+- Four action buttons: Native Share (mobile only), Copy Link, Screenshot, Challenge
+- Score card displays current score with level, combo, donuts eaten, ghosts eaten
+- QR code section visible on desktop, hidden on small screens (<480px)
+- Toast notification system with slide-up animation and auto-dismiss
+- Responsive: 2-column grid on desktop → single column on mobile
+
+**Game-over integration:**
+- "Share Your Score" button injected into game-over message HTML (both normal and high-score paths)
+- Button uses inline onclick calling `window._game.shareMenu.open()` (game instance stored as `window._game`)
+- H key shortcut opens share menu from game-over and start screens
+- Challenge banner displayed on start screen when arriving via challenge URL (`?target=X`)
+
+**Integration points:**
+- Game class: ShareMenu initialized in constructor after StatsDashboard
+- `window._game` reference set in Game constructor for inline onclick access
+- `_shareButtonHtml()` and `_challengeBannerHtml()` helper methods on Game class
+- Script load order: share-menu.js after stats-dashboard.js, before renderer.js
+- Start screen includes H=Share in control hints
+
+**CSS organization:**
+- All share menu styles in index.html `<style>` block (following existing convention)
+- Uses same color palette: purple gradients (#2d1b69), yellow accents (#ffd800), pink (#ff69b4)
+- Action buttons use distinct gradient colors: green (share), blue (copy), orange (screenshot), pink (challenge)
+- Responsive breakpoints at 700px and 480px matching existing patterns
+- Slide-in animation (`shareSlideIn`) for modal appearance
+
+**Key learnings for future work:**
+- `window._game` global reference is now available for inline onclick handlers in message HTML
+- Web Share API requires `navigator.share` feature check — not available on all desktop browsers
+- Canvas `toDataURL()` captures current frame state — works even during game-over with maze visible
+- QR code procedural generation uses finder patterns, timing patterns, and alignment patterns with deterministic hash fill
+- Clipboard API requires `navigator.clipboard.writeText()` with textarea fallback for older browsers
+- Share menu is fully self-contained — can be loaded/unloaded without modifying core game logic
+
+### Daily Challenge Mode (Issue #69)
+
+**Architecture decisions:**
+- Created `js/ui/daily-challenge.js` following the established `js/ui/` modular pattern
+- DailyChallenge overlay uses z-index: 1800 (above share menu at 1600, stats at 1500)
+- 7 challenge types defined as `DAILY_CHALLENGE_TYPES` config array in `js/config.js`
+- Seeded PRNG using FNV-1a hash of `YYYY-MM-DD` date string — deterministic across all players
+- Separate daily leaderboard: localStorage key `comerosquillas-daily` (top 10 per day)
+- Challenge history: localStorage key `comerosquillas-daily-history` (completion dates, streak, badge)
+- Challenge rules implemented as modifier functions (`applyModifiers`, `getScoreMultiplier`, `getGhostSpeedBonus`)
+
+**Challenge types and modifiers:**
+- Speed Run: 90s timer via `setInterval` with HUD countdown display (`#dailyTimerDisplay`)
+- Ghost Hunter: ghost target tracked via existing `_gameGhostsEaten` counter
+- Perfect Run: lives set to 1, score multiplier 2x
+- No Power-Ups: POWER cells converted to DOT in maze during `applyModifiers()`
+- Donut Feast: extra DOT cells seeded into EMPTY spaces using seeded PRNG
+- High Score Attack: 1.5x score multiplier applied to dot/ghost scoring
+- Survival: 1 life, 2x score, 10% ghost speed bonus
+
+**Integration points:**
+- Game class: DailyChallenge initialized in constructor after ShareMenu
+- `_dailyChallenge` property on Game stores active challenge reference
+- `_dailyTimeUp` flag checked in game loop for Speed Run timeout
+- `startNewGame()` calls `DailyChallenge.applyModifiers()` after `initLevel()`
+- Score multiplier injected into `checkDots()` (dot/power scoring) and `checkCollisions()` (ghost eating)
+- Ghost speed bonus applied in `getSpeed('ghost')` via `DailyChallenge.getGhostSpeedBonus()`
+- Daily score submitted on game-over (both high-score-entry and non-high-score paths)
+- D key shortcut opens daily challenge panel from start/pause/game-over screens
+- Daily challenge banner with click-to-open on start screen (`_dailyChallengeBannerHtml()`)
+- HUD shows challenge name/emoji instead of level name during active challenge
+
+**Leaderboard badge integration:**
+- `DailyChallenge.getChallengeBadge()` static method returns badge based on total challenges completed
+- Badge shown on stats-dashboard leaderboard rank banner (stats-dashboard.js)
+- Four badge tiers: Challenger (1+), Challenge Regular (7+), Challenge Master (14+), Challenge Legend (30+)
+
+**CSS organization:**
+- All daily challenge styles in index.html `<style>` block (following existing convention)
+- Uses same color palette: purple gradients, yellow accents, pink highlights
+- Challenge card border colored per challenge type (e.g., red for Speed Run, gold for Perfect Run)
+- Responsive breakpoint at 700px matching existing patterns
+- Reuses `shareSlideIn` animation for modal appearance
+
+**Key learnings for future work:**
+- Seeded PRNG pattern: `hashDate()` + `seededRandom()` can be reused for any deterministic game variation
+- Challenge modifier pattern: modifier functions applied after `initLevel()` in `startNewGame()` — clean separation
+- Timer management: `setInterval` with `_timerInterval` ref, cleared on challenge end and game-over
+- D key is shared with debug toggle during gameplay — daily challenge D only fires from start/pause/gameover states
+- Daily challenge state must be cleaned up on game-over return-to-start (Enter key handler)
+- Script load order: daily-challenge.js after share-menu.js, before renderer.js
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->

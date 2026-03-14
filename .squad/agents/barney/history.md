@@ -160,4 +160,65 @@
 - `js/engine/audio.js`: SoundManager — spatial, ducking, tempo, fright mode
 - `js/game-logic.js`: Integration hooks (updateSpatial, setLevelTempo, setFrightMode)
 
+### Performance Optimization & Visual Polish (Issue #70)
+**Date:** 2026-03-14  
+**Context:** Performance pass targeting 60fps on iPhone SE 2020 + visual polish
+
+**Technical Decisions:**
+- BFS pathfinding cache: `Map` keyed on `"startCol,startRow,targetCol,targetRow"`, invalidated every 3 frames (`PERF_CONFIG.bfsCacheTTL`). Prevents 4 ghosts redundantly BFS-ing the same paths each frame.
+- Particle object pool: Pre-allocates 100 `{active: false}` particles. `addParticles()` finds inactive slots, `update()` marks dead particles `active: false` for reuse — zero GC churn.
+- Batch dot rendering: Collects all DOT positions into flat array, all POWER positions into object array, then draws in two passes.
+- Offscreen culling: Ghosts outside canvas bounds (`< -TILE*2` or `> CANVAS_W+TILE`) skip shadow, glow, and sprite rendering.
+- FPS counter: `Float64Array` ring buffer of 60 frame deltas (`performance.now()`), averaged every 30 frames, rendered in dev mode.
+- Smooth camera shake: Sine/cosine-based (`sin(frame*1.1)`, `cos(frame*1.7)`) with decay, replacing random jitter.
+- Donut rotation: `ctx.rotate(animFrame * 0.015)` with save/restore. Coordinates shifted to origin-centered drawing.
+- Ghost eye tracking: `_eyeDirToward()` computes unit vector from ghost center to Homer, returns `{lookX, lookY}` for smooth analog eye movement. `_eyeOffset()` adapter handles both int dir and tracking object.
+- Level transition wipe: Circular iris wipe using `ctx.arc()` with `evenodd` fill rule, progress mapped from `_wipeTimer`.
+
+**Architecture Patterns:**
+- `PERF_CONFIG` in config.js centralizes all performance tuning constants
+- `_eyeOffset()` static helper abstracts int direction vs eye-tracking object for backward compat
+- Particle pool avoids `Array.filter()` — uses explicit loop with `aliveParticles` push pattern
+- Game loop tracks `_lastFrameTime` and writes to FPS ring buffer each frame
+
+**Key Files:**
+- `js/config.js`: PERF_CONFIG constants
+- `js/engine/renderer.js`: Donut rotation, ghost eye tracking (`_eyeDirToward`, `_eyeOffset`), drawGhost homer param
+- `js/game-logic.js`: BFS cache, particle pool, batch dot rendering, smooth shake, FPS counter, iris wipe, offscreen culling
+
+### Ghost Personality Debug Mode (Issue #68)
+**Date:** 2026-03-14  
+**Context:** Debug overlay system for ghost AI visualization and runtime tuning
+
+**Technical Decisions:**
+- Debug overlay as separate render pass (`drawDebugOverlay()`) called after `draw()` — zero perf cost when `_debugOverlay` is false
+- Breadcrumb tracking throttled to every 6 frames, capped at 12 points (`GHOST_DEBUG.maxBreadcrumbs`)
+- AI tuning applied at runtime via `setAITuning()` — recomputes mode timers and ghost speeds immediately
+- Dev console uses ring buffer FPS display already computed by game loop
+- Collision checks tracked per-frame via counter in `checkCollisions()`
+
+**Architecture Patterns:**
+- `GHOST_DEBUG` config in config.js centralizes mode colors, labels, icons, overlay alpha values
+- `AI_TUNING_DEFAULTS` + `loadAITuning()`/`saveAITuning()` handle localStorage persistence
+- Renderer: All debug drawing methods are static on `Sprites` class (personality indicators, labels, lines, breadcrumbs, dev console)
+- Bidirectional sync: D key and ~ key toggle debug state AND update settings menu; settings menu toggles update game state
+- `_getGhostTarget()` reuses `getChaseTarget()` for consistent target visualization
+
+**Personality Indicators:**
+- Burns (idx 0): Crosshair reticle at target tile — visualizes direct aggressive targeting
+- Bob Patiño (idx 1): Speed lines trailing behind — shows ambush movement speed
+- Nelson (idx 2): Zigzag path preview to target — illustrates calculated/unpredictable vectors
+- Snake (idx 3): Speed variance % badge — displays runtime speed delta from baseline
+
+**AI Tuning Sliders:**
+- Aggression (0.5–2.0): Multiplier on ghost chase speed in `getSpeed('ghost')`
+- Chase Distance (4–16): Snake flee threshold in `getChaseTarget()` case 3
+- Scatter Multiplier (0.25–3.0): Scales scatter timer durations in `getLevelModeTimers()`
+
+**Key Files:**
+- `js/config.js`: GHOST_DEBUG, AI_TUNING_DEFAULTS, AI_TUNING_STORAGE_KEY, loadAITuning(), saveAITuning()
+- `js/engine/renderer.js`: Sprites.drawGhostDebugLabel, drawTargetLine, drawTargetTile, drawBurnsCrosshair, drawBobSpeedLines, drawNelsonZigzag, drawSnakeSpeedBadge, drawBreadcrumbs, drawDevConsole
+- `js/game-logic.js`: _debugOverlay, _devConsole, _ghostBreadcrumbs, _aiTuning, _getGhostTarget(), setAITuning(), drawDebugOverlay()
+- `js/ui/settings-menu.js`: Debug toggle, dev console toggle, AI tuning sliders, _syncDebugToGame(), _syncAITuning(), resetAIDefaults()
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
