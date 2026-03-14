@@ -32,9 +32,12 @@ jobs:
 
       - name: Copy game files to docs
         run: |
-          mkdir -p docs/public/game/js
+          rm -rf docs/public/game
+          mkdir -p docs/public/game
           cp index.html docs/public/game/
-          cp js/game.js docs/public/game/js/
+          cp manifest.json docs/public/game/ 2>/dev/null || true
+          cp -r js docs/public/game/
+          cp -r icons docs/public/game/ 2>/dev/null || true
 
       - name: Install dependencies
         working-directory: docs
