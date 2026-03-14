@@ -359,7 +359,7 @@ Game.prototype.drawCutscene = function() {
         ctx.font = '10px Arial';
         ctx.textAlign = 'center';
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-        ctx.fillText('Press any key to skip', CANVAS_W / 2, CANVAS_H - 20);
+        ctx.fillText(t('level.skip_cutscene'), CANVAS_W / 2, CANVAS_H - 20);
     }
 };
 

@@ -82,10 +82,11 @@ Game.prototype.initEntities = function() {
 
 Game.prototype.moveHomer = function() {
     const h = this.homer;
-    if (this.keys['ArrowUp']) h.nextDir = UP;
-    else if (this.keys['ArrowRight']) h.nextDir = RIGHT;
-    else if (this.keys['ArrowDown']) h.nextDir = DOWN;
-    else if (this.keys['ArrowLeft']) h.nextDir = LEFT;
+    const reversed = this._isControlsReversed && this._isControlsReversed();
+    if (this.keys['ArrowUp']) h.nextDir = reversed ? DOWN : UP;
+    else if (this.keys['ArrowRight']) h.nextDir = reversed ? LEFT : RIGHT;
+    else if (this.keys['ArrowDown']) h.nextDir = reversed ? UP : DOWN;
+    else if (this.keys['ArrowLeft']) h.nextDir = reversed ? RIGHT : LEFT;
 
     const cx = h.x + TILE / 2;
     const cy = h.y + TILE / 2;

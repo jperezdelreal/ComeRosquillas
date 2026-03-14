@@ -866,7 +866,7 @@
                 a11y.updateProximity(nearby);
             }
 
-            // Rake slow timer:restore Homer's speed after penalty expires
+            // Rake slow timer: restore Homer's speed after penalty expires
             if (this._rakeSlowTimer > 0) {
                 this._rakeSlowTimer--;
                 if (this._rakeSlowTimer <= 0) {
