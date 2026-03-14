@@ -164,41 +164,47 @@ class Sprites {
         // ---- DONUT ----
         static drawDonut(ctx, x, y, animFrame) {
             const r = 4;
+            // Gentle donut rotation
+            const rotation = animFrame * 0.015;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
             // Donut body
             ctx.fillStyle = COLORS.donutBrown;
             ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
             ctx.fill();
             // Pink frosting (top half with drips)
             ctx.fillStyle = COLORS.donutPink;
             ctx.beginPath();
-            ctx.arc(x, y, r, Math.PI * 1.1, Math.PI * -0.1);
+            ctx.arc(0, 0, r, Math.PI * 1.1, Math.PI * -0.1);
             ctx.fill();
             // Frosting drips
             ctx.fillStyle = COLORS.donutDarkPink;
             ctx.beginPath();
-            ctx.ellipse(x - 2, y + 1, 1, 2, 0.2, 0, Math.PI * 2);
+            ctx.ellipse(-2, 1, 1, 2, 0.2, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.ellipse(x + 2.5, y + 0.5, 0.8, 1.5, -0.2, 0, Math.PI * 2);
+            ctx.ellipse(2.5, 0.5, 0.8, 1.5, -0.2, 0, Math.PI * 2);
             ctx.fill();
             // Hole
             ctx.fillStyle = '#0a0a1a';
             ctx.beginPath();
-            ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+            ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
             ctx.fill();
             // Sprinkles (rotate slowly)
             const phase = animFrame * 0.02;
             const sprinkleColors = [COLORS.sprinkle1, COLORS.sprinkle2, COLORS.sprinkle3, COLORS.sprinkle4, COLORS.sprinkle5];
             for (let i = 0; i < 5; i++) {
                 const sa = phase + i * Math.PI * 2 / 5;
-                const sx = x + Math.cos(sa) * (r - 1.5);
-                const sy = y - 1 + Math.sin(sa) * 1.2;
-                if (sy < y) { // Only on frosting
+                const sx = Math.cos(sa) * (r - 1.5);
+                const sy = -1 + Math.sin(sa) * 1.2;
+                if (sy < 0) { // Only on frosting
                     ctx.fillStyle = sprinkleColors[i];
                     ctx.fillRect(sx - 0.5, sy - 0.5, 2, 1);
                 }
             }
+            ctx.restore();
         }
 
         // ---- DUFF BEER (power pellet) ----
@@ -233,13 +239,15 @@ class Sprites {
         }
 
         // ---- GHOSTS AS SIMPSONS CHARACTERS ----
-        static drawGhost(ctx, ghost, animFrame, frightTimer) {
+        static drawGhost(ctx, ghost, animFrame, frightTimer, homer) {
             const cx = ghost.x + TILE / 2;
             const cy = ghost.y + TILE / 2;
             const r = TILE / 2 - 1;
 
             if (ghost.mode === GM_EATEN) {
-                Sprites._drawGhostEyes(ctx, cx, cy, ghost.dir);
+                // Eyes track Homer's position when eaten
+                const eyeDir = homer ? Sprites._eyeDirToward(cx, cy, homer) : ghost.dir;
+                Sprites._drawGhostEyes(ctx, cx, cy, eyeDir);
                 return;
             }
 
@@ -248,13 +256,35 @@ class Sprites {
                 return;
             }
 
+            // Compute eye tracking direction toward Homer
+            const eyeDir = homer ? Sprites._eyeDirToward(cx, cy, homer) : ghost.dir;
+
             // Draw character-specific ghost
             switch (ghost.idx) {
-                case 0: Sprites._drawBurns(ctx, cx, cy, r, ghost.dir, animFrame); break;
-                case 1: Sprites._drawSideshowBob(ctx, cx, cy, r, ghost.dir, animFrame); break;
-                case 2: Sprites._drawNelson(ctx, cx, cy, r, ghost.dir, animFrame); break;
-                case 3: Sprites._drawSnake(ctx, cx, cy, r, ghost.dir, animFrame); break;
+                case 0: Sprites._drawBurns(ctx, cx, cy, r, eyeDir, animFrame); break;
+                case 1: Sprites._drawSideshowBob(ctx, cx, cy, r, eyeDir, animFrame); break;
+                case 2: Sprites._drawNelson(ctx, cx, cy, r, eyeDir, animFrame); break;
+                case 3: Sprites._drawSnake(ctx, cx, cy, r, eyeDir, animFrame); break;
             }
+        }
+
+        // Compute fractional eye offset toward Homer for smooth eye tracking
+        static _eyeDirToward(cx, cy, homer) {
+            const hx = homer.x + TILE / 2;
+            const hy = homer.y + TILE / 2;
+            const dx = hx - cx;
+            const dy = hy - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 1) return { lookX: 0, lookY: 0 };
+            return { lookX: (dx / dist) * 2, lookY: (dy / dist) * 2 };
+        }
+
+        // Extract eye look offsets from dir (int) or eye-tracking object
+        static _eyeOffset(dir) {
+            if (typeof dir === 'object' && dir !== null) {
+                return { ex: dir.lookX, ey: dir.lookY };
+            }
+            return { ex: DX[dir] * 1.5, ey: DY[dir] * 1.5 };
         }
 
         // -- Mr. Burns --
@@ -286,6 +316,7 @@ class Sprites {
             ctx.stroke();
 
             // Eyes - droopy, menacing
+            const burnEye = Sprites._eyeOffset(dir);
             for (const ox of [-4, 4]) {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
@@ -293,7 +324,7 @@ class Sprites {
                 ctx.fill();
                 ctx.fillStyle = '#556b2f'; // Green pupils (Burns' evil eyes)
                 ctx.beginPath();
-                ctx.arc(cx + ox + DX[dir] * 1.5, cy - 5 + DY[dir] * 1.5, 1.8, 0, Math.PI * 2);
+                ctx.arc(cx + ox + burnEye.ex, cy - 5 + burnEye.ey, 1.8, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -374,6 +405,7 @@ class Sprites {
             ctx.fill();
 
             // Eyes
+            const bobEye = Sprites._eyeOffset(dir);
             for (const ox of [-4, 3]) {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
@@ -381,7 +413,7 @@ class Sprites {
                 ctx.fill();
                 ctx.fillStyle = '#2244aa';
                 ctx.beginPath();
-                ctx.arc(cx + ox + DX[dir] * 1.5, cy - 4 + DY[dir] * 1.5, 1.5, 0, Math.PI * 2);
+                ctx.arc(cx + ox + bobEye.ex, cy - 4 + bobEye.ey, 1.5, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -463,6 +495,7 @@ class Sprites {
             }
 
             // Eyes (narrowed, tough look)
+            const nelsonEye = Sprites._eyeOffset(dir);
             for (const ox of [-4, 4]) {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
@@ -470,7 +503,7 @@ class Sprites {
                 ctx.fill();
                 ctx.fillStyle = '#000';
                 ctx.beginPath();
-                ctx.arc(cx + ox + DX[dir] * 1.5, cy - 4 + DY[dir] * 1, 1.5, 0, Math.PI * 2);
+                ctx.arc(cx + ox + nelsonEye.ex, cy - 4 + nelsonEye.ey * 0.67, 1.5, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -550,6 +583,7 @@ class Sprites {
             ctx.fill();
 
             // Eyes
+            const snakeEye = Sprites._eyeOffset(dir);
             for (const ox of [-4, 4]) {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
@@ -557,7 +591,7 @@ class Sprites {
                 ctx.fill();
                 ctx.fillStyle = '#333';
                 ctx.beginPath();
-                ctx.arc(cx + ox + DX[dir] * 1.5, cy - 4 + DY[dir] * 1.5, 1.5, 0, Math.PI * 2);
+                ctx.arc(cx + ox + snakeEye.ex, cy - 4 + snakeEye.ey, 1.5, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -629,6 +663,7 @@ class Sprites {
 
         // -- Ghost eyes only (eaten state) --
         static _drawGhostEyes(ctx, cx, cy, dir) {
+            const eye = Sprites._eyeOffset(dir);
             for (const ox of [-4, 4]) {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
@@ -636,7 +671,7 @@ class Sprites {
                 ctx.fill();
                 ctx.fillStyle = '#2244cc';
                 ctx.beginPath();
-                ctx.arc(cx + ox + DX[dir] * 2, cy - 3 + DY[dir] * 2, 2, 0, Math.PI * 2);
+                ctx.arc(cx + ox + eye.ex, cy - 3 + eye.ey, 2, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
