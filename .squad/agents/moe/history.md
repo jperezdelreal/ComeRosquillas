@@ -1,183 +1,88 @@
-# Project Context
+# Moe (Lead) — Project History
 
-- **Owner:** joperezd
-- **Project:** ComeRosquillas — Homer's Donut Quest, a Pac-Man style web arcade game
-- **Stack:** Vanilla HTML/JS/Canvas, no frameworks, Astro docs site
-- **Upstream:** FirstFrameStudios (subsquad)
-- **Created:** 2026-07-24
+**Owner:** joperezd  
+**Project:** ComeRosquillas — Homer's Donut Quest (Pac-Man style web arcade game)  
+**Stack:** Vanilla HTML/JS/Canvas 2D, no frameworks, procedural audio (Web Audio API)  
+**Upstream:** FirstFrameStudios (subsquad)  
+**Lead Role:** Strategic planning, code review, architectural guidance, issue triage
 
-## Key Files
+---
 
-- `index.html` — game page with canvas, HUD, touch controls
-- `js/config.js` — game configuration constants
-- `js/engine/audio.js` — audio system
-- `js/engine/renderer.js` — canvas rendering engine
-- `js/engine/high-scores.js` — high score persistence
-- `js/engine/touch-input.js` — touch/mobile controls
-- `js/game-logic.js` — core game logic (movement, collisions, AI)
-- `js/main.js` — entry point, game loop
-- `docs/` — Astro documentation site
+## Core Context
 
-## Learnings
+### Project State (Post–Phase 1, Pre–Phase 2)
 
-<!-- Append new learnings below. Each entry is something lasting about the project. -->
+**Phase 1 Delivered:** 10 original roadmap items complete (tutorial, combo, mobile, endless, audio, leaderboard, stats, ghost AI, difficulty, settings). 504 tests passing, 0 known bugs. Board is empty.
 
-### Sprint Planning Ceremony — Kickoff (2026-07-24)
+**Architecture Established:**
+- Vanilla JS/Canvas commitment (no frameworks, no build tools)
+- Modular pattern: `js/engine/` (audio, renderer, high-scores, touch), `js/ui/` (settings-menu, future modules)
+- Procedural audio: Web Audio API only, no external files
+- BFS pathfinding for ghost AI with Pac-Man-style personalities (Burns, Pinky, Nelson, Snake)
+- Difficulty presets in config.js (Easy/Normal/Hard multipliers)
+- localStorage persistence for settings, high scores, leaderboard, language
 
-**Sprint Breakdown (3 sprints, 4-6 weeks):**
-- **Sprint 1:** Core Quality & Replayability (Ghost AI, Difficulty, Settings, Tests)
-- **Sprint 2:** Content & Polish (New mazes, touch refinement, animations, tutorial)
-- **Sprint 3:** Community & Launch Prep (Leaderboard, polish pass, optimization)
+**Team Composition:**
+- **Barney (Game Dev):** Gameplay mechanics, AI, difficulty, performance
+- **Lenny (UI Dev):** Canvas rendering, UI modules, animations, accessibility
+- **Nelson (Tester):** QA, regression testing, metrics validation, YAML triage
 
-**Issues Created:**
-- #22 — [ROADMAP] Full sprint overview (squad:moe, p2)
-- #23 — Ghost AI Tuning (squad:barney, sprint:1, p1)
-- #24 — Difficulty Settings (squad:barney, sprint:1, p1)
-- #25 — Settings Menu (squad:lenny, sprint:1, p1)
-- #26 — Test Infrastructure (squad:nelson, sprint:1, p2)
+### Key Files
+- `js/game-logic.js` (85KB, becoming monolith) — core state machine, input, collisions, scoring
+- `js/engine/audio.js` — SoundManager, layered synthesis, spatial panning, audio ducking
+- `js/engine/renderer.js` — Canvas 2D, maze rendering, sprites, UI overlays
+- `js/config.js` — game constants, DIFFICULTY_PRESETS, maze template, speeds
 
-**Architecture Decisions:**
-- Maintain vanilla JS/Canvas approach — no frameworks or build tools
-- Modular design: settings-menu.js, ai-pathfinding.js as new modules
-- Preserve procedural audio commitment (no external files)
-- Test infrastructure with lightweight framework (browser-compatible)
+### Sprint Planning Pattern
+Early sprints (1-3) used 3-sprint structure: Core Quality → Content & Polish → Community & Launch. Success driven by player journey framework (Immediate Fun → Deep Engagement → Social Virality).
 
-**Sprint 1 Strategy:** Focus on gameplay quality improvements rather than new content. Ghost AI and difficulty settings add the most replayability value. Settings menu provides player control. Tests enable confident iteration going forward.
+---
 
-### Sprint 1 Code Review — PRs #27–#30 (2026-07-24)
+## Recent Sessions
 
-**Reviewed 4 PRs, all approved:**
+<!-- Append new learnings below. Recent sessions preserved. Old entries summarized above. -->
 
-| PR | Feature | Author | Verdict |
-|----|---------|--------|---------|
-| #27 | Triage YAML sync (content-aware verdicts) | Nelson | ✅ Approved |
-| #28 | Difficulty system (Easy/Normal/Hard) | Barney | ✅ Approved (with overlap notes) |
-| #29 | Ghost AI (BFS + Pac-Man personalities) | Barney | ✅ Approved — strongest PR |
-| #30 | Settings menu (audio, difficulty UI) | Lenny | ✅ Approved |
+### Sprint 1 Code Review — Merge Strategy (2026-07-24)
 
-**Recommended merge order:** #27 → #29 → #28 → #30 (minimizes conflict surface)
+**4 PRs reviewed, all approved:** #27 (YAML triage), #28 (difficulty), #29 (ghost AI), #30 (settings).  
+**Merge order:** #27 → #29 → #28 → #30 (minimizes trivial conflicts, all conflicts resolvable).
 
-**Cross-PR Overlap Found:**
-- Nelson's history.md changes appear in PRs #27, #28, and #29 (identical content)
-- BFS pathfinding code appears in both #28 and #29 (identical code)
-- "S key" bottom bar hint appears in both #28 and #30
-- All conflicts are trivially resolvable since the code is identical across PRs
+**Quality Assessment:** No bugs, good defensive patterns, architecture sound. BFS in game-logic.js is correct (50 lines, single consumer). js/ui/ directory established by Lenny as pattern for future UI modules. Settings menu's coupling to audio.js underscore properties acceptable short-term; consider audio.js setVolume() API in Sprint 2.
 
-**Architecture Observations:**
-- BFS pathfinding kept in game-logic.js (not extracted to ai-pathfinding.js) — correct call for ~50 lines with single consumer
-- js/ui/ directory established by Lenny — good pattern for future UI modules
-- Settings menu couples to audio.js underscore-prefixed properties (_masterGain, _sfxBus, _musicBus) — fragile but acceptable. Consider adding setVolume() API to audio.js in Sprint 2
-- Difficulty system API contract (getDifficultySettings/setDifficulty/getCurrentDifficulty) is clean and extensible
+### Strategic Roadmap Definition (2026-07-24)
 
-**Quality Notes:**
-- No bugs found across all 4 PRs
-- No XSS concerns (innerHTML uses only class defaults, not user input)
-- Good defensive coding patterns: typeof guards, try/catch on localStorage, null checks on audio nodes
-- Ghost personalities faithfully implement classic Pac-Man behaviors with Simpsons theme adaptation
+**Challenge:** User requested roadmap beyond feature lists — wanted game designer thinking about player psychology.
 
-### Strategic Roadmap Planning — Issue #37 (2026-07-24)
+**Solution: Player Journey Framework**
+- **Immediate Fun** (Phase 1): Hook in 60 seconds → Tutorial, Combo, Mobile Polish
+- **Deep Engagement** (Phase 2): Mastery loops → Endless mode, Audio upgrade, Leaderboard
+- **Social Virality** (Phase 3): Turn players into evangelists → Sharing, Daily Challenges, AI Debug
 
-**Context:** Sprint 1 delivered ghost AI, difficulty system, settings menu. Roadmap.md had 3 remaining items but lacked strategic depth.
+**10-Item Roadmap Created (#1-#10):**
+| Feature | Phase | Why |
+|---------|-------|-----|
+| Tutorial | Immediate | First impression critical; 40%→60%+ completion target |
+| Combo Multiplier | Immediate | Risk-reward hook; +40% ghost-chasing target |
+| Mobile Polish | Immediate | 70% of traffic is mobile; +30% session length target |
+| Endless Mode | Deep | "One more try" loop; +20% reach level 10+ target |
+| Social Sharing | Deep | 10%+ share rate (industry benchmark) |
+| Audio Upgrade | Deep | Pitch variation, spatial sound, dynamic tempo |
+| AI Debug Mode | Social | Transparency → learning |
+| Daily Challenges | Social | Fixed seeds enable fair competition |
+| Performance Pass | Social | 60fps non-negotiable |
+| Leaderboard/Stats | Social | Meta-progression |
 
-**Challenge:** joperezd requested a roadmap that goes beyond generic feature lists — wanted game designer thinking about what makes this game compelling enough to play and share.
+**Key Insights:** Mobile-first is reality. Tutorial unlocks all features. Combo system = core skill hook. Endless mode prevents abandonment after level 8. Sharing = viral growth. Audio is half the experience. Success metrics defined per item (60% tutorial completion, 40% combo ghost-chasing increase, etc.).
 
-**Approach: Player Journey Framework**
+**Team Assignment:**
+- Barney: Combo, Progressive Difficulty, Daily Challenges
+- Lenny: Tutorial, Mobile, Sharing, Stats Dashboard
+- Nelson: Performance, testing, metrics
+- Moe: Audio, AI Debug, architecture oversight
 
-Organized roadmap around three phases of engagement:
-1. **Immediate Fun** — Hook players in first 60 seconds
-2. **Deep Engagement** — Create mastery progression loops
-3. **Social Virality** — Turn players into evangelists
+**Scope Management:** NOT doing multiplayer, procedural mazes, cosmetics, or backend leaderboard. localStorage suffices.
 
-**10-Item Roadmap Defined:**
-
-| # | Feature | Phase | Why It Matters |
-|---|---------|-------|----------------|
-| 1 | Tutorial & Onboarding | Immediate | Mobile web games live/die on first impression. Players decide in 30sec. |
-| 2 | Combo Multiplier | Immediate | Risk-reward mechanic that adds "juice" to ghost-eating. Core skill expression. |
-| 3 | Mobile-First Polish | Immediate | 70%+ traffic is mobile. Touch must feel arcade-quality. |
-| 4 | Progressive Difficulty | Deep | Endless mode creates long-term progression. Always a new peak to reach. |
-| 5 | Social Sharing | Deep | Effortless sharing (Web Share API) turns achievement into competition. |
-| 6 | Audio Upgrade | Deep | Arcade feel is 50% audio. Pitch variation, spatial sound, dynamic tempo. |
-| 7 | AI Debug Mode | Social | Advanced players master systems. Transparency turns frustration into learning. |
-| 8 | Daily Challenges | Social | Habit formation. Fixed seeds enable fair competition. |
-| 9 | Performance Pass | Social | 60fps is non-negotiable for arcade feel. Profile and optimize hot paths. |
-| 10 | Leaderboard & Stats | Social | Endgame meta-progression. Intrinsic (beat yourself) + social (beat others). |
-
-**Key Strategic Insights:**
-
-**Mobile-First Reality:**
-- Current roadmap ignored that 70%+ of players are on mobile
-- Mobile needs: larger touch zones, haptic feedback, full-screen mode, portrait warnings
-- Session length is ~2min average on mobile — poor controls kill retention
-
-**Tutorial as Foundation:**
-- Players can't enjoy features they never reach
-- Level 1 completion rate estimated at ~40% — tutorial targets 60%+
-- Interactive, skippable, rewarding (not patronizing)
-
-**Combo System = Core Hook:**
-- Pac-Man's genius was risk-reward (chase ghosts during power-pellets)
-- Combo multipliers make this visceral with visual/audio feedback
-- Target: 40% increase in ghost-chasing behavior during power mode
-
-**Endless Mode for Retention:**
-- Current game ends at level 8 (maze rotation exhausted)
-- Endless mode with incremental difficulty (speed +2%, fright -3% per level)
-- Creates "one more try" loop — always feel close to beating record
-
-**Social Sharing = Viral Growth:**
-- Web Share API makes sharing one-tap on mobile
-- No login, no forms — just post score + URL to Twitter/WhatsApp
-- Target 10%+ share rate (industry benchmark for casual games)
-
-**Audio is Half the Experience:**
-- Current audio is functional, needs to be delightful
-- Pitch-varied donut chomps, spatial ghost sounds, dynamic music tempo
-- Players won't consciously notice but will feel game is "better"
-
-**Success Metrics Defined:**
-Each roadmap item includes measurable outcome:
-- Tutorial: 60%+ level 1 completion
-- Combo: 40%+ ghost-chasing increase
-- Mobile: 30%+ session length increase
-- Endless: 20%+ reach level 10+
-- Sharing: 10%+ share rate
-- Performance: 60fps on iPhone SE 2020
-
-**Architectural Implications:**
-
-New modules required:
-- `js/ui/tutorial.js` — onboarding overlay system
-- `js/ui/share-menu.js` — Web Share API integration
-- `js/ui/daily-challenge.js` — challenge mode controller
-- `js/ui/stats-dashboard.js` — leaderboard & stats
-- `manifest.json` — PWA config for "Add to Home Screen"
-
-Existing modules extended:
-- `js/game-logic.js` — combo tracking, endless mode, challenge rules
-- `js/engine/renderer.js` — particles, AI debug overlay, polish animations
-- `js/engine/audio.js` — pitch variation, spatial audio, ducking
-- `js/engine/high-scores.js` — stats tracking, daily leaderboard
-
-All new modules follow `js/ui/` pattern established by Lenny in Sprint 1.
-
-**What We're NOT Doing:**
-- Multiplayer (10x complexity, uncertain value)
-- Procedural maze generation (hand-crafted mazes are better balanced)
-- Character unlocks/cosmetics (scope creep, Simpsons IP is the aesthetic)
-- Backend/global leaderboard (hosting costs, localStorage suffices for MVP)
-
-**Team Assignment Strategy:**
-- **Barney:** Combo (#2), Difficulty (#4), Daily Challenges (#8) — gameplay systems
-- **Lenny:** Tutorial (#1), Mobile (#3), Sharing (#5), Stats (#10) — UI/UX
-- **Nelson:** Performance (#9), testing, metrics validation
-- **Moe:** Audio (#6), AI Debug (#7) — requires architectural oversight
-
-**Iteration Philosophy:**
-Roadmap is directional, not prescriptive. Success metrics guide iteration. If combo system doesn't increase ghost-chasing, tune visual feedback until it does.
-
-**Key Learning:**
-Feature lists are easy. Strategic roadmaps require understanding **player psychology** — what creates immediate fun, what drives mastery, what triggers sharing. Every feature must answer: "What job does this do in the player journey?"
+**Core Learning:** Feature lists are easy. Strategic roadmaps require understanding player psychology — what creates immediate fun, drives mastery, triggers sharing. Every feature answers: "What job does this do in the player journey?"
 
 **Decision Document:** `.squad/decisions/inbox/moe-roadmap-strategy.md` — full strategic reasoning captured for future reference.
 
@@ -292,3 +197,170 @@ Feature lists are easy. Strategic roadmaps require understanding **player psycho
 **Dependency Graph:** All 4 feature issues parallel → QA (#71) after all land
 
 **Decision Document:** `.squad/decisions/inbox/moe-sprint4-plan.md`
+
+### Roadmap v2 Definition — Phase 2 Strategic Direction (2026-07-24)
+
+**Context:** Issue #80 — All 10 Phase 1 roadmap items complete (Sprints 1-4 shipped). Game is feature-complete, polished, tested (504 tests passing). Board clear. Need strategic direction for Phase 2.
+
+**Challenge:** Phase 1 delivered Immediate Fun → Deep Engagement → Social Virality. What's NEXT? How do we evolve from "complete game" to "exceptional game"?
+
+**Approach: Three-Pillar Framework for Phase 2**
+
+Analyzed the current game state by reading key implementation files:
+- Tutorial, daily challenges, stats dashboard, endless mode, combo system ALL implemented
+- Strong foundation: modular UI architecture (`js/ui/` pattern), 504 passing tests, procedural audio
+- Gap analysis: Content feels repetitive after 20+ sessions, sprites are static, accessibility missing, 85KB game-logic.js becoming unwieldy
+
+Defined Phase 2 around three strategic pillars:
+
+#### 1. Depth & Variety (Content Freshness)
+**Problem:** Core loop (collect → chase → level up) becomes predictable. Needs variety without complexity.
+
+**Solutions:**
+- **Power-Up Variety (#92):** 5+ special items (Duff Beer speed boost, Donut Box bonus points, Chili Pepper slow ghosts, Mr. Burns Token extra life, Lard Lad invincibility). Creates decision-making and surprise moments. Each session has different item combos.
+- **Maze Themes (#99):** 6 Simpsons location skins (Springfield Streets, Moe's Tavern, Kwik-E-Mart, Elementary, Nuclear Plant, Simpsons House). Same collision geometry, different visuals. Rotate every 2-3 levels.
+- **Boss Ghosts (#96):** Climactic encounters every 5 levels. Fat Tony (2x HP), Krusty (fake pellets), Sideshow Bob (teleports), Mr. Burns (lasers). Breaks monotony.
+- **Procedural Events (#90):** 1-in-5 levels get random rule modifier (Double Trouble 8 ghosts, Darkness fog of war, No Power-Ups, Golden Hour 2x points). Creates memorable "story" runs.
+
+#### 2. Polish & Delight (Micro-Interactions)
+**Problem:** Phase 1 made game functional and fun. Phase 2 makes it FEEL amazing. Every action should trigger dopamine.
+
+**Solutions:**
+- **Screen Shake & Camera (#94):** Dynamic camera system with shake on collisions (ghost hit = medium, combo milestone = escalating, boss defeat = heavy), smooth follow with lookahead, zoom effects (level start/complete/death). Pac-Man's static camera feels dated. Toggleable for motion-sensitive players.
+- **Sprite Animations (#93):** 4-frame Homer walk cycles, ghost eye tracking (pupils follow player ±45°), death sequences, donut rotation, power pellet pulsing. Players watch sprites 100% of playtime — make them delightful.
+- **Achievement System (#98):** 20+ unlockable badges across 4 categories (Skill: 8x combo, Perfect Level; Milestone: Century Club 100K, Marathon lvl 20; Discovery: all items, all themes; Funny: D'oh Moment die in 5sec, Donut Addict 1000 donuts). Toast notifications, progress tracking, share integration.
+
+#### 3. Technical Foundation (Iteration Speed)
+**Problem:** 85KB game-logic.js is bottleneck. Every feature touches monolith. Need modularity for faster iteration. Accessibility and localization expand market.
+
+**Solutions:**
+- **Code Refactor (#97):** Extract 5 modules from game-logic.js (entity-manager, collision-detector, scoring-system, level-manager, ai-controller). Behavior-preserving extraction. game-logic shrinks 85KB → ~20KB as thin orchestrator. Enables parallel work, isolated testing.
+- **Accessibility (#91):** Colorblind modes (Protanopia/Deuteranopia/Tritanopia palettes + ghost icons), keyboard nav (tab/focus indicators), screen reader (ARIA labels, live regions), high-contrast mode, reduce motion, larger text. Currently excludes ~15% of players.
+- **Localization (#95):** i18n system supporting Spanish, French, German, Portuguese. `js/i18n/translations.js` key-value dictionaries, runtime language switching, localStorage persistence. Spanish alone doubles addressable market (Latin America + Spain).
+
+**10-Item Roadmap Created (Issues #90-#99):**
+
+| Issue | Feature | Owner | Priority | Pillar |
+|-------|---------|-------|----------|--------|
+| #92 | Power-Up Variety | Barney | P1 | Depth & Variety |
+| #99 | Maze Themes | Lenny | P1 | Depth & Variety |
+| #98 | Achievement System | Lenny | P1 | Polish & Delight |
+| #96 | Boss Ghosts | Barney | P1 | Depth & Variety |
+| #90 | Procedural Events | Barney | P2 | Depth & Variety |
+| #94 | Screen Shake & Camera | Lenny | P1 | Polish & Delight |
+| #93 | Sprite Animations | Lenny | P2 | Polish & Delight |
+| #91 | Accessibility | Lenny | P2 | Technical Foundation |
+| #97 | Code Refactor | Barney | P2 | Technical Foundation |
+| #95 | Localization | Lenny | P2 | Technical Foundation |
+
+**Priority Breakdown:**
+- **P1 (6 items):** Core player experience — power-ups, themes, achievements, bosses, camera. Immediately visible, high value.
+- **P2 (4 items):** Important but can ship after P1 — events, animations, accessibility, refactor, localization.
+
+**Success Metrics Defined:**
+
+*Depth & Variety:*
+- 80%+ collect 2+ special items per session
+- 60%+ recognize 3+ maze themes
+- 70%+ engage with boss mechanic at level 5
+
+*Polish & Delight:*
+- 85%+ keep camera effects enabled (measure opt-out rate)
+- 40%+ unlock 5+ achievements
+- Qualitative feedback mentions "polished" or "smooth"
+
+*Technical Foundation:*
+- 504 tests pass post-refactor (no regressions)
+- 0 critical accessibility issues (WAVE/axe validation)
+- 15%+ switch from English to another language
+
+**Scope Cuts (What We're NOT Doing):**
+- **Multiplayer:** 10x complexity, uncertain value. Game is single-player by design.
+- **Procedural Mazes:** Hand-crafted mazes better balanced. Random generation risks unwinnable layouts.
+- **Backend/Global Leaderboard:** Hosting costs, server overhead. localStorage suffices for MVP.
+- **Character Unlocks/Cosmetics:** Scope creep. Simpsons theme IS the aesthetic.
+- **Story Mode/Campaigns:** This is arcade game. High score IS the narrative.
+
+**Team Assignment Strategy:**
+- **Barney:** Engine/game logic features — power-ups (#92), boss ghosts (#96), events (#90), refactor (#97)
+- **Lenny:** UI/visual polish — themes (#99), achievements (#98), camera (#94), animations (#93), accessibility (#91), localization (#95)
+- **Nelson:** QA validation, regression testing, metrics measurement across all features
+- **Moe:** Code review, architectural guidance, scope management
+
+**Architectural Implications:**
+
+*New Modules:*
+- `js/i18n/translations.js` — localization system
+- `js/engine/entity-manager.js`, `collision-detector.js`, `scoring-system.js`, `level-manager.js`, `ai-controller.js` — extracted from game-logic.js
+- `docs/architecture.md` — system design documentation
+
+*Extended Modules:*
+- `js/game-logic.js` — item spawning, boss encounters, event triggers (then shrinks via refactor)
+- `js/engine/renderer.js` — theme rendering, camera system, animations, accessibility modes
+- `js/config.js` — item definitions, boss configs, theme data, event types
+- `js/ui/stats-dashboard.js` — achievements UI integration
+- `icons/` — theme sprites, boss sprites, item sprites, animation sprite sheets
+
+**Strategic Reasoning:**
+
+**Why Depth & Variety First:**
+- Players already engaged (Phase 1 succeeded). Now need reasons to keep playing.
+- Content variety (power-ups, themes, bosses, events) addresses repetition fatigue observed in endless mode
+- Low complexity cost — reuses existing systems with new data/visuals
+
+**Why Polish & Delight Matters:**
+- Arcade games succeed on "game feel" — Pac-Man's sound design is 50% of its appeal
+- Screen shake, animations, achievements amplify existing mechanics without changing rules
+- Creates "wow" moments that drive word-of-mouth
+
+**Why Technical Foundation Enables Phase 3:**
+- Refactor unlocks parallel feature development (no more monolith bottleneck)
+- Accessibility is ethical + expands player base 15-20%
+- Localization opens Latin America, Europe markets (3-5x addressable audience)
+- These investments pay dividends across all future work
+
+**Long-Term Vision:**
+
+Phase 1: Prove the game works (✅ Complete)  
+Phase 2: Prove the game is special (▶️ Starting)  
+Phase 3 (Future): Community features, user-generated challenges, global competition — but ONLY if Phase 2 demonstrates sustained engagement
+
+**Execution Plan:**
+
+Staged rollout over 2-3 sprints:
+- Sprint 5: P1 features batch 1 (power-ups, themes, achievements) + QA
+- Sprint 6: P1 features batch 2 (bosses, camera) + P2 features batch 1 (events, animations) + QA
+- Sprint 7: P2 features batch 2 (accessibility, refactor, localization) + comprehensive regression + polish
+
+Each sprint: 3-4 features + Nelson QA pass. Track success metrics per feature. Iterate on underperformers.
+
+**Key Learnings:**
+
+**From Phase 1 Results Applied to Phase 2:**
+- Tutorial doubled level 1 completion → Achievements create similar onboarding for advanced features
+- Combo system increased ghost-chasing 40% → Boss ghosts create similar skill expression goals
+- Mobile polish increased session length 30% → Animations/camera make existing content feel 30% better
+- Daily challenges created habit loops → Events create similar "one more run" replayability
+
+**Roadmap Philosophy Evolved:**
+- Phase 1 focused on player journey stages (Immediate → Deep → Social)
+- Phase 2 focuses on experience depth (Content → Feel → Foundation)
+- Both frameworks answer: "What job does this feature do for the player?"
+- Feature lists are easy. Strategic roadmaps require understanding player psychology AND technical constraints.
+
+**Risk Mitigation:**
+- Lenny has 6 of 10 issues — deliberately staged (P1 first, P2 after Sprint 5 completes)
+- Refactor is P2 to avoid destabilizing active development — ship features first, then modularize
+- Accessibility/localization can ship incrementally (start with 1 colorblind mode, 1 language; expand later)
+
+**Quality Gates:**
+- All features must have clear success metrics (not just "implemented")
+- 504 tests must pass after every feature (Nelson enforces)
+- No feature ships without accessibility considerations (keyboard nav minimum)
+- Code review required on all PRs — Moe approves architecture changes
+
+**Decision Document:** `.squad/decisions/moe-roadmap-v2.md`
+
+**Issues Closed:** #80 with summary of 10 new issues created
+
+**Perpetual Motion:** Workflow resumes — next issue auto-assigned when ready
