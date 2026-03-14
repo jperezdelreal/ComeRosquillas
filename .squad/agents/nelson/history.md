@@ -157,3 +157,38 @@
 - Ghost Debug Tools: AI state overlay, target visualization, tuning sliders — 16 tests
 - Daily Challenges: Daily rotation, deterministic PRNG, challenge leaderboard — 15 tests
 - Integration (Sprint 4 cross-feature): 9 tests
+
+### 2026-03-14: Game Class Instantiation Tests (Issue #107, PR #116)
+
+**Context:** Created the first test suite that actually instantiates the real `Game` class. Previous tests re-implemented logic inline — this one loads production code via eval and constructs real `Game()` instances.
+
+**What Changed:**
+- **tests/game-instantiation.test.js** — 63 tests across 12 describe blocks:
+  - Constructor (10): ST_START state, score/lives/level defaults, particle pool size, BFS cache, window._game registration, combo state
+  - Maze Loading (5): Springfield layout selection, deep copy isolation, 31×28 dimensions, layout cycling, 4 power pellets
+  - Ghost AI Init (7): 4 ghosts with correct names/personalities/positions, house status, staggered exit delays, scatter mode
+  - State Transitions (6): ST_START→ST_READY→ST_PLAYING flow, pause, dying state, lives decrement
+  - Scoring System (6): Score reset, ghost counter, game stats structure, combo localStorage persistence, HUD update
+  - Level Progression (9): Dot counting, difficulty ramp (0 at lvl 1, capped at 1.0), endless mode detection (lvl 9+), mode timers, score persistence across levels
+  - Game Runner (4): Frame simulation via `runFrames()`, floating text decay, particle pool lifecycle
+  - Homer Init (3): Starting position (14,23), direction (LEFT), speed ≈ BASE_SPEED
+  - Maze Helpers (5): Walkable tiles, ghost door access, tunnel wrapping at row 14, tileAt/centerOfTile math
+  - Speed System (5): Homer/ghost/fright/eaten speeds, endless mode speed cap
+  - Fright Time (3): Full fright at level 1, reduction at higher levels, minimum floor (90 frames)
+
+**Architecture Pattern — Loading Browser Scripts in Vitest:**
+- Config constants defined via `globalThis.X = ...` (mirroring config.js)
+- Game class loaded via `(0, eval)(code)` with `class Game {` → `globalThis.Game = class Game {` transformation
+- Engine modules loaded similarly (they add `Game.prototype.xxx = function()` — no class transform needed)
+- `const/let` → `var` regex enables global scope visibility in indirect eval
+- `Game.prototype.loop = function() {}` stub prevents draw pipeline (jsdom has no canvas)
+- Mock `SoundManager`, `HighScoreManager`, and `I18n` with minimal method stubs
+- `runFrames(game, n)` helper calls `game.update()` N times for state machine testing
+
+**Key Learnings:**
+- jsdom's `HTMLCanvasElement.getContext()` returns null without the `canvas` npm package — tests work fine because we stub `loop()` and never render
+- `I18n.onChange()` must be mocked since game-logic.js calls it in the constructor (added in i18n PR #95)
+- Indirect eval `(0, eval)(code)` runs in the global scope — `var` declarations become global, but `const`/`class` don't
+- The `const`→`var` regex `^(const|let)\s+` with `gm` flag works for flat scripts but could break template literals; targeted class transform (`/^\s*class Game\s*\{/m`) is safer than generic class regex
+
+**Final Results:** 660 tests passing (597 existing + 63 new), 0 failures across 23 test files.
