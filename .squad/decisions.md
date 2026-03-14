@@ -488,6 +488,71 @@ All three feature issues can be developed in parallel. QA runs after features la
 
 **Status:** ✅ Implemented in PR #62 (closes #56)
 
+### Roadmap v2 — Phase 2 Strategic Direction
+
+**Date:** 2026-07-24  
+**Author:** Moe (Lead)  
+**Context:** Issue #80 — All 10 original roadmap items complete, need next strategic direction
+
+#### Decision: Phase 2 Organized Around Three Strategic Pillars
+
+**Problem Statement**
+
+Phase 1 (Sprints 1-4) delivered a complete, polished arcade experience:
+- **Immediate Fun:** Tutorial, combo system, mobile polish
+- **Deep Engagement:** Endless mode, audio upgrade, leaderboard
+- **Social Virality:** Sharing, daily challenges, ghost debug
+
+Game is feature-complete per original vision. 504 tests passing, 0 known bugs. Board is clear.
+
+**Question:** What's the next chapter? How do we go from "complete game" to "exceptional game people can't stop playing"?
+
+#### Strategic Framework
+
+Phase 2 organized around three new pillars:
+
+**1. Depth & Variety (Content Freshness)** — Make each session feel unique, not repetitive.
+- **Power-Up Variety (#92):** 5+ special items beyond power pellet. Each session has different item combos.
+- **Maze Themes (#99):** 6 Simpsons location skins. Same collision geometry, different visuals.
+- **Boss Ghosts (#96):** Climactic encounters every 5 levels. Fat Tony, Krusty, Sideshow Bob, Mr. Burns.
+- **Procedural Events (#90):** 1-in-5 levels triggers random rule mod (Double Trouble, Darkness, No Power-Ups).
+
+**2. Polish & Delight (Micro-Interactions)** — Make every interaction feel juicy and satisfying.
+- **Screen Shake & Camera (#94):** Camera movement to amplify impact. Shake on collisions, smooth follow, zoom effects.
+- **Sprite Animations (#93):** Walk cycles, ghost eye tracking, death animations.
+- **Achievement System (#98):** 20+ mini-goals (skill-based, milestone, discovery, funny). Badges create status.
+
+**3. Technical Foundation (Iteration Speed)** — Enable faster feature development and wider audiences.
+- **Code Refactor (#97):** Extract 5 focused modules from game-logic.js. Behavior-preserving extraction.
+- **Accessibility (#91):** Colorblind modes, keyboard nav, screen reader support, high-contrast mode.
+- **Localization (#95):** Spanish, French, German, Portuguese support.
+
+#### Team Assignment
+
+- **Barney (Game Dev):** Power-Ups (#92), Boss Ghosts (#96), Events (#90), Refactor (#97)
+- **Lenny (UI Dev):** Themes (#99), Achievements (#98), Camera (#94), Animations (#93), Accessibility (#91), Localization (#95)
+- **Nelson (Tester):** QA validation for all features, regression testing, performance smoke tests
+- **Moe (Lead):** Code review, architectural guidance, scope management
+
+#### Success Criteria
+
+**Depth & Variety:**
+- 80%+ collect 2+ special items per session
+- 60%+ recognize 3+ maze themes
+- 70%+ engage with boss mechanic at level 5
+
+**Polish & Delight:**
+- 85%+ keep camera effects enabled
+- 40%+ unlock 5+ achievements
+- Qualitative feedback mentions "polished" or "smooth"
+
+**Technical Foundation:**
+- 504 tests pass post-refactor
+- 0 critical accessibility issues (WAVE/axe)
+- 15%+ switch from English to other language
+
+**Status:** Approved — 10 issues created (#90-#99). Staged rollout: P1 features first (6 items), P2 features after (4 items).
+
 ### Lead Pipeline Maintenance Directive
 
 **Date:** 2026-03-13T22:55Z  
