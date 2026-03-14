@@ -487,7 +487,9 @@
                 nextDir: LEFT,
                 mouthAngle: 0,
                 mouthOpen: true,
-                speed: this.getSpeed('homer')
+                speed: this.getSpeed('homer'),
+                isMoving: false,
+                celebrationTimer: 0,
             };
             const ramp = this.getDifficultyRamp();
             this.ghosts = GHOST_CFG.map((cfg, i) => {
@@ -869,6 +871,11 @@
                 if (this.homer.mouthAngle >= 0.6) this.homer.mouthOpen = false;
                 if (this.homer.mouthAngle <= 0) this.homer.mouthOpen = true;
             }
+
+            // Celebration timer countdown
+            if (this.homer.celebrationTimer > 0) {
+                this.homer.celebrationTimer--;
+            }
         }
 
         updateGhostMode() {
@@ -938,9 +945,11 @@
             if (canMove) {
                 h.x += DX[h.dir] * h.speed;
                 h.y += DY[h.dir] * h.speed;
+                h.isMoving = true;
             } else {
                 h.x = center.x - TILE / 2;
                 h.y = center.y - TILE / 2;
+                h.isMoving = false;
             }
 
             if (h.x < -TILE) h.x = COLS * TILE;
@@ -976,6 +985,9 @@
                 this.frightTimer = this.getLevelFrightTime();
                 this.sound.play('power');
                 this.sound.setFrightMode(true);
+                // Trigger celebration animation
+                const celebDur = typeof ANIM !== 'undefined' ? ANIM.homer.celebrationDuration : 30;
+                this.homer.celebrationTimer = celebDur;
                 // Camera: light pulse on power pellet
                 this.triggerShake('powerPellet');
                 if (typeof CAMERA_CONFIG !== 'undefined') {
@@ -1724,7 +1736,12 @@
                         }
                     }
                 }
-                Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE);
+                // Celebration pose or normal draw with animation params
+                if (this.homer.celebrationTimer > 0) {
+                    Sprites.drawHomerCelebration(ctx, this.homer.x, this.homer.y, TILE, this.animFrame);
+                } else {
+                    Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE, this.animFrame, this.homer.isMoving);
+                }
             }
 
             // Ghosts (skip offscreen)
@@ -2367,7 +2384,7 @@
             for (const actor of this.cutsceneActors) {
                 switch(actor.type) {
                     case 'homer':
-                        Sprites.drawHomer(ctx, actor.x, actor.y, actor.dir, actor.mouthAngle, TILE);
+                        Sprites.drawHomer(ctx, actor.x, actor.y, actor.dir, actor.mouthAngle, TILE, this.cutsceneFrame, true);
                         // Power glow effect
                         if (actor.powered) {
                             ctx.strokeStyle = '#ffd800';

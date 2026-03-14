@@ -161,11 +161,91 @@ class Sprites {
             ctx.fill(); ctx.stroke();
         }
 
-        // ---- DONUT ----
+        // ---- HOMER CELEBRATION (power-up collect pose, 2-frame) ----
+        static drawHomerCelebration(ctx, x, y, size, animFrame) {
+            const cx = x + size / 2;
+            const cy = y + size / 2;
+            const r = size / 2 - 1;
+            const frame2 = (animFrame % 10) < 5 ? 0 : 1; // 2-frame toggle
+
+            // Slight bounce up
+            const bounce = frame2 === 0 ? -2 : 0;
+
+            // Yellow head — wide open mouth (celebrating)
+            ctx.fillStyle = COLORS.simpsonYellow;
+            ctx.beginPath();
+            ctx.arc(cx, cy + bounce, r, 0.5, Math.PI * 2 - 0.5);
+            ctx.lineTo(cx, cy + bounce);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#b8a000';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.arc(cx, cy + bounce, r, 0.5, Math.PI * 2 - 0.5);
+            ctx.stroke();
+
+            // Big happy eye
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(cx - 2, cy - 4 + bounce, 5, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(cx - 1, cy - 4 + bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouth open wide
+            ctx.fillStyle = '#8B0000';
+            ctx.beginPath();
+            ctx.arc(cx + 4, cy + 2 + bounce, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Arms up (two arcs representing raised arms)
+            ctx.strokeStyle = COLORS.simpsonYellow;
+            ctx.lineWidth = 2.5;
+            const armAngle = frame2 === 0 ? -0.3 : 0.1;
+            // Left arm up
+            ctx.beginPath();
+            ctx.moveTo(cx - r + 2, cy + 2 + bounce);
+            ctx.quadraticCurveTo(cx - r - 4, cy - 6 + bounce + armAngle * 10,
+                cx - r + 1, cy - r + bounce);
+            ctx.stroke();
+            // Right arm up
+            ctx.beginPath();
+            ctx.moveTo(cx + r - 2, cy + 2 + bounce);
+            ctx.quadraticCurveTo(cx + r + 4, cy - 6 + bounce + armAngle * 10,
+                cx + r - 1, cy - r + bounce);
+            ctx.stroke();
+
+            // Hair
+            ctx.fillStyle = COLORS.simpsonYellow;
+            ctx.strokeStyle = '#b8a000';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i += 2) {
+                ctx.beginPath();
+                ctx.moveTo(cx + i * 2, cy - r + 1 + bounce);
+                ctx.lineTo(cx + i * 4, cy - r - 4 + bounce);
+                ctx.lineTo(cx + i * 1, cy - r + bounce);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Sparkles around Homer during celebration
+            ctx.fillStyle = '#ffd700';
+            for (let i = 0; i < 6; i++) {
+                const sa = animFrame * 0.2 + i * Math.PI / 3;
+                const sd = r + 6 + Math.sin(animFrame * 0.3 + i) * 3;
+                Sprites._drawStar(ctx, cx + Math.cos(sa) * sd, cy + Math.sin(sa) * sd + bounce, 2);
+            }
+        }
+
+        // ---- DONUT (4-frame spin at ~0.5 rot/s) ----
         static drawDonut(ctx, x, y, animFrame) {
             const r = 4;
-            // Gentle donut rotation
-            const rotation = animFrame * 0.015;
+            // 4-frame spin: quantized rotation for sprite-like feel
+            const spinFrame = Math.floor(animFrame / 15) % 4;
+            const rotation = spinFrame * (Math.PI / 2);
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(rotation);
@@ -207,30 +287,36 @@ class Sprites {
             ctx.restore();
         }
 
-        // ---- DUFF BEER (power pellet) ----
+        // ---- DUFF BEER (power pellet, scale 90-110% pulse, 1s cycle) ----
         static drawDuff(ctx, x, y, animFrame) {
-            const pulse = Math.sin(animFrame * 0.08) * 1.5;
-            const r = 7 + pulse;
+            // Scale pulses between 90% and 110% over ~60 frames (1s at 60fps)
+            const scaleFactor = 1.0 + Math.sin(animFrame * Math.PI * 2 / 60) * 0.1;
+            const baseR = 7;
+            const r = baseR * scaleFactor;
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scaleFactor, scaleFactor);
             // Can body
             ctx.fillStyle = COLORS.duffRed;
             ctx.beginPath();
-            ctx.roundRect(x - r * 0.7, y - r, r * 1.4, r * 2, 2);
+            ctx.roundRect(-baseR * 0.7, -baseR, baseR * 1.4, baseR * 2, 2);
             ctx.fill();
             // Duff label (white band)
             ctx.fillStyle = '#fff';
-            ctx.fillRect(x - r * 0.65, y - 3, r * 1.3, 7);
+            ctx.fillRect(-baseR * 0.65, -3, baseR * 1.3, 7);
             // "DUFF" text
             ctx.fillStyle = COLORS.duffRed;
             ctx.font = 'bold 6px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('DUFF', x, y + 1);
+            ctx.fillText('DUFF', 0, 1);
             // Top of can (silver)
             ctx.fillStyle = '#c0c0c0';
             ctx.beginPath();
-            ctx.ellipse(x, y - r + 1, r * 0.6, 2, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, -baseR + 1, baseR * 0.6, 2, 0, 0, Math.PI * 2);
             ctx.fill();
-            // Glow effect
+            ctx.restore();
+            // Glow effect (outside scale transform for proper radius)
             ctx.strokeStyle = `rgba(255, 215, 0, ${0.3 + Math.sin(animFrame * 0.08) * 0.2})`;
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -289,12 +375,16 @@ class Sprites {
 
         // -- Mr. Burns --
         static _drawBurns(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const swayCycle = cfg ? cfg.bodySwayCycle : 20;
+            const swayPx = cfg ? cfg.bodySwayPx : 1;
+            const wave = Math.sin(frame * Math.PI * 2 / swayCycle);
+            const sway = wave * swayPx;
 
-            // Body (sickly yellow-green suit)
+            // Body (sickly yellow-green suit) with horizontal sway
             ctx.fillStyle = '#9acd32';
             ctx.beginPath();
-            ctx.arc(cx, cy - 2, r, Math.PI, 0);
+            ctx.arc(cx + sway, cy - 2, r, Math.PI, 0);
             ctx.lineTo(cx + r, cy + r);
             for (let i = 3; i >= 0; i--) {
                 ctx.lineTo(cx - r + (i * 2 * r / 3), cy + r + (i % 2 === 0 ? wave * 3 : -wave * 3));
@@ -368,12 +458,16 @@ class Sprites {
 
         // -- Sideshow Bob --
         static _drawSideshowBob(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const swayCycle = cfg ? cfg.bodySwayCycle : 20;
+            const swayPx = cfg ? cfg.bodySwayPx : 1;
+            const wave = Math.sin(frame * Math.PI * 2 / swayCycle);
+            const sway = wave * swayPx;
 
             // Body (teal/green prison suit or his outfit)
             ctx.fillStyle = '#228b8b';
             ctx.beginPath();
-            ctx.arc(cx, cy - 2, r, Math.PI, 0);
+            ctx.arc(cx + sway, cy - 2, r, Math.PI, 0);
             ctx.lineTo(cx + r, cy + r);
             for (let i = 3; i >= 0; i--) {
                 ctx.lineTo(cx - r + (i * 2 * r / 3), cy + r + (i % 2 === 0 ? wave * 3 : -wave * 3));
@@ -445,12 +539,16 @@ class Sprites {
 
         // -- Nelson Muntz --
         static _drawNelson(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const swayCycle = cfg ? cfg.bodySwayCycle : 20;
+            const swayPx = cfg ? cfg.bodySwayPx : 1;
+            const wave = Math.sin(frame * Math.PI * 2 / swayCycle);
+            const sway = wave * swayPx;
 
             // Body (pink/salmon shirt + blue vest)
             ctx.fillStyle = '#ff8c69'; // Salmon/orange shirt
             ctx.beginPath();
-            ctx.arc(cx, cy - 2, r, Math.PI, 0);
+            ctx.arc(cx + sway, cy - 2, r, Math.PI, 0);
             ctx.lineTo(cx + r, cy + r);
             for (let i = 3; i >= 0; i--) {
                 ctx.lineTo(cx - r + (i * 2 * r / 3), cy + r + (i % 2 === 0 ? wave * 3 : -wave * 3));
@@ -538,12 +636,16 @@ class Sprites {
 
         // -- Snake Jailbird --
         static _drawSnake(ctx, cx, cy, r, dir, frame) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const swayCycle = cfg ? cfg.bodySwayCycle : 20;
+            const swayPx = cfg ? cfg.bodySwayPx : 1;
+            const wave = Math.sin(frame * Math.PI * 2 / swayCycle);
+            const sway = wave * swayPx;
 
             // Body (orange prison jumpsuit)
             ctx.fillStyle = '#ff6600';
             ctx.beginPath();
-            ctx.arc(cx, cy - 2, r, Math.PI, 0);
+            ctx.arc(cx + sway, cy - 2, r, Math.PI, 0);
             ctx.lineTo(cx + r, cy + r);
             for (let i = 3; i >= 0; i--) {
                 ctx.lineTo(cx - r + (i * 2 * r / 3), cy + r + (i % 2 === 0 ? wave * 3 : -wave * 3));
@@ -611,59 +713,103 @@ class Sprites {
             ctx.stroke();
         }
 
-        // -- Frightened Ghost (Simpsons-style scared face) --
+        // -- Frightened Ghost (Simpsons-style scared face with X eyes & trembling) --
         static _drawFrightenedGhost(ctx, cx, cy, r, frame, frightTimer) {
-            const wave = frame % 20 < 10 ? 1 : -1;
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+            const swayCycle = cfg ? cfg.bodySwayCycle : 20;
+            const swayPx = cfg ? cfg.bodySwayPx : 1;
+            const trembleCycle = cfg ? cfg.frightenedTrembleCycle : 8;
+            const tremblePx = cfg ? cfg.frightenedTremblePx : 1;
+
+            // Smooth body sway using sine
+            const wave = Math.sin(frame * Math.PI * 2 / swayCycle) * 3;
+
+            // Trembling horizontal offset
+            const tremble = Math.sin(frame * Math.PI * 2 / trembleCycle) * tremblePx;
+            const drawCx = cx + tremble;
+
             const flashing = frightTimer < FRIGHT_FLASH_TIME && frame % 16 < 8;
             const color = flashing ? '#ffffff' : '#5555ff';
 
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(cx, cy - 2, r, Math.PI, 0);
-            ctx.lineTo(cx + r, cy + r);
+            ctx.arc(drawCx, cy - 2, r, Math.PI, 0);
+            ctx.lineTo(drawCx + r, cy + r);
             for (let i = 3; i >= 0; i--) {
-                ctx.lineTo(cx - r + (i * 2 * r / 3), cy + r + (i % 2 === 0 ? wave * 3 : -wave * 3));
+                ctx.lineTo(drawCx - r + (i * 2 * r / 3), cy + r + (i % 2 === 0 ? wave : -wave));
             }
             ctx.closePath();
             ctx.fill();
 
-            // Scared face - swirly eyes (like Simpsons dizzy)
+            // X eyes (cross-eyed scared look, 2-frame animation)
             const eyeColor = flashing ? '#555' : '#fff';
+            const xFrame = (frame % 12) < 6;
+            const xSize = xFrame ? 3.5 : 3;
             ctx.strokeStyle = eyeColor;
-            ctx.lineWidth = 1.2;
+            ctx.lineWidth = 1.5;
             for (const ox of [-4, 4]) {
+                const ex = drawCx + ox;
+                const ey = cy - 3;
+                // X shape
                 ctx.beginPath();
-                ctx.arc(cx + ox, cy - 3, 3, 0, Math.PI * 1.5);
+                ctx.moveTo(ex - xSize, ey - xSize);
+                ctx.lineTo(ex + xSize, ey + xSize);
                 ctx.stroke();
-                // Dot center
-                ctx.fillStyle = eyeColor;
                 ctx.beginPath();
-                ctx.arc(cx + ox, cy - 3, 1, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(ex + xSize, ey - xSize);
+                ctx.lineTo(ex - xSize, ey + xSize);
+                ctx.stroke();
             }
 
-            // Wavy mouth (terrified)
+            // Trembling wavy mouth (shifts with tremble)
+            const mouthTremble = Math.sin(frame * Math.PI * 2 / (trembleCycle * 0.7)) * 1.5;
             ctx.strokeStyle = eyeColor;
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(cx - 6, cy + 3);
+            ctx.moveTo(drawCx - 6, cy + 3 + mouthTremble);
             for (let i = 0; i < 7; i++) {
-                ctx.lineTo(cx - 6 + i * 2, cy + 3 + (i % 2 === 0 ? -2 : 2));
+                ctx.lineTo(drawCx - 6 + i * 2,
+                    cy + 3 + mouthTremble + (i % 2 === 0 ? -2 : 2));
             }
             ctx.stroke();
 
-            // Sweat drops
-            if (frame % 30 < 15) {
+            // Sweat drops (animated dripping)
+            const sweatPhase = (frame % 40) / 40;
+            if (sweatPhase < 0.6) {
                 ctx.fillStyle = '#88ccff';
+                ctx.globalAlpha = 1 - sweatPhase * 1.2;
                 ctx.beginPath();
-                ctx.ellipse(cx + r - 1, cy - 1, 1, 2, 0.3, 0, Math.PI * 2);
+                ctx.ellipse(drawCx + r - 1, cy - 3 + sweatPhase * 10, 1, 2, 0.3, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.globalAlpha = 1;
             }
         }
 
-        // -- Ghost eyes only (eaten state) --
-        static _drawGhostEyes(ctx, cx, cy, dir) {
+        // -- Ghost eyes only (eaten state with trailing particles) --
+        static _drawGhostEyes(ctx, cx, cy, dir, animFrame, ghostDir) {
             const eye = Sprites._eyeOffset(dir);
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.ghost : null;
+
+            // Trailing ectoplasm particles behind the floating eyes
+            if (cfg && animFrame !== undefined && ghostDir !== undefined) {
+                const trailCount = cfg.eatenTrailCount;
+                const spacing = cfg.eatenTrailSpacing;
+                for (let i = 1; i <= trailCount; i++) {
+                    const tx = cx - DX[ghostDir] * i * spacing;
+                    const ty = cy - DY[ghostDir] * i * spacing;
+                    const alpha = 0.4 * (1 - i / (trailCount + 1));
+                    const trailR = 2.5 * (1 - i / (trailCount + 1));
+                    const wobble = Math.sin((animFrame + i * 5) * 0.3) * 1.5;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = '#aaccff';
+                    ctx.beginPath();
+                    ctx.arc(tx + wobble, ty + wobble * 0.5, trailR, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            // The floating eyes
             for (const ox of [-4, 4]) {
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
@@ -757,7 +903,18 @@ class Sprites {
             const pulse = Math.sin(animFrame * 0.1) * 2;
             const bob = Math.sin(animFrame * 0.06) * 3;
             const r = 8 + pulse;
+
+            // Shimmer effect (2-frame glow cycle)
+            const shimmerCfg = typeof ANIM !== 'undefined' ? ANIM.items : null;
+            const shimmerCycle = shimmerCfg ? shimmerCfg.shimmerCycle : 20;
+            const shimmerMin = shimmerCfg ? shimmerCfg.shimmerAlphaMin : 0.7;
+            const shimmerMax = shimmerCfg ? shimmerCfg.shimmerAlphaMax : 1.0;
+            const shimmerPhase = (animFrame % shimmerCycle) / shimmerCycle;
+            const shimmerAlpha = shimmerMin + (shimmerMax - shimmerMin) *
+                (0.5 + 0.5 * Math.sin(shimmerPhase * Math.PI * 2));
+
             ctx.save();
+            ctx.globalAlpha = shimmerAlpha;
             ctx.translate(x, y + bob);
             ctx.strokeStyle = type.colors.glow.replace('0.3', `${0.3 + Math.sin(animFrame * 0.08) * 0.15}`);
             ctx.lineWidth = 2;

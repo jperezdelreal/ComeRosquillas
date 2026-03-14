@@ -612,6 +612,34 @@ const COLORS = {
     burnsGreen: '#556b2f',
 };
 
+// ==================== ANIMATION CONFIG ====================
+const ANIM = {
+    homer: {
+        walkCycleFrames: 16,        // Frames per full walk cycle
+        walkBobHeight: 1.5,         // Vertical bob in pixels
+        armSwingAngle: 0.35,        // Radians arm swing amplitude
+        idleBreatheCycle: 80,       // Frames for one breathe cycle
+        idleBreatheHeight: 1,       // Vertical breathe offset in pixels
+        celebrationDuration: 30,    // Frames for power-up celebration pose
+    },
+    ghost: {
+        bodySwayCycle: 24,          // Frames per sway cycle (smoother than 20)
+        bodySwayPx: 1.5,            // Horizontal sway pixels
+        frightenedTrembleCycle: 8,  // Frames per tremble cycle
+        frightenedTremblePx: 1,     // Horizontal tremble pixels
+        eatenTrailCount: 5,         // Number of trailing particles
+        eatenTrailSpacing: 6,       // Pixels between trail particles
+    },
+    items: {
+        shimmerCycle: 20,           // Frames per shimmer cycle
+        shimmerAlphaMin: 0.7,       // Min shimmer opacity
+        shimmerAlphaMax: 1.0,       // Max shimmer opacity
+    },
+    performance: {
+        minFPSForAnim: 30,          // Skip extra anims below this FPS
+    },
+};
+
 // ==================== POWER-UP TYPES ====================
 const SPECIAL_ITEM = 6;
 
