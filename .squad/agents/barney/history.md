@@ -409,3 +409,30 @@
 - `index.html`: CSS visibility rules for action buttons
 - `js/engine/touch-input.js`: Click handlers added
 - `js/ui/settings-menu.js`: Auto-pause/resume logic in open()/close()
+
+### Unique Maze Layouts for All 6 Themes
+**Date:** 2026-03-14
+**Context:** Added 2 new unique maze templates so all 6 themes have distinct layouts
+
+**Problem:**
+- Only 4 unique maze templates existed for 6 themes
+- Springfield Elementary reused Nuclear Plant's maze, Nuclear Plant reused Kwik-E-Mart's, Simpsons House reused Springfield's
+- Player experienced duplicate layouts when progressing through levels
+
+**Solution:**
+- Created MAZE_SPRINGFIELD_ELEMENTARY — school hallway grid pattern with classroom-like enclosed areas
+- Created MAZE_SIMPSONS_HOUSE — room-like spaces connected by narrow single-tile doorways
+- Reassigned MAZE_NUCLEAR_PLANT to Nuclear Plant theme (where it belongs)
+- Each theme now has its own visually distinct maze layout
+
+**Maze Architecture Rules (for future mazes):**
+- 28x31 grid, rows 9-19 are shared ghost house area (_GHOST_AREA constant)
+- Row 8 must connect to ghost area at columns 6 and 21 (main vertical corridors)
+- Row 20 must connect to ghost area at columns 6, 9, 18, 21
+- Row 23, columns 13-14 must be EMPTY (2) for Homer spawn
+- Row 14 has tunnels (EMPTY at cols 0-5 and 22-27)
+- 4 power pellets required, border walls on rows 0/30 and cols 0/27
+- BFS validation script used to verify all dots reachable from Homer's position
+
+**Key Files:**
+- `js/config.js`: MAZE_SPRINGFIELD_ELEMENTARY, MAZE_SIMPSONS_HOUSE constants + MAZE_LAYOUTS assignment
