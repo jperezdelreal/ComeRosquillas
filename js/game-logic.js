@@ -6,6 +6,7 @@
 
     class Game {
         constructor() {
+            window._game = this;
             this.canvas = document.getElementById('gameCanvas');
             this.canvas.width = CANVAS_W;
             this.canvas.height = CANVAS_H;
@@ -255,8 +256,8 @@
                     &#127850; Eat all the donuts<br>
                     &#127866; Grab a Duff to chase the bad guys<br>
                     &#128123; Beware of Sr. Burns, Bob Patiño, Nelson & Snake!<br><br>
-                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard<br><br>
-                    Press ENTER or SPACE to start
+                    P = Pause &nbsp; M = Mute music &nbsp; L = Leaderboard &nbsp; H = Share<br><br>
+                    ${this._challengeBannerHtml()}Press ENTER or SPACE to start
                     ${scoreTable}
                 </div>`;
             this.msgEl.style.display = 'block';
@@ -1110,6 +1111,29 @@
                 ghostsEaten: this._gameGhostsEaten,
                 playTimeMs: this._gameStartTime ? Date.now() - this._gameStartTime : 0
             };
+        }
+
+        _shareButtonHtml() {
+            if (typeof ShareMenu === 'undefined') return '';
+            return `<button onclick="if(window._game&&window._game.shareMenu)window._game.shareMenu.open()" style="
+                font-family:'Bangers','Arial',sans-serif;font-size:18px;padding:10px 24px;
+                background:linear-gradient(180deg,#4CAF50 0%,#388E3C 100%);
+                border:2px solid #66BB6A;color:#fff;border-radius:10px;cursor:pointer;
+                margin:8px 0 12px;letter-spacing:0.5px;text-shadow:1px 1px 0 rgba(0,0,0,0.3);
+                transition:transform 0.15s;display:inline-block;
+            " onmouseover="this.style.transform='translateY(-2px)'"
+               onmouseout="this.style.transform='translateY(0)'"
+            >📤 Share Your Score!</button><br><span style='font-size:13px;color:#e0d0ff;'>Press H to share</span><br><br>`;
+        }
+
+        _challengeBannerHtml() {
+            if (typeof ShareMenu === 'undefined') return '';
+            const target = ShareMenu.getTargetScoreFromUrl();
+            if (!target || isNaN(target)) return '';
+            return `<div style="background:linear-gradient(180deg,#E91E63 0%,#AD1457 100%);
+                border:2px solid #F06292;border-radius:10px;padding:10px 16px;margin:0 0 12px;
+                color:#fff;font-size:16px;text-shadow:1px 1px 0 rgba(0,0,0,0.3);">
+                ⚔️ Challenge: Beat ${target.toLocaleString()} points!</div>`;
         }
 
         updateHUD() {

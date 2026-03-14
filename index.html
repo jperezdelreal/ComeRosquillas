@@ -944,6 +944,189 @@
             #message .catchphrase { font-size: 20px; }
             #message .subtitle { font-size: 16px; }
         }
+
+        /* ==================== Share Menu ==================== */
+        .share-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1600;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .share-modal {
+            background: linear-gradient(180deg, #2d1b69 0%, #1a0a2e 100%);
+            border: 3px solid #ffd800;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 420px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 0 40px rgba(255, 216, 0, 0.4);
+            animation: shareSlideIn 0.25s ease-out;
+        }
+        @keyframes shareSlideIn {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .share-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px 12px;
+            border-bottom: 2px solid rgba(255, 216, 0, 0.2);
+        }
+        .share-title {
+            font-family: 'Bangers', 'Arial', sans-serif;
+            font-size: 24px;
+            color: #ffd800;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        .share-close {
+            background: none;
+            border: 2px solid #ffd800;
+            color: #ffd800;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.2s;
+        }
+        .share-close:hover {
+            background: rgba(255, 216, 0, 0.15);
+            transform: scale(1.1);
+        }
+        .share-content {
+            padding: 16px 20px 20px;
+        }
+        .share-score-card {
+            text-align: center;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 216, 0, 0.15);
+            margin-bottom: 16px;
+        }
+        .share-score-value {
+            font-family: 'Permanent Marker', monospace;
+            font-size: 48px;
+            color: #ffd800;
+            text-shadow: 3px 3px 0 #000, 0 0 20px rgba(255, 216, 0, 0.5);
+            line-height: 1.1;
+        }
+        .share-stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 16px;
+            margin-top: 10px;
+            font-size: 15px;
+            color: #e0d0ff;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .share-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .share-btn {
+            font-family: 'Bangers', 'Arial', sans-serif;
+            font-size: 16px;
+            padding: 12px 8px;
+            border: 2px solid;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            letter-spacing: 0.5px;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+        }
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .share-btn:active {
+            transform: translateY(0);
+        }
+        .share-btn-primary {
+            background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+            border-color: #66BB6A;
+            color: #fff;
+        }
+        .share-btn-copy {
+            background: linear-gradient(180deg, #2196F3 0%, #1565C0 100%);
+            border-color: #42A5F5;
+            color: #fff;
+        }
+        .share-btn-screenshot {
+            background: linear-gradient(180deg, #FF9800 0%, #E65100 100%);
+            border-color: #FFB74D;
+            color: #fff;
+        }
+        .share-btn-challenge {
+            background: linear-gradient(180deg, #E91E63 0%, #AD1457 100%);
+            border-color: #F06292;
+            color: #fff;
+        }
+        .share-qr-section {
+            text-align: center;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 216, 0, 0.1);
+        }
+        .share-qr-label {
+            font-size: 14px;
+            color: #e0d0ff;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        #shareQrCanvas {
+            border-radius: 6px;
+            image-rendering: pixelated;
+        }
+        .share-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: linear-gradient(180deg, #2d1b69 0%, #1a0a2e 100%);
+            border: 2px solid #ffd800;
+            color: #ffd800;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-family: 'Bangers', 'Arial', sans-serif;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            text-shadow: 1px 1px 0 #000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            pointer-events: none;
+            z-index: 1700;
+        }
+        .share-toast-visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        @media (max-width: 700px) {
+            .share-modal { width: 95%; max-width: none; }
+            .share-score-value { font-size: 36px; }
+            .share-stats { font-size: 13px; }
+            .share-btn { font-size: 14px; padding: 10px 6px; }
+        }
+        @media (max-width: 480px) {
+            .share-actions { grid-template-columns: 1fr; }
+            .share-qr-section { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -969,6 +1152,7 @@
             <span><span class="key">M</span> Music</span>
             <span><span class="key">S</span> Settings</span>
             <span><span class="key">L</span> Leaderboard</span>
+            <span><span class="key">H</span> Share</span>
             <span><span class="key">ENTER</span> Start</span>
         </div>
         <div id="message"></div>
@@ -979,6 +1163,7 @@
     <script src="js/ui/settings-menu.js"></script>
     <script src="js/ui/tutorial.js"></script>
     <script src="js/ui/stats-dashboard.js"></script>
+    <script src="js/ui/share-menu.js"></script>
     <script src="js/engine/renderer.js"></script>
     <script src="js/engine/high-scores.js"></script>
     <script src="js/engine/touch-input.js"></script>
