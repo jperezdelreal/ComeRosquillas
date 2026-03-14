@@ -301,4 +301,36 @@
 - `js/engine/renderer.js`: Sprites.drawBurnsCrown, drawPersonalitySpeedLines, drawSnakeSmokeTrail, drawBossHpBar
 - `js/engine/audio.js`: _bossIntro(), _bossDefeat(), _krustyLaugh()
 
+### Code Architecture Refactor (Issue #97)
+**Date:** 2026-03-14  
+**Context:** Extracted 45 methods from monolithic game-logic.js into 5 focused modules
+
+**Architecture Decision:**
+- Used `Game.prototype.methodName = function() {}` pattern (not separate ES6 classes)
+- Modules are loaded via `<script>` tags after game-logic.js, extending the Game class via prototype
+- All `this` references work unchanged — zero transformation risk
+- game-logic.js shrunk from ~3100 to ~1570 lines (thin orchestrator)
+
+**Module Breakdown:**
+- `js/engine/entity-manager.js` (10 methods): initEntities, moveHomer, power-up lifecycle
+- `js/engine/collision-detector.js` (3 methods): checkDots, checkCollisions, checkExtraLife
+- `js/engine/scoring-system.js` (9 methods): HUD, combos, stats, daily challenge scoring
+- `js/engine/level-manager.js` (14 methods): level init, difficulty curve, cutscenes, getSpeed
+- `js/engine/ai-controller.js` (9 methods): ghost AI, BFS pathfinding, boss abilities
+
+**Key Bugs Found During Extraction:**
+- `checkBossTraps()` rake slow used `setTimeout` — replaced with frame-based `_rakeSlowTimer = 60`
+- `updateHUD()` and `_levelTitle()` format strings drifted — must match `∞ ENDLESS - {name} {level}` format
+- Duplicate camera state initialization block in constructor — removed
+
+**Key Lesson:** When extracting methods via prototype extension, the prototype version overrides the class method (last definition wins). Always verify extracted code matches the source exactly — format strings and timer implementations are easy drift points.
+
+**Key Files:**
+- `js/game-logic.js`: Thin orchestrator (constructor, update, draw, loop, input, screens)
+- `js/engine/entity-manager.js`: Entity spawn, movement, power-ups
+- `js/engine/collision-detector.js`: AABB checks, dot/ghost collisions
+- `js/engine/scoring-system.js`: Score, combos, HUD, game stats
+- `js/engine/level-manager.js`: Level transitions, difficulty, cutscenes
+- `js/engine/ai-controller.js`: Ghost AI, BFS, boss abilities
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
