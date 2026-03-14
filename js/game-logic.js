@@ -41,6 +41,7 @@
             this._allTimeBestCombo = this._loadBestCombo();
             this.screenShakeTimer = 0;
             this.screenShakeIntensity = 0;
+            this._shakeMaxDuration = 0;
 
             // Camera juice state
             this._cameraEffectsEnabled = true;
@@ -634,6 +635,7 @@
             if (!cfg) return;
             this.screenShakeTimer = cfg.duration;
             this.screenShakeIntensity = cfg.intensity;
+            this._shakeMaxDuration = cfg.duration;
         }
         triggerZoom(targetScale, duration) {
             if (!this._isCameraEnabled()) return;
@@ -1421,8 +1423,7 @@
                 }
                 if (hasFollow) ctx.translate(this._cameraOffsetX, this._cameraOffsetY);
                 if (hasShake) {
-                    const md = typeof CAMERA_CONFIG !== 'undefined' ? Math.max(...Object.values(CAMERA_CONFIG.shake).map(s => s.duration)) : 18;
-                    const decay = this.screenShakeTimer / md;
+                    const decay = this.screenShakeTimer / (this._shakeMaxDuration || 18);
                     const intensity = this.screenShakeIntensity * decay;
                     ctx.translate(Math.sin(this.animFrame * 1.1) * intensity, Math.cos(this.animFrame * 1.7) * intensity);
                 }
