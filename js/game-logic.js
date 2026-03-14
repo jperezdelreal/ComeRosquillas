@@ -87,6 +87,11 @@
             this._wipeTimer = 0;
             this._wipeDirection = 1;
 
+            // Boss ghost state
+            this.bossGhost = null;
+            this.bossIntroTimer = 0;
+            this.bossDefeated = false;
+
             // Pre-render some decorations
             this.cloudOffset = 0;
 
@@ -472,6 +477,7 @@
                     mode: GM_SCATTER,
                     color: cfg.color,
                     name: cfg.name,
+                    personality: cfg.personality,
                     scatterX: cfg.scatterX,
                     scatterY: cfg.scatterY,
                     homeX: cfg.homeX * TILE,
@@ -479,11 +485,53 @@
                     inHouse: i > 0,
                     exitTimer: Math.round(cfg.exitDelay * (1 - ramp * DIFFICULTY_CURVE.exitDelayReduction)),
                     idx: i,
-                    _lastDecisionTile: -1
+                    _lastDecisionTile: -1,
+                    laughTimer: 0,
+                    wobbleOffset: 0,
+                    speedVariation: 1.0
                 };
                 ghost.speed = this.getSpeed('ghost', ghost);
                 return ghost;
             });
+
+            // Check for boss level
+            if (typeof getBossForLevel === 'function') {
+                const bossCfg = getBossForLevel(this.level);
+                if (bossCfg) {
+                    this.createBossGhost(bossCfg);
+                } else {
+                    this.bossGhost = null;
+                }
+            }
+            this.bossDefeated = false;
+        }
+
+        createBossGhost(cfg) {
+            this.bossGhost = {
+                x: 14 * TILE,
+                y: 11 * TILE,
+                dir: LEFT,
+                mode: GM_CHASE,
+                color: cfg.color,
+                name: cfg.name,
+                hp: cfg.hp,
+                maxHp: cfg.hp,
+                speed: BASE_SPEED * cfg.speed,
+                blocking: !!cfg.blocking,
+                fakePellets: !!cfg.fakePellets,
+                teleport: !!cfg.teleport,
+                traps: !!cfg.traps,
+                lasers: !!cfg.lasers,
+                bonus: cfg.bonus,
+                portrait: cfg.portrait,
+                isBoss: true,
+                inHouse: false,
+                idx: -1,
+                _lastDecisionTile: -1,
+                teleportCooldown: 0,
+                laserTimer: 0
+            };
+            this.bossIntroTimer = 180;
         }
 
         // ---- DIFFICULTY CURVE ----
@@ -547,8 +595,11 @@
                     ? 1 + DailyChallenge.getGhostSpeedBonus(this._dailyChallenge) : 1;
                 let base = BASE_SPEED * 0.9 * levelMultiplier * difficulty.ghostSpeedMultiplier * aggressionMod * dailyBonus;
                 if (ghost) {
-                    if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
-                    if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
+                    if (ghost.personality === 'fast') base *= (1 + 0.20 * ramp);
+                    if (ghost.personality === 'erratic') {
+                        const variation = ghost.speedVariation !== undefined ? ghost.speedVariation : 1.0;
+                        base *= variation;
+                    }
                 }
                 return Math.min(speedCap, base);
             }
@@ -782,9 +833,15 @@
                             this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
                             this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
                         }
-                        this.state = ST_READY;
-                        this.stateTimer = 150;
-                        this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                        // Check if new level is a boss level
+                        if (this.bossGhost) {
+                            this.state = ST_BOSS_INTRO;
+                            this.showMessage('⚠️ BOSS BATTLE!', `${this.bossGhost.name} appears!<br>Use power pellets to attack!`);
+                        } else {
+                            this.state = ST_READY;
+                            this.stateTimer = 150;
+                            this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                        }
                         this.updateHUD();
                     }
                 }
@@ -793,6 +850,15 @@
 
             if (this.state === ST_CUTSCENE) {
                 this.updateCutscene();
+                return;
+            }
+
+            if (this.state === ST_BOSS_INTRO) {
+                this.bossIntroTimer--;
+                if (this.bossIntroTimer <= 0) {
+                    this.state = ST_PLAYING;
+                    this.hideMessage();
+                }
                 return;
             }
 
@@ -809,6 +875,7 @@
             this.checkDots();
             this.updateBonus();
             for (const ghost of this.ghosts) this.moveGhost(ghost);
+            if (this.bossGhost && !this.bossDefeated) this.moveBossGhost();
             this.checkCollisions();
 
             // Spatial audio update (throttled for performance)
@@ -1024,6 +1091,24 @@
                 return;
             }
 
+            // Nelson laugh pause: briefly stops to taunt
+            if (g.personality === 'wobble') {
+                if (g.laughTimer > 0) {
+                    g.laughTimer--;
+                    return;
+                }
+                if (g.mode === GM_CHASE && this.animFrame % 180 === 0) {
+                    g.laughTimer = 30;
+                }
+                g.wobbleOffset = Math.sin(this.animFrame * 0.15) * 2;
+            }
+
+            // Snake erratic speed variation
+            if (g.personality === 'erratic' && this.animFrame % 60 === 0) {
+                g.speedVariation = 0.7 + Math.random() * 0.6;
+                g.speed = this.getSpeed('ghost', g);
+            }
+
             const cx = g.x + TILE / 2;
             const cy = g.y + TILE / 2;
             const tile = this.tileAt(cx, cy);
@@ -1107,6 +1192,87 @@
                 crumbs.push({ x: g.x + TILE / 2, y: g.y + TILE / 2 });
                 if (crumbs.length > GHOST_DEBUG.maxBreadcrumbs) crumbs.shift();
             }
+        }
+
+        moveBossGhost() {
+            const b = this.bossGhost;
+            if (!b || this.bossDefeated) return;
+
+            const hTile = this.tileAt(this.homer.x + TILE / 2, this.homer.y + TILE / 2);
+            const bx = b.x + TILE / 2;
+            const by = b.y + TILE / 2;
+            const bTile = this.tileAt(bx, by);
+            const center = this.centerOfTile(bTile.col, bTile.row);
+            const distToCenter = Math.abs(bx - center.x) + Math.abs(by - center.y);
+
+            // Teleport ability: jump to random walkable tile periodically
+            if (b.teleport) {
+                if (b.teleportCooldown > 0) b.teleportCooldown--;
+                if (b.teleportCooldown <= 0 && this.animFrame % 300 === 0) {
+                    for (let attempt = 0; attempt < 20; attempt++) {
+                        const rc = Math.floor(Math.random() * COLS);
+                        const rr = Math.floor(Math.random() * ROWS);
+                        if (this.isWalkable(rc, rr, false)) {
+                            b.x = rc * TILE;
+                            b.y = rr * TILE;
+                            b._lastDecisionTile = -1;
+                            b.teleportCooldown = 180;
+                            this.addParticles(b.x + TILE / 2, b.y + TILE / 2, b.color, 10);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Laser warning
+            if (b.lasers && b.laserTimer > 0) {
+                b.laserTimer--;
+            }
+            if (b.lasers && this.animFrame % 240 === 0) {
+                b.laserTimer = 60;
+            }
+
+            // BFS-based chase AI (same as normal ghosts)
+            const tileKey = bTile.col + bTile.row * COLS;
+            if (tileKey !== b._lastDecisionTile && distToCenter < b.speed + 1) {
+                b._lastDecisionTile = tileKey;
+                b.x = center.x - TILE / 2;
+                b.y = center.y - TILE / 2;
+
+                const target = { x: hTile.col, y: hTile.row };
+                const possible = [];
+                for (let d = 0; d < 4; d++) {
+                    if (d === OPP[b.dir]) continue;
+                    const nc = bTile.col + DX[d];
+                    const nr = bTile.row + DY[d];
+                    if (this.isWalkable(nc, nr, false)) possible.push(d);
+                }
+
+                if (possible.length === 0) {
+                    b.dir = OPP[b.dir];
+                } else if (possible.length === 1) {
+                    b.dir = possible[0];
+                } else {
+                    const nextDir = this.bfsNextDirection(bTile.col, bTile.row, target.x, target.y, possible, false);
+                    if (nextDir !== null) {
+                        b.dir = nextDir;
+                    } else {
+                        let bestDist = Infinity, bestDir = possible[0];
+                        for (const d of possible) {
+                            const nc = bTile.col + DX[d];
+                            const nr = bTile.row + DY[d];
+                            const dist = (nc - target.x) ** 2 + (nr - target.y) ** 2;
+                            if (dist < bestDist) { bestDist = dist; bestDir = d; }
+                        }
+                        b.dir = bestDir;
+                    }
+                }
+            }
+
+            b.x += DX[b.dir] * b.speed;
+            b.y += DY[b.dir] * b.speed;
+            if (b.x < -TILE) b.x = COLS * TILE;
+            if (b.x > COLS * TILE) b.x = -TILE;
         }
 
         // BFS pathfinding to find optimal next direction (with 3-frame cache)
@@ -1290,6 +1456,47 @@
                             this.triggerZoom(CAMERA_CONFIG.zoom.deathScale, CAMERA_CONFIG.zoom.deathDuration);
                         }
                         // Haptic: strong buzz on ghost collision (death)
+                        if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
+                        return;
+                    }
+                }
+            }
+
+            // Boss ghost collision
+            if (this.bossGhost && !this.bossDefeated) {
+                const b = this.bossGhost;
+                const bdx = (this.homer.x + TILE / 2) - (b.x + TILE / 2);
+                const bdy = (this.homer.y + TILE / 2) - (b.y + TILE / 2);
+                const bdist = Math.sqrt(bdx * bdx + bdy * bdy);
+                if (bdist < TILE * 1.0) {
+                    if (this.frightTimer > 0) {
+                        b.hp--;
+                        this.addParticles(b.x + TILE / 2, b.y + TILE / 2, b.color, 12);
+                        this.addFloatingText(b.x + TILE / 2, b.y, `HIT! (${b.hp}/${b.maxHp})`, '#ff4444');
+                        this.triggerShake('comboMedium');
+                        if (b.hp <= 0) {
+                            this.bossDefeated = true;
+                            this.score += b.bonus;
+                            this.addFloatingText(b.x + TILE / 2, b.y - TILE, `BOSS DEFEATED! +${b.bonus}`, '#ffd800');
+                            this.addParticles(b.x + TILE / 2, b.y + TILE / 2, '#ffd800', 20);
+                            this.sound.play('comboMilestone', 8);
+                            this.triggerShake('comboHeavy');
+                            this.updateHUD();
+                        } else {
+                            // Knock boss back
+                            b.x += (bdx / bdist) * TILE * 3;
+                            b.y += (bdy / bdist) * TILE * 3;
+                            b._lastDecisionTile = -1;
+                        }
+                    } else {
+                        this.state = ST_DYING;
+                        this.stateTimer = 90;
+                        this.sound.stopMusic();
+                        this.sound.play('die');
+                        this.triggerShake('ghostCollision');
+                        if (typeof CAMERA_CONFIG !== 'undefined') {
+                            this.triggerZoom(CAMERA_CONFIG.zoom.deathScale, CAMERA_CONFIG.zoom.deathDuration);
+                        }
                         if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
                         return;
                     }
@@ -1494,6 +1701,65 @@
                     }
                     Sprites.drawGhost(ctx, g, this.animFrame, this.frightTimer, this.homer);
                 }
+            }
+
+            // Boss ghost rendering
+            if (this.bossGhost && !this.bossDefeated && (this.state === ST_PLAYING || this.state === ST_READY || this.state === ST_BOSS_INTRO)) {
+                const b = this.bossGhost;
+                // Boss shadow (larger)
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.beginPath();
+                ctx.ellipse(b.x + TILE / 2, b.y + TILE * 1.3, TILE / 2, 3.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Boss glow
+                const r = parseInt(b.color.slice(1, 3), 16);
+                const g2 = parseInt(b.color.slice(3, 5), 16);
+                const bl = parseInt(b.color.slice(5, 7), 16);
+                ctx.fillStyle = `rgba(${r},${g2},${bl},0.25)`;
+                ctx.beginPath();
+                ctx.arc(b.x + TILE / 2, b.y + TILE / 2, TILE * 1.0, 0, Math.PI * 2);
+                ctx.fill();
+                // Draw boss ghost (1.5x scale)
+                Sprites.drawBossGhost(ctx, b, this.animFrame, this.homer);
+                // HP bar above boss
+                const hpBarW = TILE * 1.8;
+                const hpBarH = 4;
+                const hpBarX = b.x + TILE / 2 - hpBarW / 2;
+                const hpBarY = b.y - 10;
+                ctx.fillStyle = '#333';
+                ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
+                ctx.fillStyle = b.hp > 1 ? '#00ff00' : '#ff4444';
+                ctx.fillRect(hpBarX, hpBarY, hpBarW * (b.hp / b.maxHp), hpBarH);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(hpBarX, hpBarY, hpBarW, hpBarH);
+                // Boss name
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 8px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(b.name, b.x + TILE / 2, hpBarY - 3);
+            }
+
+            // Boss intro screen overlay
+            if (this.state === ST_BOSS_INTRO && this.bossGhost) {
+                const b = this.bossGhost;
+                ctx.save();
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+                const pulse = 1.0 + Math.sin(this.animFrame * 0.1) * 0.05;
+                ctx.translate(CANVAS_W / 2, CANVAS_H / 2 - 40);
+                ctx.scale(pulse, pulse);
+                ctx.font = 'bold 28px "Bangers", Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#ff4444';
+                ctx.fillText('⚠️ BOSS BATTLE ⚠️', 0, -30);
+                ctx.font = 'bold 22px "Bangers", Arial';
+                ctx.fillStyle = b.color;
+                ctx.fillText(b.name, 0, 10);
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.fillText(`HP: ${b.hp} | Use power pellets to attack!`, 0, 45);
+                ctx.restore();
             }
 
             // Floating texts

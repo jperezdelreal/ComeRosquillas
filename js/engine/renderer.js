@@ -266,6 +266,123 @@ class Sprites {
                 case 2: Sprites._drawNelson(ctx, cx, cy, r, eyeDir, animFrame); break;
                 case 3: Sprites._drawSnake(ctx, cx, cy, r, eyeDir, animFrame); break;
             }
+
+            // Personality visual traits
+            if (ghost.personality === 'smart' && ghost.mode === GM_CHASE) {
+                // Crown icon for Sr. Burns when chasing
+                ctx.fillStyle = '#ffd800';
+                ctx.beginPath();
+                ctx.moveTo(cx - 5, cy - r - 3);
+                ctx.lineTo(cx - 3, cy - r - 7);
+                ctx.lineTo(cx, cy - r - 4);
+                ctx.lineTo(cx + 3, cy - r - 7);
+                ctx.lineTo(cx + 5, cy - r - 3);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            if (ghost.personality === 'fast') {
+                // Speed lines behind Bob Patiño
+                ctx.strokeStyle = 'rgba(255,68,68,0.4)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i <= 3; i++) {
+                    const ox = -DX[ghost.dir] * (i * 5 + 3);
+                    const oy = -DY[ghost.dir] * (i * 5 + 3);
+                    ctx.beginPath();
+                    ctx.moveTo(cx + ox, cy + oy - 3);
+                    ctx.lineTo(cx + ox - DX[ghost.dir] * 4, cy + oy - DY[ghost.dir] * 4 - 3);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(cx + ox, cy + oy + 3);
+                    ctx.lineTo(cx + ox - DX[ghost.dir] * 4, cy + oy - DY[ghost.dir] * 4 + 3);
+                    ctx.stroke();
+                }
+            }
+
+            if (ghost.personality === 'erratic') {
+                // Cigarette smoke trail for Snake
+                ctx.fillStyle = 'rgba(180,180,180,0.3)';
+                for (let i = 0; i < 4; i++) {
+                    const smokeX = cx - DX[ghost.dir] * (i * 6 + 8);
+                    const smokeY = cy - r - 2 + Math.sin(animFrame * 0.2 + i) * 3 - i * 2;
+                    const smokeR = 1.5 + i * 0.8;
+                    ctx.beginPath();
+                    ctx.arc(smokeX, smokeY, smokeR, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // ---- BOSS GHOST RENDERING ----
+        static drawBossGhost(ctx, boss, animFrame, homer) {
+            const cx = boss.x + TILE / 2;
+            const cy = boss.y + TILE / 2;
+            const r = (TILE / 2 - 1) * 1.5;
+            const wave = animFrame % 20 < 10 ? 1 : -1;
+
+            ctx.save();
+
+            // Boss body (1.5x scale)
+            ctx.fillStyle = boss.color;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 3, r, Math.PI, 0);
+            ctx.lineTo(cx + r, cy + r);
+            for (let i = 4; i >= 0; i--) {
+                ctx.lineTo(cx - r + (i * 2 * r / 4), cy + r + (i % 2 === 0 ? wave * 4 : -wave * 4));
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Boss face
+            const eyeDir = homer ? Sprites._eyeDirToward(cx, cy, homer) : boss.dir;
+            const eye = Sprites._eyeOffset(eyeDir);
+            for (const ox of [-6, 6]) {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(cx + ox, cy - 5, 5, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#c00';
+                ctx.beginPath();
+                ctx.arc(cx + ox + eye.ex, cy - 5 + eye.ey, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Angry eyebrows
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx - 12, cy - 8);
+            ctx.lineTo(cx - 3, cy - 12);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 3, cy - 12);
+            ctx.lineTo(cx + 12, cy - 8);
+            ctx.stroke();
+
+            // Menacing mouth
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 3, 6, 0.2, Math.PI - 0.2);
+            ctx.stroke();
+
+            // Boss-specific effects
+            if (boss.lasers && boss.laserTimer > 0 && boss.laserTimer < 30) {
+                ctx.strokeStyle = 'rgba(255,0,0,0.6)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(cx - 6, cy - 5);
+                ctx.lineTo(cx - 6 + DX[boss.dir] * TILE * 4, cy - 5 + DY[boss.dir] * TILE * 4);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx + 6, cy - 5);
+                ctx.lineTo(cx + 6 + DX[boss.dir] * TILE * 4, cy - 5 + DY[boss.dir] * TILE * 4);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.restore();
         }
 
         // Compute fractional eye offset toward Homer for smooth eye tracking
