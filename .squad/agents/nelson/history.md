@@ -137,3 +137,23 @@
 - Social sharing tests model Web Share API, clipboard API, and canvas capture flows
 - Daily challenge tests use UTC date-based seed generation for deterministic PRNG
 - All Sprint 4 feature tests use `describe.skip()` — ready to unskip when features land
+
+### 2026-03-14: Sprint 4 QA Finalization (Issue #71, PR #75)
+
+**Context:** Finalized Sprint 4 QA suite after all 4 feature PRs merged into main (#73 Social Sharing, #74 Performance, #76 Ghost Debug, #77 Daily Challenges). Merged main into `squad/71-sprint4-qa`, unskipped all 93 scaffold tests, and marked PR #75 ready for review.
+
+**What Changed:**
+- **feature-performance.test.js** — 5 `describe.skip` blocks → 5 active `describe` blocks (26 tests). Tests BFS cache (walkable tiles, invalidation, tunnel wrapping, memory bounds), particle pool (200 pre-allocated, acquire/release, exhaustion), batch rendering (dot/wall/ghost/HUD batching), FPS counter (EMA smoothing α=0.1, color-coding, F-key toggle), 60fps target (frame budget, delta time, object pooling, no getImageData).
+- **feature-social-sharing.test.js** — 6 `describe.skip` blocks → 6 active blocks (27 tests). Tests share button (game-over visibility, 48×48 touch target, positioning), Web Share API (detection, payload, combo text, AbortError), clipboard fallback (writeText, seed URL, toast, permissions), screenshot capture (PNG dataURL, 672×744 resolution, watermark, blob sharing), QR code (seed encoding, 4px modules, error correction M), seed URLs (8-char alphanumeric, deterministic PRNG, URL parsing).
+- **feature-ghost-debug.test.js** — 3 `describe.skip` blocks → 3 active blocks (16 tests). Tests AI state overlay (4 mode colors, debug labels, positioning, D-key toggle, production guard), target tile visualization (ghost-to-target lines, color matching, scatter corners, chase targeting, eaten target), tuning sliders (speed 0.5×–2.0×, fright 0.25×–3.0×, scatter%, immediate apply, debug-only, reset defaults).
+- **feature-daily-challenges.test.js** — 3 `describe.skip` blocks → 3 active blocks (15 tests). Tests daily rotation (UTC seed, same-day consistency, format validation, midnight reset, HUD badge), deterministic PRNG (reproducibility, different seeds differ, [0,1) range, affected systems), challenge leaderboard (localStorage state, attempts tracking, best score, seed reset, HUD display, separate from main).
+- **integration-sprint4.test.js** — 3 `describe.skip` blocks → 3 active blocks (9 tests). Tests social sharing × leaderboard (score data, seed matching, screenshot capture, QR URL), social sharing × stats (rank badge emoji, lifetime stats summary), daily challenges × leaderboard (separate keys, dual submission, seed in entry).
+
+**Final Results:** 597 tests passing, 0 skipped, 0 failures across 22 test files.
+
+**Sprint 4 Feature Coverage Summary:**
+- Performance Optimization: BFS cache, particle pooling, batch rendering, FPS counter — 26 tests
+- Social Sharing: Share button, Web Share API, clipboard, screenshot, QR code, seed URLs — 27 tests
+- Ghost Debug Tools: AI state overlay, target visualization, tuning sliders — 16 tests
+- Daily Challenges: Daily rotation, deterministic PRNG, challenge leaderboard — 15 tests
+- Integration (Sprint 4 cross-feature): 9 tests

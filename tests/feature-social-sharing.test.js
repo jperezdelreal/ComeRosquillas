@@ -6,7 +6,7 @@ import { COLS, ROWS, TILE } from './setup.js'
 
 // ---- Share Button UI ----
 
-describe.skip('Social Sharing — Share Button', () => {
+describe('Social Sharing — Share Button', () => {
   it('should show share button on game over screen', () => {
     // Share button visible in ST_GAME_OVER and ST_HIGH_SCORE_ENTRY states
     const visibleStates = ['GAME_OVER', 'HIGH_SCORE_ENTRY']
@@ -37,7 +37,7 @@ describe.skip('Social Sharing — Share Button', () => {
 
 // ---- Web Share API ----
 
-describe.skip('Social Sharing — Web Share API', () => {
+describe('Social Sharing — Web Share API', () => {
   it('should detect Web Share API availability', () => {
     // navigator.share is available on mobile browsers and some desktop
     function canShare() {
@@ -91,7 +91,7 @@ describe.skip('Social Sharing — Web Share API', () => {
 
 // ---- Clipboard Fallback ----
 
-describe.skip('Social Sharing — Clipboard Fallback', () => {
+describe('Social Sharing — Clipboard Fallback', () => {
   it('should fall back to clipboard when Web Share API unavailable', () => {
     // Desktop browsers without navigator.share → use navigator.clipboard.writeText
     function canClipboard() {
@@ -126,7 +126,7 @@ describe.skip('Social Sharing — Clipboard Fallback', () => {
 
 // ---- Screenshot / Canvas Capture ----
 
-describe.skip('Social Sharing — Screenshot Capture', () => {
+describe('Social Sharing — Screenshot Capture', () => {
   it('should capture canvas as PNG data URL', () => {
     // canvas.toDataURL('image/png') returns base64-encoded PNG
     const mimeType = 'image/png'
@@ -162,7 +162,7 @@ describe.skip('Social Sharing — Screenshot Capture', () => {
 
 // ---- QR Code ----
 
-describe.skip('Social Sharing — QR Code', () => {
+describe('Social Sharing — QR Code', () => {
   it('QR code should encode game URL with seed parameter', () => {
     const seed = 'a1b2c3'
     const url = `https://jperezdelreal.github.io/ComeRosquillas/play/?seed=${seed}`
@@ -192,7 +192,7 @@ describe.skip('Social Sharing — QR Code', () => {
 
 // ---- Seed URLs ----
 
-describe.skip('Social Sharing — Seed URLs', () => {
+describe('Social Sharing — Seed URLs', () => {
   function generateSeed() {
     return Math.random().toString(36).substring(2, 10)
   }

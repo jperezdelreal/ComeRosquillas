@@ -95,7 +95,7 @@ describe('Integration — Performance × Ghost AI', () => {
 
 // ---- Social Sharing × Leaderboard (scaffold — skip) ----
 
-describe.skip('Integration — Social Sharing × Leaderboard', () => {
+describe('Integration — Social Sharing × Leaderboard', () => {
   it('share button should use score data from leaderboard entry', () => {
     const entry = { name: 'HOM', score: 12500, level: 5, combo: 4, date: new Date().toISOString() }
     const shareText = `${entry.name} scored ${entry.score.toLocaleString()} on Level ${entry.level}!`
@@ -125,7 +125,7 @@ describe.skip('Integration — Social Sharing × Leaderboard', () => {
 
 // ---- Social Sharing × Stats (scaffold — skip) ----
 
-describe.skip('Integration — Social Sharing × Stats', () => {
+describe('Integration — Social Sharing × Stats', () => {
   it('share text should optionally include rank badge', () => {
     const BADGES = [
       { id: 'master', emoji: '👑', min: 20000 },
@@ -218,7 +218,7 @@ describe('Integration — Performance × Mobile', () => {
 
 // ---- Daily Challenges × Leaderboard (scaffold — skip) ----
 
-describe.skip('Integration — Daily Challenges × Leaderboard', () => {
+describe('Integration — Daily Challenges × Leaderboard', () => {
   it('daily challenge scores should be stored separately from main leaderboard', () => {
     const mainKey = 'comeRosquillas_highScores'
     const challengeKey = 'comeRosquillas_dailyChallenge'
