@@ -73,11 +73,30 @@
             this._gameStartTime = 0;
             this._gameItemsCollected = 0;
 
+            // Achievement tracking state
+            this._levelHitsTaken = 0;
+            this._levelPlayStartTime = 0;
+            this._levelGhostsEatenCount = 0;
+            this._levelDirectionChanges = 0;
+            this._noPowerPelletFrames = 0;
+            this._scoreAtLastDeath = 0;
+            this._lastCollectedPowerUpId = null;
+
             // Power-up system state
             this._specialItem = null;
             this._activePowerUps = [];
             this._burnsTokens = 0;
             this._powerUpComboActive = false;
+
+            // Achievement tracking state
+            this._levelStartTime = 0;
+            this._levelHitsTaken = 0;
+            this._levelGhostsEaten = 0;
+            this._consecutivePerfectLevels = 0;
+            this._themesVisitedSet = new Set();
+            this._powerUpTypesSet = new Set();
+            this._noPowerTimer = 0;
+            this._gameDuffBeersUsed = 0;
 
             // BFS pathfinding cache: keyed on "startCol,startRow,targetCol,targetRow"
             this._bfsCache = new Map();
@@ -106,6 +125,15 @@
             // Level transition wipe
             this._wipeTimer = 0;
             this._wipeDirection = 1;
+
+            // Boss ghost system state
+            this._bossGhost = null;
+            this._bossIntroTimer = 0;
+            this._bossConfig = null;
+            this._fakePellets = [];
+            this._rakeTraps = [];
+            this._laserBeams = [];
+            this._nelsonLaughTimer = 0;
 
             // Pre-render some decorations
             this.cloudOffset = 0;
@@ -187,6 +215,14 @@
             }
             this._dailyChallenge = null;
             this._dailyTimeUp = false;
+
+            // Initialize achievement system
+            if (typeof AchievementManager !== 'undefined') {
+                this.achievements = new AchievementManager();
+                this.achievements._game = this;
+                // Sync cumulative stats from lifetime
+                this.achievements.syncFromLifetimeStats(this.highScores.getLifetimeStats());
+            }
             
             // Allow 'H' key to open share menu from game-over/start screens
             document.addEventListener('keydown', (e) => {
@@ -201,6 +237,14 @@
                 if (e.code === 'KeyD' && (this.state === ST_START || this.state === ST_PAUSED || this.state === ST_GAME_OVER)) {
                     e.preventDefault();
                     if (this.dailyChallenge) this.dailyChallenge.toggle();
+                }
+            });
+
+            // Allow 'A' key to open achievements from start/pause/gameover screens
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyA' && (this.state === ST_START || this.state === ST_PAUSED || this.state === ST_GAME_OVER)) {
+                    e.preventDefault();
+                    if (this.statsDashboard) this.statsDashboard.toggle('achievements');
                 }
             });
             
@@ -429,6 +473,19 @@
             this._activePowerUps = [];
             this._powerUpComboActive = false;
             this._dailyTimeUp = false;
+
+            // Reset per-game achievement tracking
+            this._consecutivePerfectLevels = 0;
+            this._themesVisitedSet = new Set();
+            this._powerUpTypesSet = new Set();
+            this._gameDuffBeersUsed = 0;
+            this._levelHitsTaken = 0;
+            this._levelPlayStartTime = 0;
+            this._levelGhostsEatenCount = 0;
+            this._levelDirectionChanges = 0;
+            this._noPowerPelletFrames = 0;
+            this._scoreAtLastDeath = 0;
+            this._lastCollectedPowerUpId = null;
             this.initLevel();
             
             // Apply daily challenge modifiers after level init
@@ -477,6 +534,22 @@
             this.comboDisplayTimer = 0;
             this._specialItemSpawned = false;
             this._specialItem = null;
+            this._levelHitsTaken = 0;
+            this._levelGhostsEatenCount = 0;
+            this._levelDirectionChanges = 0;
+            this._noPowerPelletFrames = 0;
+
+            // Achievement: track level start time and theme
+            this._levelStartTime = Date.now();
+            this._levelGhostsEaten = 0;
+            this._noPowerTimer = 0;
+            if (this._themesVisitedSet) {
+                const themeIdx = (this.level - 1) % MAZE_LAYOUTS.length;
+                this._themesVisitedSet.add(themeIdx);
+                if (this.achievements) {
+                    this.achievements.maxStat('themesVisited', this._themesVisitedSet.size);
+                }
+            }
         }
 
         initEntities() {
@@ -506,12 +579,51 @@
                     inHouse: i > 0,
                     exitTimer: Math.round(cfg.exitDelay * (1 - ramp * DIFFICULTY_CURVE.exitDelayReduction)),
                     idx: i,
+                    isBoss: false,
                     _lastDecisionTile: -1
                 };
                 ghost.speed = this.getSpeed('ghost', ghost);
                 return ghost;
             });
 
+            // Spawn boss ghost if applicable
+            this._bossGhost = null;
+            this._bossConfig = typeof getBossForLevel === 'function' ? getBossForLevel(this.level) : null;
+            this._fakePellets = [];
+            this._rakeTraps = [];
+            this._laserBeams = [];
+            this._nelsonLaughTimer = 0;
+            if (this._bossConfig) {
+                const bc = this._bossConfig;
+                const boss = {
+                    x: 14 * TILE,
+                    y: 11 * TILE,
+                    dir: LEFT,
+                    mode: GM_CHASE,
+                    color: bc.color,
+                    name: bc.name,
+                    personality: 'boss',
+                    scatterX: 14,
+                    scatterY: 0,
+                    homeX: 14 * TILE,
+                    homeY: 14 * TILE,
+                    inHouse: false,
+                    exitTimer: 0,
+                    idx: this.ghosts.length,
+                    isBoss: true,
+                    bossId: bc.id,
+                    bossHp: bc.hp,
+                    bossMaxHp: bc.hp,
+                    _lastDecisionTile: -1,
+                    _teleportTimer: bc.teleportInterval || 0,
+                    _laserTimer: bc.laserInterval || 0,
+                    _laserActive: 0,
+                };
+                boss.speed = this.getSpeed('ghost', boss);
+                this.ghosts.push(boss);
+                this._bossGhost = boss;
+                this._ghostBreadcrumbs.push([]);
+            }
         }
 
         // ---- DIFFICULTY CURVE ----
@@ -580,8 +692,20 @@
                     ? 1 + DailyChallenge.getGhostSpeedBonus(this._dailyChallenge) : 1;
                 let base = BASE_SPEED * 0.9 * levelMultiplier * difficulty.ghostSpeedMultiplier * aggressionMod * dailyBonus;
                 if (ghost) {
-                    if (ghost.idx === 1) base *= (1 + 0.05 * ramp);
-                    if (ghost.idx === 3) base *= (0.95 + Math.random() * 0.1);
+                    // Personality speed modifiers
+                    if (ghost.isBoss && this._bossConfig) {
+                        base *= this._bossConfig.speedMultiplier;
+                    } else if (ghost.idx === 1 && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        base *= GHOST_PERSONALITY_VISUALS.bob.speedMultiplier;
+                    } else if (ghost.idx === 1) {
+                        base *= (1 + 0.05 * ramp);
+                    }
+                    if (ghost.idx === 3 && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        const variance = GHOST_PERSONALITY_VISUALS.snake.speedVariance;
+                        base *= (1 - variance + Math.random() * variance * 2);
+                    } else if (ghost.idx === 3) {
+                        base *= (0.95 + Math.random() * 0.1);
+                    }
                 }
                 if (this.hasPowerUp('slow_ghosts')) {
                     const pu = this._activePowerUps.find(p => p.type.effect === 'slow_ghosts');
@@ -767,6 +891,7 @@
                 this.stateTimer--;
                 if (this.stateTimer <= 0) {
                     this.state = ST_PLAYING;
+                    this._levelPlayStartTime = Date.now();
                     this.sound.startMusic();
                     this.hideMessage();
                 }
@@ -827,9 +952,21 @@
                             this._cameraZoom = CAMERA_CONFIG.zoom.levelStartScale;
                             this.triggerZoom(1.0, CAMERA_CONFIG.zoom.levelStartDuration);
                         }
-                        this.state = ST_READY;
-                        this.stateTimer = 150;
-                        this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                        // Boss intro screen
+                        if (this._bossConfig) {
+                            this._bossIntroTimer = BOSS_CONFIG.introScreenDuration;
+                            this.sound.play('bossIntro');
+                            this.state = ST_READY;
+                            this.stateTimer = BOSS_CONFIG.introScreenDuration + 60;
+                            this.showMessage(
+                                `⚠️ BOSS APPROACHING!`,
+                                `${this._bossConfig.emoji} <b>${this._bossConfig.name}</b><br>${this._bossConfig.description}<br><br>"${this._bossConfig.quote}"`
+                            );
+                        } else {
+                            this.state = ST_READY;
+                            this.stateTimer = 150;
+                            this.showMessage(this._levelTitle(), HOMER_WIN_QUOTES[Math.floor(Math.random() * HOMER_WIN_QUOTES.length)]);
+                        }
                         this.updateHUD();
                     }
                 }
@@ -856,7 +993,10 @@
             this.updateSpecialItems();
             this.updateActivePowerUps();
             for (const ghost of this.ghosts) this.moveGhost(ghost);
+            this.updateBossAbilities();
+            this.updateNelsonLaugh();
             this.checkCollisions();
+            this.checkBossTraps();
 
             // Spatial audio update (throttled for performance)
             if (this.animFrame % AUDIO_JUICE.spatialUpdateInterval === 0) {
@@ -965,6 +1105,7 @@
                 this.addParticles(cx, cy, COLORS.donutPink, 3);
                 this.checkExtraLife();
                 this.updateHUD();
+                if (this.achievements) this.achievements.notify('score_update', this);
                 // Spawn bonus at 70 and 170 dots
                 if (this.dotsEaten === 70 || this.dotsEaten === 170) this.spawnBonus();
             } else if (cell === POWER) {
@@ -996,6 +1137,7 @@
                 }
                 this.checkExtraLife();
                 this.updateHUD();
+                this._noPowerPelletFrames = 0;
             } else if (typeof SPECIAL_ITEM !== 'undefined' && cell === SPECIAL_ITEM) {
                 this.checkSpecialItemCollection();
             }
@@ -1014,6 +1156,7 @@
                     ? `∞ ENDLESS ${this.currentLayout.name} ${this.level}`
                     : `${this.currentLayout.name} - Level ${this.level}`;
                 this.showMessage('WOOHOO!', `${quote}<br>${levelLabel} Complete!`);
+                if (this.achievements) this.achievements.notify('level_complete', this);
             }
         }
 
@@ -1198,6 +1341,12 @@
 
         // ---- GHOST AI WITH BFS PATHFINDING ----
         moveGhost(g) {
+            // Nelson laugh pause: skip movement while laughing
+            if (g.idx === 2 && g._laughTimer > 0) {
+                g._laughTimer--;
+                return;
+            }
+
             if (g.inHouse) {
                 g.exitTimer--;
                 if (g.exitTimer <= 0) {
@@ -1224,8 +1373,11 @@
             const center = this.centerOfTile(tile.col, tile.row);
             const distToCenter = Math.abs(cx - center.x) + Math.abs(cy - center.y);
 
-            // Only make a direction decision once per tile
-            if (tileKey !== g._lastDecisionTile && distToCenter < g.speed + 1) {
+            // Burns uses smarter BFS — recalculates every frame instead of once per tile
+            const burnsBfsEveryFrame = g.idx === 0 && typeof GHOST_PERSONALITY_VISUALS !== 'undefined'
+                && GHOST_PERSONALITY_VISUALS.burns.bfsInterval === 1;
+            // Only make a direction decision once per tile (except Burns in chase)
+            if ((tileKey !== g._lastDecisionTile || (burnsBfsEveryFrame && g.mode === GM_CHASE)) && distToCenter < g.speed + 1) {
                 g._lastDecisionTile = tileKey;
                 // Snap to tile center
                 g.x = center.x - TILE / 2;
@@ -1439,6 +1591,19 @@
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < TILE * 0.8) {
                     if (g.mode === GM_FRIGHTENED) {
+                        // Boss HP system: bosses take multiple hits
+                        if (g.isBoss && g.bossHp > 1) {
+                            g.bossHp--;
+                            this.sound.play('eatGhost', 1);
+                            this.addFloatingText(g.x + TILE / 2, g.y - TILE, `HP: ${g.bossHp}/${g.bossMaxHp}`, '#ff4444');
+                            this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 10);
+                            this.triggerShake('comboMedium');
+                            // Reset frightened — boss survives
+                            g.mode = this.globalMode;
+                            g.speed = this.getSpeed('ghost', g);
+                            g._lastDecisionTile = -1;
+                            continue;
+                        }
                         g.mode = GM_EATEN;
                         g.speed = this.getSpeed('eatenGhost');
                         this.ghostsEaten++;
@@ -1472,6 +1637,33 @@
                         if (this.touchInput) this.touchInput.vibrate([20, 10, 30]);
                         this.addFloatingText(g.x + TILE / 2, g.y, `${pts}`, '#00ffff');
                         this.addParticles(g.x + TILE / 2, g.y + TILE / 2, g.color, 6);
+                        this._levelGhostsEatenCount++;
+                        this._levelGhostsEaten++;
+
+                        // Achievement: ghost combo & kill tracking
+                        if (this.achievements) {
+                            this.achievements.maxStat('maxCombo', comboMultiplier);
+                            this.achievements.maxStat('maxGhostStreak', this.ghostsEaten);
+                        }
+
+                        // Boss defeat bonus
+                        if (g.isBoss && this._bossConfig) {
+                            const bossBonus = this._bossConfig.defeatPoints;
+                            this.score += bossBonus;
+                            this.addFloatingText(g.x + TILE / 2, g.y - TILE * 2, `BOSS DEFEATED! +${bossBonus}`, '#ffd800');
+                            this.addParticles(g.x + TILE / 2, g.y + TILE / 2, '#ffd800', 25);
+                            this.triggerShake('bossDefeat');
+                            this.sound.play('bossDefeat');
+                            this._bossGhost = null;
+                            this._fakePellets = [];
+                            this._rakeTraps = [];
+                            this._laserBeams = [];
+                            // Achievement: boss slayer
+                            if (this.achievements) {
+                                this.achievements.incrementStat('bossesDefeated');
+                            }
+                        }
+
                         this.updateHUD();
                     } else if (g.mode !== GM_EATEN) {
                         if (this.hasPowerUp('invincibility')) continue;
@@ -1486,9 +1678,156 @@
                         }
                         // Haptic: strong buzz on ghost collision (death)
                         if (this.touchInput) this.touchInput.vibrate([50, 30, 80]);
+                        this._levelHitsTaken++;
+                        this._consecutivePerfectLevels = 0;
+
+                        // Achievement: D'oh Moment (die within 5 seconds)
+                        if (this.achievements && this._levelPlayStartTime) {
+                            const elapsed = (Date.now() - this._levelPlayStartTime) / 1000;
+                            if (elapsed < 5) {
+                                this.achievements.incrementStat('quickDeaths');
+                            }
+                        }
                         return;
                     }
                 }
+            }
+        }
+
+        // ---- BOSS GHOST ABILITIES ----
+        updateBossAbilities() {
+            const boss = this._bossGhost;
+            if (!boss || boss.mode === GM_EATEN || !this._bossConfig) return;
+
+            const bc = this._bossConfig;
+
+            // Krusty: drop fake power pellets
+            if (bc.ability === 'fake_pellets' && this.animFrame % 300 === 0 && this._fakePellets.length < (bc.fakePelletCount || 3)) {
+                const tile = this.tileAt(boss.x + TILE / 2, boss.y + TILE / 2);
+                if (tile.col >= 0 && tile.col < COLS && tile.row >= 0 && tile.row < ROWS) {
+                    this._fakePellets.push({ col: tile.col, row: tile.row, life: 600 });
+                }
+            }
+
+            // Sideshow Bob: teleport to random corridor
+            if (bc.ability === 'teleport') {
+                boss._teleportTimer = (boss._teleportTimer || bc.teleportInterval) - 1;
+                if (boss._teleportTimer <= 0) {
+                    boss._teleportTimer = bc.teleportInterval;
+                    // Find random walkable tile
+                    const walkable = [];
+                    for (let r = 0; r < ROWS; r++) {
+                        for (let c = 0; c < COLS; c++) {
+                            if (this.maze[r][c] === EMPTY || this.maze[r][c] === DOT) walkable.push({ c, r });
+                        }
+                    }
+                    if (walkable.length > 0) {
+                        // Leave rake trap at old position
+                        const oldTile = this.tileAt(boss.x + TILE / 2, boss.y + TILE / 2);
+                        if (this._rakeTraps.length < (bc.rakeCount || 2)) {
+                            this._rakeTraps.push({ col: oldTile.col, row: oldTile.row, life: 900 });
+                        }
+                        const dest = walkable[Math.floor(Math.random() * walkable.length)];
+                        boss.x = dest.c * TILE;
+                        boss.y = dest.r * TILE;
+                        boss._lastDecisionTile = -1;
+                        this.addParticles(boss.x + TILE / 2, boss.y + TILE / 2, '#cc2222', 12);
+                    }
+                }
+            }
+
+            // Mr. Burns Mega: fire laser projectiles
+            if (bc.ability === 'laser') {
+                boss._laserTimer = (boss._laserTimer || bc.laserInterval) - 1;
+                if (boss._laserTimer <= 0) {
+                    boss._laserTimer = bc.laserInterval;
+                    // Fire laser in current direction
+                    this._laserBeams.push({
+                        x: boss.x + TILE / 2,
+                        y: boss.y + TILE / 2,
+                        dir: boss.dir,
+                        life: bc.laserDuration || 30,
+                    });
+                }
+            }
+
+            // Update fake pellet lifetimes
+            for (let i = this._fakePellets.length - 1; i >= 0; i--) {
+                this._fakePellets[i].life--;
+                if (this._fakePellets[i].life <= 0) this._fakePellets.splice(i, 1);
+            }
+
+            // Update rake trap lifetimes
+            for (let i = this._rakeTraps.length - 1; i >= 0; i--) {
+                this._rakeTraps[i].life--;
+                if (this._rakeTraps[i].life <= 0) this._rakeTraps.splice(i, 1);
+            }
+
+            // Update laser beam lifetimes
+            for (let i = this._laserBeams.length - 1; i >= 0; i--) {
+                const beam = this._laserBeams[i];
+                beam.x += DX[beam.dir] * BASE_SPEED * 3;
+                beam.y += DY[beam.dir] * BASE_SPEED * 3;
+                beam.life--;
+                if (beam.life <= 0 || beam.x < -TILE || beam.x > CANVAS_W + TILE || beam.y < -TILE || beam.y > CANVAS_H + TILE) {
+                    this._laserBeams.splice(i, 1);
+                }
+            }
+        }
+
+        checkBossTraps() {
+            const hx = this.homer.x + TILE / 2;
+            const hy = this.homer.y + TILE / 2;
+            const hTile = this.tileAt(hx, hy);
+
+            // Fake pellet collection (looks like power pellet but does nothing)
+            for (let i = this._fakePellets.length - 1; i >= 0; i--) {
+                const fp = this._fakePellets[i];
+                if (hTile.col === fp.col && hTile.row === fp.row) {
+                    this._fakePellets.splice(i, 1);
+                    this.addFloatingText(hx, hy - TILE, 'FAKE!', '#ff4444');
+                    this.sound.play('krustyLaugh');
+                }
+            }
+
+            // Rake trap collision (stuns Homer briefly)
+            for (let i = this._rakeTraps.length - 1; i >= 0; i--) {
+                const rake = this._rakeTraps[i];
+                if (hTile.col === rake.col && hTile.row === rake.row) {
+                    this._rakeTraps.splice(i, 1);
+                    this.addFloatingText(hx, hy - TILE, 'RAKE!', '#8b4513');
+                    this.addParticles(hx, hy, '#8b4513', 6);
+                    // Brief speed penalty
+                    this.homer.speed *= 0.3;
+                    setTimeout(() => { if (this.homer) this.homer.speed = this.getSpeed('homer'); }, 1000);
+                }
+            }
+
+            // Laser beam collision
+            for (const beam of this._laserBeams) {
+                const dx = hx - beam.x;
+                const dy = hy - beam.y;
+                if (Math.sqrt(dx * dx + dy * dy) < TILE * 0.6) {
+                    if (this.hasPowerUp('invincibility')) continue;
+                    this.state = ST_DYING;
+                    this.stateTimer = 90;
+                    this.sound.stopMusic();
+                    this.sound.play('die');
+                    this.triggerShake('ghostCollision');
+                    return;
+                }
+            }
+        }
+
+        // Nelson: randomly pauses to "laugh"
+        updateNelsonLaugh() {
+            if (typeof GHOST_PERSONALITY_VISUALS === 'undefined') return;
+            const nelson = this.ghosts[2];
+            if (!nelson || nelson.mode === GM_EATEN || nelson.mode === GM_FRIGHTENED || nelson.inHouse) return;
+            if (!nelson._laughTimer) nelson._laughTimer = 0;
+            if (nelson._laughTimer <= 0 && Math.random() < GHOST_PERSONALITY_VISUALS.nelson.laughPauseChance) {
+                nelson._laughTimer = GHOST_PERSONALITY_VISUALS.nelson.laughPauseDuration;
+                this.addFloatingText(nelson.x + TILE / 2, nelson.y - TILE, 'HA HA!', '#ff8c00');
             }
         }
 
@@ -1729,13 +2068,72 @@
 
             // Ghosts (skip offscreen)
             if (this.state === ST_PLAYING || this.state === ST_READY) {
+                // Draw fake pellets (Krusty boss ability)
+                for (const fp of this._fakePellets) {
+                    const fpx = fp.col * TILE + TILE / 2;
+                    const fpy = fp.row * TILE + TILE / 2;
+                    const pulse = 0.7 + Math.sin(this.animFrame * 0.15) * 0.3;
+                    ctx.save();
+                    ctx.globalAlpha = pulse;
+                    ctx.fillStyle = BOSS_CONFIG.fakePelletColor;
+                    ctx.beginPath();
+                    ctx.arc(fpx, fpy, TILE / 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Draw rake traps (Sideshow Bob boss ability)
+                for (const rake of this._rakeTraps) {
+                    ctx.save();
+                    ctx.font = `${TILE}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🪤', rake.col * TILE + TILE / 2, rake.row * TILE + TILE / 2);
+                    ctx.restore();
+                }
+
+                // Draw laser beams (Mr. Burns Mega boss ability)
+                for (const beam of this._laserBeams) {
+                    ctx.save();
+                    ctx.strokeStyle = BOSS_CONFIG.laserColor;
+                    ctx.lineWidth = BOSS_CONFIG.laserWidth;
+                    ctx.globalAlpha = 0.8;
+                    ctx.shadowColor = BOSS_CONFIG.laserColor;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(beam.x, beam.y);
+                    ctx.lineTo(beam.x + DX[beam.dir] * TILE * 2, beam.y + DY[beam.dir] * TILE * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
                 for (const g of this.ghosts) {
                     // Offscreen culling
                     if (g.x < -TILE * 2 || g.x > CANVAS_W + TILE || g.y < -TILE * 2 || g.y > CANVAS_H + TILE) continue;
+
+                    const gcx = g.x + TILE / 2;
+                    const gcy = g.y + TILE / 2;
+
+                    // Personality visual: Nelson wobble
+                    if (g.idx === 2 && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        const wobble = Math.sin(this.animFrame * GHOST_PERSONALITY_VISUALS.nelson.wobbleFrequency) * GHOST_PERSONALITY_VISUALS.nelson.wobbleAmplitude;
+                        ctx.save();
+                        ctx.translate(wobble, 0);
+                    }
+
+                    // Boss scale: render bosses 1.5x larger
+                    const isBossSprite = g.isBoss && g.mode !== GM_EATEN;
+                    if (isBossSprite) {
+                        ctx.save();
+                        ctx.translate(gcx, gcy);
+                        ctx.scale(BOSS_CONFIG.spriteScale, BOSS_CONFIG.spriteScale);
+                        ctx.translate(-gcx, -gcy);
+                    }
+
                     // Ghost shadow
                     ctx.fillStyle = 'rgba(0,0,0,0.25)';
                     ctx.beginPath();
-                    ctx.ellipse(g.x + TILE / 2, g.y + TILE - 1, TILE / 3, 2.5, 0, 0, Math.PI * 2);
+                    ctx.ellipse(gcx, g.y + TILE - 1, TILE / 3, 2.5, 0, 0, Math.PI * 2);
                     ctx.fill();
                     // Ghost glow (subtle color aura)
                     if (g.mode !== GM_EATEN) {
@@ -1743,18 +2141,85 @@
                             `rgba(${parseInt(g.color.slice(1,3),16)},${parseInt(g.color.slice(3,5),16)},${parseInt(g.color.slice(5,7),16)},0.15)`;
                         ctx.fillStyle = glowColor;
                         ctx.beginPath();
-                        ctx.arc(g.x + TILE / 2, g.y + TILE / 2, TILE * 0.7, 0, Math.PI * 2);
+                        ctx.arc(gcx, gcy, TILE * 0.7, 0, Math.PI * 2);
                         ctx.fill();
                     }
                     Sprites.drawGhost(ctx, g, this.animFrame, this.frightTimer, this.homer);
+
+                    if (isBossSprite) ctx.restore();
+
+                    // Personality visual: Burns crown
+                    if (g.idx === 0 && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        Sprites.drawBurnsCrown(ctx, gcx, g.y - 4, GHOST_PERSONALITY_VISUALS.burns);
+                    }
+
+                    // Personality visual: Bob Patiño speed lines
+                    if (g.idx === 1 && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        Sprites.drawPersonalitySpeedLines(ctx, g, this.animFrame, GHOST_PERSONALITY_VISUALS.bob);
+                    }
+
+                    // Personality visual: Nelson wobble restore + laugh indicator
+                    if (g.idx === 2 && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        ctx.restore();
+                        if (g._laughTimer > 0) {
+                            ctx.save();
+                            ctx.font = 'bold 10px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillStyle = '#ff8c00';
+                            ctx.fillText('HA HA!', gcx, g.y - 8);
+                            ctx.restore();
+                        }
+                    }
+
+                    // Personality visual: Snake smoke trail
+                    if (g.idx === 3 && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED && typeof GHOST_PERSONALITY_VISUALS !== 'undefined') {
+                        Sprites.drawSnakeSmokeTrail(ctx, g, this.animFrame, GHOST_PERSONALITY_VISUALS.snake);
+                    }
+
+                    // Boss HP bar
+                    if (g.isBoss && g.mode !== GM_EATEN && g.bossHp !== undefined) {
+                        Sprites.drawBossHpBar(ctx, gcx, g.y + BOSS_CONFIG.hpBarOffsetY, g.bossHp, g.bossMaxHp);
+                    }
+
                     // Chili pepper heat particles for slowed ghosts
                     if (this._activePowerUps && this._activePowerUps.some(p => p.type.effect === 'slow_ghosts') && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED) {
                         ctx.globalAlpha = 0.6;
                         ctx.font = '8px Arial';
                         const floatY = Math.sin(this.animFrame * 0.15 + g.idx) * 4;
-                        ctx.fillText('🌶️', g.x + TILE / 2 + 6, g.y - 2 + floatY);
+                        ctx.fillText('🌶️', gcx + 6, g.y - 2 + floatY);
                         ctx.globalAlpha = 1;
                     }
+                }
+            }
+
+            // Boss intro overlay
+            if (this._bossIntroTimer > 0) {
+                this._bossIntroTimer--;
+                const bc = this._bossConfig;
+                if (bc) {
+                    const progress = 1 - (this._bossIntroTimer / BOSS_CONFIG.introScreenDuration);
+                    const alpha = progress < 0.2 ? progress * 5 : progress > 0.8 ? (1 - progress) * 5 : 1;
+                    ctx.save();
+                    ctx.globalAlpha = alpha * 0.85;
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(0, CANVAS_H / 3, CANVAS_W, CANVAS_H / 3);
+                    ctx.globalAlpha = alpha;
+                    ctx.font = 'bold 28px "Bangers", Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#ff4444';
+                    ctx.fillText('⚠️ BOSS APPROACHING! ⚠️', CANVAS_W / 2, CANVAS_H / 2 - 20);
+                    ctx.font = 'bold 20px "Bangers", Arial';
+                    ctx.fillStyle = '#ffd800';
+                    const pulse = 1 + Math.sin(this.animFrame * 0.15) * 0.1;
+                    ctx.save();
+                    ctx.translate(CANVAS_W / 2, CANVAS_H / 2 + 15);
+                    ctx.scale(pulse, pulse);
+                    ctx.fillText(`${bc.emoji} ${bc.name}`, 0, 0);
+                    ctx.restore();
+                    ctx.font = '14px "Bangers", Arial';
+                    ctx.fillStyle = '#ccc';
+                    ctx.fillText(bc.description, CANVAS_W / 2, CANVAS_H / 2 + 40);
+                    ctx.restore();
                 }
             }
 

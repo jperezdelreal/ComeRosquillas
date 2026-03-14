@@ -70,6 +70,10 @@ class SoundManager {
             case 'gameOver': this._gameOver(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
             case 'specialItem': this._specialItemSfx(now, data); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
             case 'powerUpWarning': this._powerUpWarning(now); break;
+            case 'achievement': this._achievementUnlock(now); this._duckMusic(AUDIO_JUICE.duckDurationSfx); break;
+            case 'bossIntro': this._bossIntro(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
+            case 'bossDefeat': this._bossDefeat(now); this._duckMusic(AUDIO_JUICE.duckDurationStinger); break;
+            case 'krustyLaugh': this._krustyLaugh(now); break;
         }
     }
 
@@ -334,6 +338,76 @@ class SoundManager {
     _powerUpWarning(t) {
         this._osc('square', [[800, 0], [600, 0.06]], t, t + 0.12, 0.06);
         this._osc('square', [[700, 0.15], [500, 0.21]], t, t + 0.27, 0.06);
+    }
+
+    // ==================== SFX: ACHIEVEMENT UNLOCK (celebratory fanfare) ====================
+
+    _achievementUnlock(t) {
+        // Rising arpeggio
+        this._osc('sine', [
+            [523, 0], [659, 0.08], [784, 0.16], [1047, 0.24]
+        ], t, t + 0.45, 0.1);
+        // Harmonic shimmer
+        this._osc('triangle', [
+            [784, 0], [1047, 0.12], [1319, 0.24]
+        ], t + 0.05, t + 0.5, 0.06);
+        // Sparkle noise
+        this._noise(t + 0.1, 0.3, 0.03, 6000, 'highpass');
+        // Final chime
+        this._osc('sine', [[1568, 0], [1568, 0.15]], t + 0.35, t + 0.65, 0.08);
+    }
+
+    // ==================== SFX: BOSS INTRO FANFARE ====================
+
+    _bossIntro(t) {
+        // Ominous low brass
+        this._osc('sawtooth', [
+            [110, 0], [110, 0.3], [104, 0.5], [98, 0.7]
+        ], t, t + 1.0, 0.12);
+        // Timpani rumble
+        this._osc('sine', [
+            [55, 0], [52, 0.2], [49, 0.4], [46, 0.6], [55, 0.8]
+        ], t, t + 1.0, 0.15);
+        // Warning stabs
+        this._osc('square', [[220, 0], [220, 0.05]], t + 0.3, t + 0.4, 0.08);
+        this._osc('square', [[220, 0], [220, 0.05]], t + 0.5, t + 0.6, 0.08);
+        this._osc('square', [[330, 0], [440, 0.1]], t + 0.7, t + 0.9, 0.1);
+        // Dramatic noise burst
+        this._noise(t + 0.8, 0.3, 0.06, 800, 'lowpass');
+    }
+
+    // ==================== SFX: BOSS DEFEAT CELEBRATION ====================
+
+    _bossDefeat(t) {
+        // Victory fanfare ascending
+        this._osc('sine', [
+            [392, 0], [494, 0.1], [587, 0.2], [784, 0.3], [988, 0.4]
+        ], t, t + 0.7, 0.12);
+        // Brass harmony
+        this._osc('sawtooth', [
+            [196, 0], [247, 0.1], [294, 0.2], [392, 0.3]
+        ], t, t + 0.6, 0.08);
+        // Celebration shimmer
+        this._osc('triangle', [
+            [1175, 0], [1319, 0.12], [1568, 0.24], [1760, 0.36]
+        ], t + 0.1, t + 0.65, 0.06);
+        // Sparkle noise
+        this._noise(t + 0.2, 0.4, 0.04, 5000, 'highpass');
+        // Final triumphant chord
+        this._osc('sine', [[784, 0]], t + 0.5, t + 1.0, 0.1);
+        this._osc('sine', [[988, 0]], t + 0.5, t + 1.0, 0.07);
+        this._osc('sine', [[1175, 0]], t + 0.5, t + 1.0, 0.05);
+    }
+
+    // ==================== SFX: KRUSTY MANIACAL LAUGH ====================
+
+    _krustyLaugh(t) {
+        // Descending laugh syllables "Ha-Ha-Ha"
+        this._osc('sawtooth', [[440, 0], [330, 0.04]], t, t + 0.08, 0.06);
+        this._osc('sawtooth', [[415, 0], [311, 0.04]], t + 0.12, t + 0.2, 0.06);
+        this._osc('sawtooth', [[392, 0], [294, 0.04]], t + 0.24, t + 0.32, 0.06);
+        // Nose honk
+        this._osc('square', [[200, 0], [150, 0.05]], t + 0.35, t + 0.45, 0.05);
     }
 
     // ==================== SPATIAL AUDIO ====================
