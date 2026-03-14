@@ -356,3 +356,37 @@
 - HUD format "Level X — Theme Name" is consistent across scoring-system.js, level-manager.js, and collision-detector.js
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
+
+### Accessibility Enhancements (Issue #91)
+
+**Architecture decisions:**
+- `AccessibilityManager` singleton (`a11y`) created in `js/ui/accessibility.js`, loaded before settings-menu.js
+- All a11y hooks use defensive `typeof a11y !== 'undefined'` checks for cross-branch compatibility
+- Accessibility settings stored in localStorage key: `comeRosquillasA11y`, separate from game settings
+- Settings menu Accessibility section uses `a11y.settings.*` state binding for initial checkbox/select values
+
+**Game event hooks wired:**
+- `onGhostEaten(ghostName)` — collision-detector.js, after GM_EATEN mode set
+- `onCombo(multiplier)` — collision-detector.js, inside COMBO_MILESTONES check (≥3x announced)
+- `onDeath(livesRemaining)` — collision-detector.js, after ST_DYING transition
+- `onFrightened()` — collision-detector.js, after power pellet achievement notify
+- `onLevelStart(level)` — level-manager.js, after achievement level_start notify
+- `onScoreUpdate(score)` — scoring-system.js, milestone scores (every 1000pts)
+- `onGameOver(score)` — game-logic.js, BOTH high-score-entry AND non-high-score paths
+- `onGameStart()`, `onPause()`, `onResume()` — already wired in prior commits
+
+**Reduce motion integration:**
+- `addParticles()` early-returns when reduce motion enabled — suppresses all particle effects
+- `triggerShake()` early-returns when reduce motion enabled — suppresses screen shake
+- CSS `@media (prefers-reduced-motion)` as OS-level baseline already in index.html
+
+**Ghost proximity indicator:**
+- Throttled check every 15 frames (~4x/sec) in main update loop
+- Shows ⚠️ icon when any active ghost is within 5 tiles of Homer
+- Excludes eaten, frightened, and in-house ghosts from proximity calculation
+
+**Key learnings for future work:**
+- Cross-branch working tree contamination is a real problem with multiple branches sharing the same repo — always verify `git branch -v | Select-String "\*"` before editing
+- Duplicate HTML sections can sneak in when prior commits add content and new edits add more — grep for section headers after editing
+- `_setupA11yHandlers()` must be called exactly once in `setupEventHandlers()` — duplicate calls cause double event binding
+- Score announcements should only fire when score increases (prevScore comparison) to avoid noise on HUD refreshes

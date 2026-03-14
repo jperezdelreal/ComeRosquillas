@@ -102,7 +102,11 @@ Game.prototype._dailyChallengeBannerHtml = function() {
 };
 
 Game.prototype.updateHUD = function() {
+    const prevScore = parseInt(this.scoreEl.textContent) || 0;
     this.scoreEl.textContent = this.score;
+    if (typeof a11y !== 'undefined' && this.score > prevScore) {
+        a11y.onScoreUpdate(this.score);
+    }
     if (this._dailyChallenge) {
         this.levelEl.textContent = `${this._dailyChallenge.emoji} ${this._dailyChallenge.name}`;
     } else if (this.isEndlessMode()) {

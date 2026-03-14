@@ -140,6 +140,69 @@ class SettingsMenu {
                         </div>
                     </section>
                     
+                    <!-- Accessibility -->
+                    <section class="settings-section">
+                        <h3>♿ Accessibility</h3>
+                        
+                        <div class="setting-row">
+                            <label for="colorblindMode">Colorblind Mode</label>
+                            <select id="colorblindMode" class="settings-select" aria-label="Colorblind mode">
+                                <option value="none" ${typeof a11y !== 'undefined' && a11y.settings.colorblindMode === 'none' ? 'selected' : ''}>None</option>
+                                <option value="protanopia" ${typeof a11y !== 'undefined' && a11y.settings.colorblindMode === 'protanopia' ? 'selected' : ''}>Protanopia (Red-blind)</option>
+                                <option value="deuteranopia" ${typeof a11y !== 'undefined' && a11y.settings.colorblindMode === 'deuteranopia' ? 'selected' : ''}>Deuteranopia (Green-blind)</option>
+                                <option value="tritanopia" ${typeof a11y !== 'undefined' && a11y.settings.colorblindMode === 'tritanopia' ? 'selected' : ''}>Tritanopia (Blue-blind)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="highContrast">High Contrast</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="highContrast" ${typeof a11y !== 'undefined' && a11y.settings.highContrast ? 'checked' : ''} />
+                                <span class="toggle-label">${typeof a11y !== 'undefined' && a11y.settings.highContrast ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="reduceMotion">Reduce Motion</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="reduceMotion" ${typeof a11y !== 'undefined' && a11y.settings.reduceMotion ? 'checked' : ''} />
+                                <span class="toggle-label">${typeof a11y !== 'undefined' && a11y.settings.reduceMotion ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="largeText">Large Text (120%)</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="largeText" ${typeof a11y !== 'undefined' && a11y.settings.largeText ? 'checked' : ''} />
+                                <span class="toggle-label">${typeof a11y !== 'undefined' && a11y.settings.largeText ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="eventSubtitles">Event Subtitles</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="eventSubtitles" ${typeof a11y !== 'undefined' && a11y.settings.eventSubtitles ? 'checked' : ''} />
+                                <span class="toggle-label">${typeof a11y !== 'undefined' && a11y.settings.eventSubtitles ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="visualAudioIndicators">Ghost Proximity Warning</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="visualAudioIndicators" ${typeof a11y !== 'undefined' && a11y.settings.visualAudioIndicators ? 'checked' : ''} />
+                                <span class="toggle-label">${typeof a11y !== 'undefined' && a11y.settings.visualAudioIndicators ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-row">
+                            <label for="screenReaderAnnouncements">Screen Reader Announcements</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="screenReaderAnnouncements" ${typeof a11y !== 'undefined' && a11y.settings.screenReaderAnnouncements ? 'checked' : ''} />
+                                <span class="toggle-label">${typeof a11y !== 'undefined' && a11y.settings.screenReaderAnnouncements ? 'ON' : 'OFF'}</span>
+                            </div>
+                        </div>
+                    </section>
+                    
                     <!-- Tutorial -->
                     <section class="settings-section">
                         <h3>📖 Tutorial</h3>
@@ -321,6 +384,9 @@ class SettingsMenu {
                 this._syncDebugToGame();
             });
         }
+        
+        // Accessibility controls
+        this._setupA11yHandlers();
         
         // AI tuning sliders
         const aggressionSlider = this.overlay.querySelector('#aiAggression');
@@ -559,6 +625,8 @@ class SettingsMenu {
             smEl.value = Math.round((this.settings.aiScatterMult || 1.0) * 100);
             smEl.parentElement.querySelector('.slider-value').textContent = `${smEl.value}%`;
         }
+        
+        this._updateA11yUI();
     }
     
     open() {
@@ -626,5 +694,57 @@ class SettingsMenu {
         const game = this._game;
         if (!game) return;
         game._cameraEffectsEnabled = this.settings.cameraEffects;
+    }
+    
+    // Accessibility event handlers
+    _setupA11yHandlers() {
+        if (typeof a11y === 'undefined') return;
+        
+        const a11yToggleIds = [
+            'highContrast', 'reduceMotion', 'largeText',
+            'eventSubtitles', 'visualAudioIndicators', 'screenReaderAnnouncements'
+        ];
+        
+        a11yToggleIds.forEach(id => {
+            const el = this.overlay.querySelector(`#${id}`);
+            if (el) {
+                el.addEventListener('change', (e) => {
+                    a11y.settings[id] = e.target.checked;
+                    e.target.parentElement.querySelector('.toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
+                    a11y.saveSettings();
+                    if (id === 'largeText') a11y.applyLargeText();
+                });
+            }
+        });
+        
+        const cbSelect = this.overlay.querySelector('#colorblindMode');
+        if (cbSelect) {
+            cbSelect.addEventListener('change', (e) => {
+                a11y.settings.colorblindMode = e.target.value;
+                a11y.saveSettings();
+            });
+        }
+    }
+    
+    // Update accessibility controls in the UI
+    _updateA11yUI() {
+        if (typeof a11y === 'undefined') return;
+        
+        const cbSelect = this.overlay.querySelector('#colorblindMode');
+        if (cbSelect) cbSelect.value = a11y.settings.colorblindMode;
+        
+        const a11yToggleIds = [
+            'highContrast', 'reduceMotion', 'largeText',
+            'eventSubtitles', 'visualAudioIndicators', 'screenReaderAnnouncements'
+        ];
+        
+        a11yToggleIds.forEach(id => {
+            const el = this.overlay.querySelector(`#${id}`);
+            if (el) {
+                el.checked = a11y.settings[id];
+                const label = el.parentElement.querySelector('.toggle-label');
+                if (label) label.textContent = a11y.settings[id] ? 'ON' : 'OFF';
+            }
+        });
     }
 }

@@ -43,6 +43,7 @@ Game.prototype.initLevel = function() {
         this._themesVisitedSet.add(themeIdx);
     }
     if (this.achievements) this.achievements.notify('level_start', this);
+    if (typeof a11y !== 'undefined') a11y.onLevelStart(this.level);
 };
 
 Game.prototype.isEndlessMode = function() {
