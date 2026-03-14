@@ -149,4 +149,50 @@
 - Per-game stat tracking must reset in startNewGame() and capture in game-end handlers
 - Script load order: stats-dashboard.js after tutorial.js, before renderer.js
 
+### Social Sharing & Viral Hooks (Issue #67)
+
+**Architecture decisions:**
+- Created `js/ui/share-menu.js` following the established `js/ui/` modular pattern
+- ShareMenu overlay uses z-index: 1600 (above stats dashboard at 1500, settings at 1000)
+- Web Share API with graceful fallback to clipboard copy + toast notification
+- Canvas screenshot via `toDataURL('image/png')` with score overlay bar appended to bottom
+- QR code generated procedurally on Canvas 2D — no external library (Version 2-like pattern with finder/timing/alignment)
+- Referral tracking stored in localStorage key: `comeRosquillas_referrals` (array of {ref, seed, timestamp})
+- Challenge URLs use query params: `?ref=challenge&seed=X&target=Y`
+
+**Share menu features:**
+- Four action buttons: Native Share (mobile only), Copy Link, Screenshot, Challenge
+- Score card displays current score with level, combo, donuts eaten, ghosts eaten
+- QR code section visible on desktop, hidden on small screens (<480px)
+- Toast notification system with slide-up animation and auto-dismiss
+- Responsive: 2-column grid on desktop → single column on mobile
+
+**Game-over integration:**
+- "Share Your Score" button injected into game-over message HTML (both normal and high-score paths)
+- Button uses inline onclick calling `window._game.shareMenu.open()` (game instance stored as `window._game`)
+- H key shortcut opens share menu from game-over and start screens
+- Challenge banner displayed on start screen when arriving via challenge URL (`?target=X`)
+
+**Integration points:**
+- Game class: ShareMenu initialized in constructor after StatsDashboard
+- `window._game` reference set in Game constructor for inline onclick access
+- `_shareButtonHtml()` and `_challengeBannerHtml()` helper methods on Game class
+- Script load order: share-menu.js after stats-dashboard.js, before renderer.js
+- Start screen includes H=Share in control hints
+
+**CSS organization:**
+- All share menu styles in index.html `<style>` block (following existing convention)
+- Uses same color palette: purple gradients (#2d1b69), yellow accents (#ffd800), pink (#ff69b4)
+- Action buttons use distinct gradient colors: green (share), blue (copy), orange (screenshot), pink (challenge)
+- Responsive breakpoints at 700px and 480px matching existing patterns
+- Slide-in animation (`shareSlideIn`) for modal appearance
+
+**Key learnings for future work:**
+- `window._game` global reference is now available for inline onclick handlers in message HTML
+- Web Share API requires `navigator.share` feature check — not available on all desktop browsers
+- Canvas `toDataURL()` captures current frame state — works even during game-over with maze visible
+- QR code procedural generation uses finder patterns, timing patterns, and alignment patterns with deterministic hash fill
+- Clipboard API requires `navigator.clipboard.writeText()` with textarea fallback for older browsers
+- Share menu is fully self-contained — can be loaded/unloaded without modifying core game logic
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
