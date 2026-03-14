@@ -283,4 +283,54 @@
 - Camera follow uses 20% of viewport offset (viewportRatio 0.8) — subtle enough not to disorient
 - Edge padding of 3 tiles prevents camera from centering too close to maze borders
 
+### Achievement System & Badges (Issue #98)
+
+**Architecture decisions:**
+- Created `js/ui/achievements.js` following the established `js/ui/` modular pattern (moved from engine/ to ui/)
+- AchievementManager uses event-driven `notify(event, game)` pattern — game-logic.js calls notify at 12 key points
+- Toast notifications are DOM-based (not Canvas), using z-index 10000 with CSS slide-in animation
+- Confetti animation uses a dedicated fixed-position canvas overlay (z-index 10001), independent of game canvas
+- localStorage key: `comeRosquillas_achievements` stores unlocked timestamps + discovery progress (power-up types, themes)
+- Achievement progress for lifetime stats (ghosts, donuts, games) read directly from HighScoreManager.lifetimeStats — no duplication
+
+**Achievement tracking integration points:**
+- `notify('ghost_eaten', game)` — in checkCollisions after ghost eat (combo master, ghost streak, first blood)
+- `notify('level_complete', game)` — in checkDots when all dots eaten (perfect level, speed demon, pacifist, marathon)
+- `notify('death', game)` — in checkCollisions on ST_DYING transition (D'oh moment, scoreAtLastDeath reset)
+- `notify('game_over', game)` — at all 3 game-over paths (lifetime milestone checks)
+- `notify('score_update', game)` — after dot/power-up scoring (century club, rising star, untouchable)
+- `notify('power_pellet', game)` — resets ghost whisperer timer
+- `notify('power_up_collected', game)` — tracks power-up types for completionist
+- `notify('power_up_combo', game)` — combo alchemist unlock
+- `notify('tick', game)` — every 60 frames during ST_PLAYING (ghost whisperer: 3600 frames = 60s)
+- `notify('direction_change', game)` — when direction actually changes in moveHomer (button masher)
+- `notify('level_start', game)` — on ST_READY→ST_PLAYING transition (theme tracking)
+- `notify('daily_complete', game)` — after daily challenge score submission
+
+**Per-level tracking variables added to Game class:**
+- `_levelHitsTaken` — reset in initLevel, incremented on death (for perfect level)
+- `_levelPlayStartTime` — set when ST_READY→ST_PLAYING (for speed demon, D'oh moment)
+- `_levelGhostsEatenCount` — per-level ghost count (for pacifist)
+- `_levelDirectionChanges` — direction change count (for button masher)
+- `_noPowerPelletFrames` — frames since last power pellet (for ghost whisperer)
+- `_scoreAtLastDeath` — score when last died (for untouchable: 50K without dying)
+- `_lastCollectedPowerUpId` — last collected power-up type ID (for completionist)
+
+**Stats dashboard integration:**
+- Third tab "Achievements" added to stats-dashboard.js (alongside Leaderboard and Stats)
+- `renderAchievements()` method delegates to `AchievementManager.renderAchievementsPanel(container)`
+- Clear achievements data supported via existing clear confirmation flow
+- 'A' key shortcut opens achievements tab directly
+
+**Audio integration:**
+- `achievement` SFX case added to SoundManager.play() — rising arpeggio (C5-E5-G5-C6) with shimmer and chime
+- Uses existing `_duckMusic()` for ducking during unlock fanfare
+
+**Key learnings for future work:**
+- When a branch already has partial implementation from a prior agent, always check HEAD for existing code before applying changes
+- `ACHIEVEMENT_CATEGORIES` should be an array (not object) for iteration in renderAchievementsPanel
+- `_unlock()` is idempotent — safe to call repeatedly without duplicate toasts or saves
+- DOM-based toast approach is cleaner than Canvas-drawn toasts: no interference with game render loop, survives state transitions
+- Script load order: achievements.js must load after high-scores.js but before game-logic.js
+
 <!-- Append new learnings below. Each entry is something lasting about the project. -->

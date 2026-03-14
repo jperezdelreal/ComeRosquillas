@@ -1,10 +1,28 @@
 // ==================== SPRITE RENDERER ====================
 class Sprites {
 
-        // ---- HOMER (detailed) ----
-        static drawHomer(ctx, x, y, dir, mouthAngle, size) {
+        // ---- HOMER (detailed, animated) ----
+        static drawHomer(ctx, x, y, dir, mouthAngle, size, animFrame, isMoving) {
+            animFrame = animFrame || 0;
+            const cfg = typeof ANIM !== 'undefined' ? ANIM.homer : null;
+
+            // Idle breathing: subtle vertical bob when stationary
+            let breatheY = 0;
+            if (!isMoving && cfg) {
+                breatheY = Math.sin(animFrame * Math.PI * 2 / cfg.idleBreatheCycle) * cfg.idleBreatheHeight;
+            }
+
+            // Walk cycle bob: vertical bounce while moving
+            let walkBob = 0;
+            let walkPhase = 0;
+            if (isMoving && cfg) {
+                walkPhase = (animFrame % cfg.walkCycleFrames) / cfg.walkCycleFrames;
+                walkBob = Math.abs(Math.sin(walkPhase * Math.PI * 2)) * cfg.walkBobHeight;
+            }
+
+            const yOff = y + breatheY - walkBob;
             const cx = x + size / 2;
-            const cy = y + size / 2;
+            const cy = yOff + size / 2;
             const r = size / 2 - 1;
             const angles = [Math.PI * 1.5, 0, Math.PI * 0.5, Math.PI];
             const a = angles[dir];
@@ -88,25 +106,68 @@ class Sprites {
             ctx.beginPath();
             ctx.arc(earX, earY, 2, 0, Math.PI * 2);
             ctx.fill();
+
+            // Animated legs (walk cycle) - two small ovals at the bottom
+            if (isMoving && cfg) {
+                const legSpread = 3;
+                const legLen = 3;
+                const stepOffset = Math.sin(walkPhase * Math.PI * 2) * legLen;
+                ctx.fillStyle = '#4169e1'; // Blue pants
+                // Left leg
+                ctx.beginPath();
+                ctx.ellipse(cx - legSpread, cy + r + 1 - Math.max(0, stepOffset),
+                    2, 2.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Right leg
+                ctx.beginPath();
+                ctx.ellipse(cx + legSpread, cy + r + 1 + Math.max(0, stepOffset),
+                    2, 2.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
-        // ---- HOMER DYING ----
+        // ---- HOMER DYING (8-frame dissolve with color fade & fragments) ----
         static drawHomerDying(ctx, x, y, progress, size) {
             const cx = x + size / 2;
             const cy = y + size / 2;
             const r = (size / 2 - 1) * (1 - progress);
             ctx.globalAlpha = 1 - progress * 0.8;
 
-            // Spinning shrink with stars
-            ctx.fillStyle = COLORS.simpsonYellow;
+            // Color fades from yellow to reddish as progress increases
+            const rCh = Math.round(255 - progress * 55);
+            const gCh = Math.round(216 - progress * 180);
+            const bCh = Math.round(progress * 40);
+            ctx.fillStyle = `rgb(${rCh},${gCh},${bCh})`;
+
+            // Spinning shrink — rotates faster as progress increases
+            const spin = progress * Math.PI * 4;
             ctx.beginPath();
-            ctx.arc(cx, cy, r, progress * Math.PI * 2, Math.PI * 4 - progress * Math.PI * 2);
+            ctx.arc(cx, cy, r, spin, Math.PI * 4 - spin);
             ctx.lineTo(cx, cy);
             ctx.closePath();
             ctx.fill();
 
+            // Fragment particles radiating outward
+            if (progress > 0.1 && progress < 0.9) {
+                const fragCount = 8;
+                for (let i = 0; i < fragCount; i++) {
+                    const angle = (i * Math.PI * 2 / fragCount) + progress * 3;
+                    const dist = 5 + progress * 20;
+                    const fx = cx + Math.cos(angle) * dist;
+                    const fy = cy + Math.sin(angle) * dist;
+                    const fragR = (1 - progress) * 2.5;
+                    const fragAlpha = (1 - progress) * 0.8;
+                    ctx.globalAlpha = fragAlpha;
+                    ctx.fillStyle = i % 2 === 0 ? COLORS.simpsonYellow : '#ffa500';
+                    ctx.beginPath();
+                    ctx.arc(fx, fy, fragR, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
             // Stars around head
             if (progress > 0.2 && progress < 0.8) {
+                ctx.globalAlpha = (1 - progress) * 0.9;
                 ctx.fillStyle = '#ffd800';
                 for (let i = 0; i < 5; i++) {
                     const sa = (progress * 6 + i * Math.PI * 2 / 5);
@@ -159,6 +220,85 @@ class Sprites {
             ctx.lineTo(x + 2, y - 8);
             ctx.closePath();
             ctx.fill(); ctx.stroke();
+        }
+
+        // ---- HOMER CELEBRATION (power-up collect pose, 2-frame) ----
+        static drawHomerCelebration(ctx, x, y, size, animFrame) {
+            const cx = x + size / 2;
+            const cy = y + size / 2;
+            const r = size / 2 - 1;
+            const frame2 = (animFrame % 10) < 5 ? 0 : 1; // 2-frame toggle
+
+            // Slight bounce up
+            const bounce = frame2 === 0 ? -2 : 0;
+
+            // Yellow head — wide open mouth (celebrating)
+            ctx.fillStyle = COLORS.simpsonYellow;
+            ctx.beginPath();
+            ctx.arc(cx, cy + bounce, r, 0.5, Math.PI * 2 - 0.5);
+            ctx.lineTo(cx, cy + bounce);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#b8a000';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.arc(cx, cy + bounce, r, 0.5, Math.PI * 2 - 0.5);
+            ctx.stroke();
+
+            // Big happy eye
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(cx - 2, cy - 4 + bounce, 5, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(cx - 1, cy - 4 + bounce, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mouth open wide
+            ctx.fillStyle = '#8B0000';
+            ctx.beginPath();
+            ctx.arc(cx + 4, cy + 2 + bounce, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Arms up (two arcs representing raised arms)
+            ctx.strokeStyle = COLORS.simpsonYellow;
+            ctx.lineWidth = 2.5;
+            const armAngle = frame2 === 0 ? -0.3 : 0.1;
+            // Left arm up
+            ctx.beginPath();
+            ctx.moveTo(cx - r + 2, cy + 2 + bounce);
+            ctx.quadraticCurveTo(cx - r - 4, cy - 6 + bounce + armAngle * 10,
+                cx - r + 1, cy - r + bounce);
+            ctx.stroke();
+            // Right arm up
+            ctx.beginPath();
+            ctx.moveTo(cx + r - 2, cy + 2 + bounce);
+            ctx.quadraticCurveTo(cx + r + 4, cy - 6 + bounce + armAngle * 10,
+                cx + r - 1, cy - r + bounce);
+            ctx.stroke();
+
+            // Hair
+            ctx.fillStyle = COLORS.simpsonYellow;
+            ctx.strokeStyle = '#b8a000';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i += 2) {
+                ctx.beginPath();
+                ctx.moveTo(cx + i * 2, cy - r + 1 + bounce);
+                ctx.lineTo(cx + i * 4, cy - r - 4 + bounce);
+                ctx.lineTo(cx + i * 1, cy - r + bounce);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Sparkles around Homer during celebration
+            ctx.fillStyle = '#ffd700';
+            for (let i = 0; i < 6; i++) {
+                const sa = animFrame * 0.2 + i * Math.PI / 3;
+                const sd = r + 6 + Math.sin(animFrame * 0.3 + i) * 3;
+                Sprites._drawStar(ctx, cx + Math.cos(sa) * sd, cy + Math.sin(sa) * sd + bounce, 2);
+            }
         }
 
         // ---- DONUT ----
@@ -245,9 +385,9 @@ class Sprites {
             const r = TILE / 2 - 1;
 
             if (ghost.mode === GM_EATEN) {
-                // Eyes track Homer's position when eaten
+                // Eyes track Homer's position when eaten, with trailing particles
                 const eyeDir = homer ? Sprites._eyeDirToward(cx, cy, homer) : ghost.dir;
-                Sprites._drawGhostEyes(ctx, cx, cy, eyeDir);
+                Sprites._drawGhostEyes(ctx, cx, cy, eyeDir, animFrame, ghost.dir);
                 return;
             }
 
@@ -864,6 +1004,98 @@ class Sprites {
                     break;
             }
             ctx.restore();
+        }
+
+        // ==================== PERSONALITY VISUAL EFFECTS ====================
+
+        // Burns: golden crown above ghost
+        static drawBurnsCrown(ctx, cx, cy, config) {
+            ctx.save();
+            const crownW = 10;
+            const crownH = 7;
+            ctx.fillStyle = config.crownColor;
+            ctx.beginPath();
+            ctx.moveTo(cx - crownW / 2, cy);
+            ctx.lineTo(cx - crownW / 2, cy - crownH * 0.5);
+            ctx.lineTo(cx - crownW / 4, cy - crownH * 0.2);
+            ctx.lineTo(cx, cy - crownH);
+            ctx.lineTo(cx + crownW / 4, cy - crownH * 0.2);
+            ctx.lineTo(cx + crownW / 2, cy - crownH * 0.5);
+            ctx.lineTo(cx + crownW / 2, cy);
+            ctx.closePath();
+            ctx.fill();
+            // Crown gem
+            ctx.fillStyle = config.crownGemColor;
+            ctx.beginPath();
+            ctx.arc(cx, cy - crownH * 0.6, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Bob Patiño: speed lines behind sprite
+        static drawPersonalitySpeedLines(ctx, ghost, animFrame, config) {
+            ctx.save();
+            ctx.globalAlpha = config.speedLineAlpha;
+            ctx.strokeStyle = ghost.color;
+            ctx.lineWidth = 1.5;
+            const trailDirX = -DX[ghost.dir];
+            const trailDirY = -DY[ghost.dir];
+            const gcx = ghost.x + TILE / 2;
+            const gcy = ghost.y + TILE / 2;
+            for (let i = 0; i < config.speedLineCount; i++) {
+                const offset = (i - 1) * 4;
+                const perpX = trailDirY;
+                const perpY = -trailDirX;
+                const sx = gcx + trailDirX * 8 + perpX * offset;
+                const sy = gcy + trailDirY * 8 + perpY * offset;
+                const wave = Math.sin(animFrame * 0.3 + i) * 2;
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(sx + trailDirX * config.speedLineLength + wave, sy + trailDirY * config.speedLineLength);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // Snake: cigarette smoke trail particles
+        static drawSnakeSmokeTrail(ctx, ghost, animFrame, config) {
+            ctx.save();
+            const trailDirX = -DX[ghost.dir];
+            const trailDirY = -DY[ghost.dir];
+            const gcx = ghost.x + TILE / 2;
+            const gcy = ghost.y + TILE / 2;
+            for (let i = 0; i < config.smokeParticleCount; i++) {
+                const age = (animFrame + i * 7) % config.smokeParticleLife;
+                const t = age / config.smokeParticleLife;
+                const sx = gcx + trailDirX * (6 + t * 12) + Math.sin(animFrame * 0.1 + i * 2) * 3;
+                const sy = gcy + trailDirY * (6 + t * 12) - t * 6 + Math.cos(animFrame * 0.08 + i) * 2;
+                const size = 2 + t * 3;
+                ctx.globalAlpha = config.smokeAlpha * (1 - t);
+                ctx.fillStyle = '#aaa';
+                ctx.beginPath();
+                ctx.arc(sx, sy, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Boss HP bar above boss ghost
+        static drawBossHpBar(ctx, cx, cy, hp, maxHp) {
+            const cfg = typeof BOSS_CONFIG !== 'undefined' ? BOSS_CONFIG : { hpBarWidth: 30, hpBarHeight: 4, hpBarBgColor: '#333', hpBarFillColor: '#ff4444', hpBarBorderColor: '#fff' };
+            const w = cfg.hpBarWidth;
+            const h = cfg.hpBarHeight;
+            const x = cx - w / 2;
+            const y = cy - h / 2;
+            // Background
+            ctx.fillStyle = cfg.hpBarBgColor;
+            ctx.fillRect(x, y, w, h);
+            // HP fill
+            ctx.fillStyle = hp <= 1 ? '#ff0000' : cfg.hpBarFillColor;
+            ctx.fillRect(x, y, w * (hp / maxHp), h);
+            // Border
+            ctx.strokeStyle = cfg.hpBarBorderColor;
+            ctx.lineWidth = 0.5;
+            ctx.strokeRect(x, y, w, h);
         }
 
         // ==================== GHOST DEBUG OVERLAYS ====================
