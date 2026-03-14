@@ -1680,6 +1680,30 @@
                 ctx.beginPath();
                 ctx.ellipse(this.homer.x + TILE / 2, this.homer.y + TILE - 2, TILE / 3, 3, 0, 0, Math.PI * 2);
                 ctx.fill();
+                // Power-up visual effects on Homer
+                if (this._activePowerUps && this._activePowerUps.length > 0) {
+                    for (const pu of this._activePowerUps) {
+                        if (pu.type.effect === 'speed_boost') {
+                            ctx.globalAlpha = 0.3;
+                            ctx.fillStyle = pu.type.colors.primary;
+                            const trailX = this.homer.x - DX[this.homer.dir] * 8;
+                            const trailY = this.homer.y - DY[this.homer.dir] * 8;
+                            ctx.beginPath();
+                            ctx.arc(trailX + TILE / 2, trailY + TILE / 2, TILE / 3, 0, Math.PI * 2);
+                            ctx.fill();
+                            ctx.globalAlpha = 1;
+                        } else if (pu.type.effect === 'invincibility') {
+                            const hue = (this.animFrame * 5) % 360;
+                            ctx.strokeStyle = `hsl(${hue}, 100%, 60%)`;
+                            ctx.lineWidth = 2;
+                            ctx.globalAlpha = 0.6 + Math.sin(this.animFrame * 0.2) * 0.3;
+                            ctx.beginPath();
+                            ctx.arc(this.homer.x + TILE / 2, this.homer.y + TILE / 2, TILE * 0.7, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.globalAlpha = 1;
+                        }
+                    }
+                }
                 Sprites.drawHomer(ctx, this.homer.x, this.homer.y, this.homer.dir, this.homer.mouthAngle, TILE);
             }
 
@@ -1703,6 +1727,14 @@
                         ctx.fill();
                     }
                     Sprites.drawGhost(ctx, g, this.animFrame, this.frightTimer, this.homer);
+                    // Chili pepper heat particles for slowed ghosts
+                    if (this._activePowerUps && this._activePowerUps.some(p => p.type.effect === 'slow_ghosts') && g.mode !== GM_EATEN && g.mode !== GM_FRIGHTENED) {
+                        ctx.globalAlpha = 0.6;
+                        ctx.font = '8px Arial';
+                        const floatY = Math.sin(this.animFrame * 0.15 + g.idx) * 4;
+                        ctx.fillText('🌶️', g.x + TILE / 2 + 6, g.y - 2 + floatY);
+                        ctx.globalAlpha = 1;
+                    }
                 }
             }
 
@@ -1752,6 +1784,33 @@
                 ctx.fillStyle = comboColor;
                 ctx.fillText(`${comboMult}x COMBO!`, 0, 0);
                 ctx.restore();
+            }
+
+            // Active power-up timer bars
+            if (this._activePowerUps && this._activePowerUps.length > 0) {
+                let barY = 52;
+                for (const pu of this._activePowerUps) {
+                    const pct = pu.timer / pu.startTimer;
+                    const barW = 80;
+                    const barH = 8;
+                    const barX = CANVAS_W / 2 - barW / 2;
+                    const warning = pu.timer <= Math.floor(pu.startTimer * 0.25);
+                    ctx.save();
+                    ctx.globalAlpha = warning ? (0.5 + Math.sin(this.animFrame * 0.3) * 0.5) : 0.85;
+                    ctx.fillStyle = '#333';
+                    ctx.fillRect(barX, barY, barW, barH);
+                    ctx.fillStyle = pu.type.colors.primary;
+                    ctx.fillRect(barX, barY, barW * pct, barH);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 0.5;
+                    ctx.strokeRect(barX, barY, barW, barH);
+                    ctx.font = '7px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(`${pu.type.emoji} ${Math.ceil(pu.timer / 60)}s`, CANVAS_W / 2, barY + barH - 1);
+                    ctx.restore();
+                    barY += barH + 3;
+                }
             }
 
             // Endless mode badge (pulsing infinity symbol)
