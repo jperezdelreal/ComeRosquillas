@@ -158,6 +158,25 @@
 - Daily Challenges: Daily rotation, deterministic PRNG, challenge leaderboard — 15 tests
 - Integration (Sprint 4 cross-feature): 9 tests
 
+### 2026-07-25: Real Gameplay Tests (Issue #106)
+
+**Context:** Added 53 real gameplay tests that instantiate the Game class — the first tests to exercise actual production code paths rather than re-implementing logic in-test.
+
+**What Changed:**
+- **tests/gameplay.test.js** — 53 new tests across 13 describe blocks, all using real `Game()` instances
+
+**Test Coverage:**
+- Game Initialization (5), Dot Collection (6), Ghost Death (5), Frightened Mechanic (7)
+- Level Completion (3), Difficulty System (5), Movement (4), Ghost Modes (3)
+- Extra Life (2), State Machine (4), Endless Mode (3), HUD (2), Integration (4)
+
+**Key Technical Pattern:**
+- Load production JS via `(0, eval)(wrappedCode)` with IIFE exporting to `globalThis`
+- Stub `Game.prototype.loop` before construction to prevent draw pipeline
+- Mock: AudioContext, I18n, Sprites (Proxy), DOM elements, requestAnimationFrame
+
+**Results:** 713 tests passing (660 existing + 53 new), 0 failures across 24 files.
+
 ### 2026-03-14: Game Class Instantiation Tests (Issue #107, PR #116)
 
 **Context:** Created the first test suite that actually instantiates the real `Game` class. Previous tests re-implemented logic inline — this one loads production code via eval and constructs real `Game()` instances.
