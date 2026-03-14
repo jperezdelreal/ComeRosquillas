@@ -22,7 +22,7 @@ const OPP = [DOWN, LEFT, UP, RIGHT];
 
 // ==================== GAME STATES ====================
 const ST_START = 0, ST_READY = 1, ST_PLAYING = 2, ST_DYING = 3,
-    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7, ST_HIGH_SCORE_ENTRY = 8;
+    ST_LEVEL_DONE = 4, ST_GAME_OVER = 5, ST_PAUSED = 6, ST_CUTSCENE = 7, ST_HIGH_SCORE_ENTRY = 8, ST_BOSS_INTRO = 9;
 
 // ==================== GHOST MODES ====================
 const GM_SCATTER = 0, GM_CHASE = 1, GM_FRIGHTENED = 2, GM_EATEN = 3;
@@ -229,11 +229,23 @@ function getMazeLayout(level) {
 const HOMER_START = { x: 14, y: 23 };
 
 const GHOST_CFG = [
-    { name: 'Sr. Burns',   color: '#ffd800', skinColor: '#f5e6a0', startX: 14, startY: 11, scatterX: 25, scatterY: 0,  homeX: 14, homeY: 14, exitDelay: 0 },
-    { name: 'Bob Patiño',  color: '#ff4444', skinColor: '#f5d0a0', startX: 12, startY: 14, scatterX: 2,  scatterY: 0,  homeX: 12, homeY: 14, exitDelay: 50 },
-    { name: 'Nelson',      color: '#ff8c00', skinColor: '#ffd800', startX: 14, startY: 14, scatterX: 27, scatterY: 30, homeX: 14, homeY: 14, exitDelay: 100 },
-    { name: 'Snake',       color: '#44bb44', skinColor: '#f5d0a0', startX: 16, startY: 14, scatterX: 0,  scatterY: 30, homeX: 16, homeY: 14, exitDelay: 150 }
+    { name: 'Sr. Burns',   color: '#ffd800', skinColor: '#f5e6a0', startX: 14, startY: 11, scatterX: 25, scatterY: 0,  homeX: 14, homeY: 14, exitDelay: 0,   personality: 'smart' },
+    { name: 'Bob Patiño',  color: '#ff4444', skinColor: '#f5d0a0', startX: 12, startY: 14, scatterX: 2,  scatterY: 0,  homeX: 12, homeY: 14, exitDelay: 50,  personality: 'fast' },
+    { name: 'Nelson',      color: '#ff8c00', skinColor: '#ffd800', startX: 14, startY: 14, scatterX: 27, scatterY: 30, homeX: 14, homeY: 14, exitDelay: 100, personality: 'wobble' },
+    { name: 'Snake',       color: '#44bb44', skinColor: '#f5d0a0', startX: 16, startY: 14, scatterX: 0,  scatterY: 30, homeX: 16, homeY: 14, exitDelay: 150, personality: 'erratic' }
 ];
+
+// ==================== BOSS GHOSTS ====================
+const BOSS_GHOSTS = [
+    { level: 5,  name: 'Fat Tony',        color: '#8b4789', hp: 2, speed: 0.6, blocking: true, bonus: 5000, portrait: 'fat_tony' },
+    { level: 10, name: 'Krusty el Payaso', color: '#00ff00', hp: 1, speed: 1.0, fakePellets: true, bonus: 5000, portrait: 'krusty' },
+    { level: 15, name: 'Sideshow Bob',    color: '#cc2200', hp: 1, speed: 1.2, teleport: true, traps: true, bonus: 5000, portrait: 'bob_boss' },
+    { level: 20, name: 'Mr. Burns MEGA',  color: '#9acd32', hp: 3, speed: 0.8, lasers: true, bonus: 5000, portrait: 'burns_mega' }
+];
+
+function getBossForLevel(level) {
+    return BOSS_GHOSTS.find(b => b.level === level) || null;
+}
 
 // ==================== TIMING ====================
 const MODE_TIMERS = [180, 1200, 300, 1200, 300, 1200, 300, -1];

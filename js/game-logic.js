@@ -94,6 +94,11 @@
             this._wipeTimer = 0;
             this._wipeDirection = 1;
 
+            // Boss ghost state
+            this.bossGhost = null;
+            this.bossIntroTimer = 0;
+            this.bossDefeated = false;
+
             // Pre-render some decorations
             this.cloudOffset = 0;
 
@@ -483,6 +488,7 @@
                     mode: GM_SCATTER,
                     color: cfg.color,
                     name: cfg.name,
+                    personality: cfg.personality,
                     scatterX: cfg.scatterX,
                     scatterY: cfg.scatterY,
                     homeX: cfg.homeX * TILE,
@@ -490,11 +496,53 @@
                     inHouse: i > 0,
                     exitTimer: Math.round(cfg.exitDelay * (1 - ramp * DIFFICULTY_CURVE.exitDelayReduction)),
                     idx: i,
-                    _lastDecisionTile: -1
+                    _lastDecisionTile: -1,
+                    laughTimer: 0,
+                    wobbleOffset: 0,
+                    speedVariation: 1.0
                 };
                 ghost.speed = this.getSpeed('ghost', ghost);
                 return ghost;
             });
+
+            // Check for boss level
+            if (typeof getBossForLevel === 'function') {
+                const bossCfg = getBossForLevel(this.level);
+                if (bossCfg) {
+                    this.createBossGhost(bossCfg);
+                } else {
+                    this.bossGhost = null;
+                }
+            }
+            this.bossDefeated = false;
+        }
+
+        createBossGhost(cfg) {
+            this.bossGhost = {
+                x: 14 * TILE,
+                y: 11 * TILE,
+                dir: LEFT,
+                mode: GM_CHASE,
+                color: cfg.color,
+                name: cfg.name,
+                hp: cfg.hp,
+                maxHp: cfg.hp,
+                speed: BASE_SPEED * cfg.speed,
+                blocking: !!cfg.blocking,
+                fakePellets: !!cfg.fakePellets,
+                teleport: !!cfg.teleport,
+                traps: !!cfg.traps,
+                lasers: !!cfg.lasers,
+                bonus: cfg.bonus,
+                portrait: cfg.portrait,
+                isBoss: true,
+                inHouse: false,
+                idx: -1,
+                _lastDecisionTile: -1,
+                teleportCooldown: 0,
+                laserTimer: 0
+            };
+            this.bossIntroTimer = 180;
         }
 
         // ---- DIFFICULTY CURVE ----
