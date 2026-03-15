@@ -425,3 +425,24 @@ Each sprint: 3-4 features + Nelson QA pass. Track success metrics per feature. I
 - PR #122 opened on branch squad/update-readme-docs.
 
 **Lesson:** README had drifted badly — listed shipped features as "Future Enhancements." Docs need a refresh pass after every major sprint batch. Add to post-sprint checklist.
+
+### Post-v1.0 PR Review Session (2026-03-15)
+
+**Context:** 3 PRs reviewed and merged — two bug fixes (desktop touch controls, mobile audio mute) and Playwright E2E testing infrastructure.
+
+**3 PRs reviewed and merged:**
+- **PR #132** (Lenny): Hide touch controls on desktop — 2-line CSS fix. `display: none` default, `display: flex` in touch media query. Clean cascade.
+- **PR #133** (Barney): Fix mobile audio mute — AudioContext autoplay policy fix. `_setupAutoResume()` with one-time gesture listeners, direct `resume()` in real touch handlers, icon sync. Standard Web Audio unlock pattern.
+- **PR #135** (Nelson, closes #134): Playwright E2E testing — 35 tests, 67 passing across desktop + mobile. Clean config, `GAME_URL` env var, Vitest exclusion. No conflict with existing test infrastructure.
+
+**Quality Notes:**
+- All fixes were minimal and targeted — no over-engineering. Good discipline.
+- Barney's mobile audio fix correctly identified synthetic vs. trusted gesture distinction — this is a common mobile web audio gotcha.
+- Nelson's Playwright setup is pragmatic — tests DOM elements and interactions, avoids flaky canvas pixel assertions. `GAME_URL` configurability enables local + CI use.
+
+**Process Notes:**
+- GitHub API rate limiting hit during review (gh pr diff failed) — used MCP tools as fallback. Rate limit also prevented remote branch deletion post-merge.
+- All 3 PRs showed `mergeable_state: "unstable"` — merged after manual review. May want to investigate if required checks are configured correctly.
+- Squad metadata files (decisions.md, inbox) carried across all 3 branches — expected but adds diff noise.
+
+**Decision Document:** `.squad/decisions/inbox/moe-pr-review-session.md`
