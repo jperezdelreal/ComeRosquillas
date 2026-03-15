@@ -400,10 +400,11 @@ class TouchInput {
         const touch = e.changedTouches[0]
         this._joystickTouchId = touch.identifier
 
-        // Center = middle of the joystick element
+        // Center = middle of the joystick element; radius adapts to rendered size
         const rect = this.joystickElement.getBoundingClientRect()
         this._joystickCenterX = rect.left + rect.width / 2
         this._joystickCenterY = rect.top + rect.height / 2
+        this._joystickRadius = Math.min(rect.width, rect.height) * 0.375
 
         this._updateJoystick(touch.clientX, touch.clientY)
         this.vibrate(6)
