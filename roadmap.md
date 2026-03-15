@@ -7,7 +7,7 @@ Each item becomes a GitHub issue assigned to @copilot.
 
 ---
 
-## 1. [ ] First-Time Player Tutorial & Onboarding Flow
+## 1. [x] First-Time Player Tutorial & Onboarding Flow ✅ COMPLETED (Sprint 2)
 
 **Why this matters:** Most players decide if they'll continue within 30 seconds. A smooth, engaging tutorial is critical for mobile web games where attention is fleeting.
 
@@ -31,7 +31,7 @@ Implementation:
 
 ---
 
-## 2. [ ] Combo Multiplier System
+## 2. [x] Combo Multiplier System ✅ COMPLETED (Sprint 2)
 
 **Why this matters:** Risk-reward mechanics create skill expression. Chaining kills during power-pellet windows is the core "high-level play" that separates casual from skilled players.
 
@@ -54,7 +54,7 @@ Implementation:
 
 ---
 
-## 3. [ ] Mobile-First Polish Pass
+## 3. [x] Mobile-First Polish Pass ✅ COMPLETED (Sprint 2 + Sprint 5)
 
 **Why this matters:** 70%+ of web arcade game traffic is mobile. Touch controls need to feel as good as arcade joysticks.
 
@@ -78,7 +78,7 @@ Implementation:
 
 ---
 
-## 4. [ ] Progressive Difficulty Curve & Endless Mode
+## 4. [x] Progressive Difficulty Curve & Endless Mode ✅ COMPLETED (Sprint 3)
 
 **Why this matters:** Players need a clear sense of progression. Mastery should be rewarded with greater challenges, not just higher numbers.
 
@@ -103,7 +103,7 @@ Implementation:
 
 ---
 
-## 5. [ ] Social Sharing & Viral Hooks
+## 5. [x] Social Sharing & Viral Hooks ✅ COMPLETED (Sprint 4)
 
 **Why this matters:** Players become evangelists when they have something to brag about. Make sharing effortless and rewarding.
 
@@ -126,7 +126,7 @@ Implementation:
 
 ---
 
-## 6. [ ] Audio Feedback & Juice Upgrade
+## 6. [x] Audio Feedback & Juice Upgrade ✅ COMPLETED (Sprint 3)
 
 **Why this matters:** Arcade games feel great because every action has satisfying feedback. Current audio is functional but not delightful.
 
@@ -149,7 +149,7 @@ Implementation:
 
 ---
 
-## 7. [ ] Ghost Personality Visual Indicators (Debug Mode)
+## 7. [x] Ghost Personality Visual Indicators (Debug Mode) ✅ COMPLETED (Sprint 4)
 
 **Why this matters:** For developers and advanced players, understanding AI behavior enhances gameplay strategy. Also critical for balancing ghost difficulty.
 
@@ -179,7 +179,7 @@ Implementation:
 
 ---
 
-## 8. [ ] Daily Challenge Mode
+## 8. [x] Daily Challenge Mode ✅ COMPLETED (Sprint 4)
 
 **Why this matters:** Daily challenges create habit-forming return visits. Fixed seeds enable fair competition and social comparison.
 
@@ -207,7 +207,7 @@ Implementation:
 
 ---
 
-## 9. [ ] Performance Optimization & Polish
+## 9. [x] Performance Optimization & Polish ✅ COMPLETED (Sprint 4)
 
 **Why this matters:** Frame drops kill arcade game feel. Smooth 60fps is non-negotiable for good player experience.
 
@@ -238,7 +238,7 @@ Implementation:
 
 ---
 
-## 10. [ ] Leaderboard & Stats Dashboard
+## 10. [x] Leaderboard & Stats Dashboard ✅ COMPLETED (Sprint 3)
 
 **Why this matters:** Competition drives engagement. Seeing your rank vs others creates motivation to improve.
 
