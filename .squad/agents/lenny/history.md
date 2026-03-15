@@ -509,3 +509,44 @@
 - Reserve ~230px for HUD+controls: 36px HUD + 12px×2 padding + 160px D-pad + margins
 - Astro iframe wrapper needs its own mobile media queries — game CSS can't fix parent chrome
 - `aspect-ratio: auto !important` on iframe is needed to override inline style in portrait
+
+### Virtual Analog Joystick (PR #136)
+
+**Problem:** User feedback: discrete D-pad buttons make quick direction changes at intersections difficult. Touching individual arrow buttons is too slow and imprecise when you need to rapidly turn corners.
+
+**Solution:** Virtual analog joystick as default mobile control, with D-pad preserved as fallback.
+
+**Architecture decisions:**
+- Joystick implemented alongside existing D-pad in `touch-input.js` — both rendered, visibility toggled via `.touch-control-hidden` CSS class
+- Control mode stored in localStorage key: `comeRosquillas_controlMode` (default: `'joystick'`)
+- `_loadControlModePref()` reads from localStorage independently (works before SettingsMenu loads)
+- Settings toggle syncs via `_syncControlModeToGame()` → `touchInput.setControlMode(mode)`
+- Game-logic.js syncs saved preference to TouchInput on startup after construction
+
+**Joystick implementation:**
+- Touch tracking by identifier (`_joystickTouchId`) — ignores multi-touch interference
+- Center reference recalculated on each touchstart from element `getBoundingClientRect()`
+- `atan2(dy, dx)` angle → 4 cardinal sectors (each 90° wide, boundaries at ±45°, ±135°)
+- Dead zone: 18px from center (no direction when near center)
+- Thumb clamped to 60px radius — visual travels but doesn't leave the joystick area
+- Direction change fires immediately on sector boundary crossing (no debounce needed for Pac-Man)
+- `game.keys[ArrowX]` set/cleared identically to D-pad — game loop sees no difference
+
+**Visual design (donut-themed):**
+- Base: radial gradient with semi-transparent brown/pink hues, golden border (2px solid rgba(255,216,0,0.35))
+- Thumb: pink frosted donut (radial gradient #ff69b4 → #c71585) with dark center hole (::after pseudo)
+- Ring: dashed inner circle (70% width) shows directional zones
+- Direction feedback: border and ring brighten when a direction is active
+- Transition: 60ms ease-out on thumb movement for smooth visual tracking
+
+**Settings integration:**
+- `controlMode: 'joystick'` added to SettingsMenu defaults and resetToDefaults
+- Toggle checkbox in Controls section: checked = joystick, unchecked = d-pad
+- i18n keys added for all 5 languages (EN/ES/FR/DE/PT)
+
+**Key learnings:**
+- `touch.identifier` is essential for tracking specific finger — prevents conflicts with other touch zones
+- `getBoundingClientRect()` on touchstart (not constructor) handles layout shifts and scroll
+- Dead zone of ~18px feels right — smaller causes accidental direction flips, larger delays response
+- Thumb clamped radius (60px) should be ~37% of element size (160px) for comfortable thumb travel
+- `.touch-control-hidden { display: none !important; }` pattern cleanly toggles between control modes without DOM recreation
