@@ -296,3 +296,35 @@
 - 5 power-up types implemented
 - 4 boss types with unique abilities
 - 10 mini-event types
+
+### 2026-03-15: Playwright E2E Testing Setup (Issue #134)
+
+**Context:** Implemented Playwright-based E2E testing infrastructure against the live deployed game.
+
+**What Changed:**
+- **playwright.config.js** — Config with desktop-chrome + mobile-chrome (Pixel 5) projects, baseURL pointing to `https://jperezdelreal.github.io/ComeRosquillas/game/`
+- **tests/e2e/game.spec.js** — 35 E2E tests covering page load, HUD, settings menu, keyboard shortcuts, accessibility, responsive layout, stats dashboard, mute toggle, game start flow, touch controls
+- **package.json** — Added `test:e2e` and `test:e2e:ui` scripts; `@playwright/test` devDependency
+- **vitest.config.js** — Excluded `tests/e2e/**` so Vitest doesn't pick up Playwright tests
+- **.gitignore** — Added test-results/, playwright-report/, blob-report/
+
+**Key Discoveries:**
+- Game is deployed at `/game/` path (not root). The `/play/` page embeds an iframe to `/game/`
+- `page.goto('/')` resolves to domain root, not baseURL path — must use `page.goto('./')`
+- CSS hover transforms on buttons (`transform: scale(1.05)`) cause Playwright click instability — use keyboard shortcuts (S, L) or `dispatchEvent('click')` instead
+- Settings button (`#settingsBtn`) is hidden on mobile portrait via `@media (hover: none)` — skip those tests on mobile project
+- Level display shows maze name (e.g. "Springfield Streets - 1"), not "Level N"
+- Close buttons on overlays need `dispatchEvent('click')` due to hover transform CSS
+
+**Test Categories (35 tests):**
+- Page Load: title, container, canvas, JS errors (4)
+- HUD: score, level, high score, lives, ARIA (5)
+- Settings Menu: button, open/close, sections, difficulty, reset (7)
+- Bottom Bar: visibility, shortcuts (2, desktop-only)
+- Touch Controls: button existence (1)
+- Game Start Flow: message, Enter key (2)
+- Mute Toggle: M key, button (2)
+- Accessibility: skip link, ARIA labels, roles (4)
+- Responsive Layout: 1920x1080, 375x667, 768x1024 (3)
+- Keyboard Shortcuts: S, P, L (3)
+- Stats Dashboard: tabs, close (2)

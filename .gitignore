@@ -5,3 +5,7 @@ node_modules/
 # Squad: ignore generated logs
 .squad/orchestration-log/
 .squad/log/
+# Playwright
+test-results/
+playwright-report/
+blob-report/
