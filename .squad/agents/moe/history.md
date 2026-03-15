@@ -446,3 +446,29 @@ Each sprint: 3-4 features + Nelson QA pass. Track success metrics per feature. I
 - Squad metadata files (decisions.md, inbox) carried across all 3 branches — expected but adds diff noise.
 
 **Decision Document:** `.squad/decisions/inbox/moe-pr-review-session.md`
+
+---
+
+## Session: PR #136 Review — Virtual Analog Joystick
+
+**Date:** 2025-07-16
+**Trigger:** User request — merge PR #136 (joystick replacing D-pad)
+
+### What Happened
+
+Reviewed and squash-merged PR #136 (`squad/improve-touch-controls` → `main`). Lenny's implementation replaces the discrete D-pad with a virtual analog joystick as the default mobile control.
+
+### Review Summary
+
+- **10 files changed** (+815/-340): `touch-input.js`, `game-logic.js`, `settings-menu.js`, `index.html`, `translations.js`, plus squad metadata
+- **Joystick logic** — atan2 angle mapping to cardinal directions, 18px dead zone, 60px max radius, multi-touch safe
+- **Keyboard controls** — Untouched. Joystick writes to same `game.keys[]` interface
+- **Settings toggle** — Joystick/D-pad switch in Controls section, localStorage persistence
+- **i18n** — EN/ES/FR/DE/PT translations added
+- **Visuals** — Donut-themed (pink frosted thumb with center hole, golden ring)
+
+### Verdict
+
+✅ Approved and merged. Clean, well-structured implementation. No issues found.
+
+**Decision Document:** `.squad/decisions/inbox/moe-joystick-review.md`
