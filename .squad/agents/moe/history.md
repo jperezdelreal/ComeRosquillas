@@ -42,6 +42,25 @@ Early sprints (1-3) used 3-sprint structure: Core Quality → Content & Polish �
 
 <!-- Append new learnings below. Recent sessions preserved. Old entries summarized above. -->
 
+### README Audit & Closeout (2025-01-13)
+
+**Context:** User requested README accuracy audit before final project closeout. README needed to reflect actual codebase state — accurate file structure, module count, feature claims verified.
+
+**Findings & Updates:**
+- **Project structure tree:** Updated from 4 engine modules to complete inventory — 10 engine modules (audio, renderer, high-scores, touch-input, ai-controller, collision-detector, entity-manager, event-system, level-manager, scoring-system) + 7 UI modules (accessibility, achievements, daily-challenge, settings-menu, share-menu, stats-dashboard, tutorial) + i18n/translations.js
+- **Missing files documented:** Added game.js (legacy monolith), documented full js/ui/ and js/engine/ directories
+- **Module count claim:** Changed "5 extracted modules" → "10 engine modules + 7 UI modules + i18n system"
+- **Maze names corrected:** README listed "Android's Dungeon, Evergreen Terrace" — actual are "Springfield Streets, Simpsons House" (verified in MAZE_LAYOUTS)
+- **Features verified:** All 18 features table claims validated against config.js constants — 23 achievements ✓, 6 themed mazes ✓, 5 power-ups ✓, 4 boss ghosts ✓, 10 mini-events (PROCEDURAL_EVENTS) ✓, 713+ tests ✓, 5 languages ✓
+- **File descriptions enriched:** Updated config.js description from "Constants, maze template, difficulty presets" → "Constants, mazes, difficulty, achievements, events, bosses" to reflect full scope
+
+**Changes Applied:**
+- 3 edits to README.md — modular engine description, maze names, project structure tree
+- All claims now auditable against actual codebase
+- README ready for v1.0 release
+
+**Learnings:** Project structure in README drifted significantly during 6 sprints of parallel development — 22 modules shipped but only 4 documented. Lesson: Update README in feature PRs, not at closeout.
+
 ### Sprint 6 Closeout Review — Production Release Gate (2025-01-13)
 
 **Context:** Final evaluation phase after 6 sprints of development. 4 closeout PRs submitted for review: performance baseline (Lenny), final QA (Nelson), code health (Barney), documentation review (Nelson).

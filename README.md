@@ -31,14 +31,14 @@ Guide Homer Simpson through the streets of Springfield, gobbling donuts and outs
 | 🏆 | **23 Achievements** | Unlock animations, persistent tracking, surprise rewards |
 | 📊 | **Stats & Leaderboard** | Full stats dashboard, high score persistence via localStorage |
 | 🎲 | **10 Mini-Events** | Double Trouble, Speed Run, Darkness, Ghost Frenzy, and more — triggered randomly each level |
-| 🗺️ | **6 Themed Mazes** | Moe's Tavern, Kwik-E-Mart, Nuclear Plant, Springfield Elementary, Android's Dungeon, Evergreen Terrace |
+| 🗺️ | **6 Themed Mazes** | Springfield Streets, Moe's Tavern, Kwik-E-Mart, Springfield Elementary, Nuclear Plant, Simpsons House |
 | 🎬 | **Animated Sprites** | Homer walk cycles, ghost eye tracking, donut spin, death animations |
 | 🌍 | **5 Languages** | English, Spanish, French, German, Portuguese (BR) |
 | ♿ | **Full Accessibility** | Colorblind modes (Protanopia, Deuteranopia, Tritanopia), screen reader support, reduce motion |
 | 📱 | **Mobile-First Controls** | Game Boy-style D-pad touch controls, responsive canvas |
 | 🎵 | **Procedural Audio** | All SFX & music synthesized at runtime via Web Audio API — zero audio files |
 | ✨ | **Screen Juice** | Camera shake, zoom effects, floating score text, level transitions |
-| 🔧 | **Modular Engine** | 5 extracted modules: audio, renderer, high-scores, touch-input, settings |
+| 🔧 | **Modular Engine** | 10 engine modules + 7 UI modules + i18n system — clean separation of concerns |
 | 🧪 | **713+ Tests** | Vitest suite covering game logic, collisions, scoring, AI, config |
 | ⚙️ | **Difficulty Modes** | Easy, Normal, Hard — with tuned ghost speed, fright duration, lives |
 | 🎛️ | **Settings Menu** | Volume sliders (master/music/SFX), difficulty, language, accessibility toggles |
@@ -114,14 +114,31 @@ npm run test:ui        # Interactive UI
 ComeRosquillas/
 ├── index.html              # Game entry point
 ├── js/
-│   ├── config.js           # Constants, maze template, difficulty presets
+│   ├── config.js           # Constants, mazes, difficulty, achievements, events, bosses
 │   ├── main.js             # Bootstrap & game loop
-│   ├── game-logic.js       # State machine, input, collisions, scoring, AI
-│   └── engine/
-│       ├── audio.js         # SoundManager — procedural synthesis
-│       ├── renderer.js      # Canvas 2D rendering pipeline
-│       ├── high-scores.js   # Leaderboard & persistence
-│       └── touch-input.js   # Mobile D-pad controls
+│   ├── game.js             # Legacy monolithic game implementation
+│   ├── game-logic.js       # Core state machine, input, collisions, combo system
+│   ├── engine/
+│   │   ├── audio.js         # SoundManager — procedural synthesis via Web Audio API
+│   │   ├── renderer.js      # Canvas 2D rendering pipeline
+│   │   ├── high-scores.js   # Leaderboard & localStorage persistence
+│   │   ├── touch-input.js   # Mobile D-pad controls
+│   │   ├── ai-controller.js # Ghost AI personalities & BFS pathfinding
+│   │   ├── collision-detector.js # Physics & collision detection
+│   │   ├── entity-manager.js     # Ghost, power-up, and entity lifecycle
+│   │   ├── event-system.js       # Game event bus & subscribers
+│   │   ├── level-manager.js      # Maze rotation, level progression, boss spawns
+│   │   └── scoring-system.js     # Points, combos, multipliers, floating text
+│   ├── ui/
+│   │   ├── accessibility.js      # Colorblind modes, screen reader, reduce motion
+│   │   ├── achievements.js       # 23 unlockables with confetti & toasts
+│   │   ├── daily-challenge.js    # Seeded daily challenges with leaderboard
+│   │   ├── settings-menu.js      # Volume, difficulty, language, accessibility
+│   │   ├── share-menu.js         # Social sharing with score cards
+│   │   ├── stats-dashboard.js    # Lifetime stats & rank badges
+│   │   └── tutorial.js           # Interactive first-time tutorial
+│   └── i18n/
+│       └── translations.js       # 5-language support (EN/ES/FR/DE/PT-BR)
 ├── tests/                   # 713+ Vitest specs
 └── docs/                    # Astro docs site
 ```
