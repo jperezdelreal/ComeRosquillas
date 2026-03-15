@@ -105,17 +105,17 @@ class TouchInput {
         this.controlsBar = document.createElement('div')
         this.controlsBar.id = 'touchControlsBar'
 
-        // D-pad — large SVG touch targets
+        // D-pad — classic cross/plus shape (Game Boy style)
         this.dpadElement = document.createElement('div')
         this.dpadElement.id = 'touchDpad'
         this.dpadElement.innerHTML = `
-            <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="80" cy="80" r="75" fill="rgba(255,255,255,0.08)" stroke="rgba(255,216,0,0.4)" stroke-width="2"/>
-                <path id="dpad-up" d="M80,15 L105,55 L55,55 Z" fill="rgba(255,216,0,0.3)" stroke="rgba(255,216,0,0.6)" stroke-width="1.5" class="dpad-arrow"/>
-                <path id="dpad-down" d="M80,145 L55,105 L105,105 Z" fill="rgba(255,216,0,0.3)" stroke="rgba(255,216,0,0.6)" stroke-width="1.5" class="dpad-arrow"/>
-                <path id="dpad-left" d="M15,80 L55,55 L55,105 Z" fill="rgba(255,216,0,0.3)" stroke="rgba(255,216,0,0.6)" stroke-width="1.5" class="dpad-arrow"/>
-                <path id="dpad-right" d="M145,80 L105,105 L105,55 Z" fill="rgba(255,216,0,0.3)" stroke="rgba(255,216,0,0.6)" stroke-width="1.5" class="dpad-arrow"/>
-            </svg>
+            <div class="dpad-cross">
+                <div id="dpad-up" class="dpad-btn dpad-up">▲</div>
+                <div id="dpad-left" class="dpad-btn dpad-left">◄</div>
+                <div class="dpad-center"></div>
+                <div id="dpad-right" class="dpad-btn dpad-right">►</div>
+                <div id="dpad-down" class="dpad-btn dpad-down">▼</div>
+            </div>
         `
         this.controlsBar.appendChild(this.dpadElement)
 
