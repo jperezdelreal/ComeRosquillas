@@ -19,6 +19,27 @@
 
 ## Learnings
 
+### Mobile Audio Fix (PR #133)
+**Date:** 2026-03-15
+**Context:** Mobile mute button stuck, can't unmute - AudioContext autoplay policy
+
+**Root Cause:**
+- Mobile browsers suspend AudioContext until a real user gesture occurs
+- triggerKey() dispatches synthetic KeyboardEvents that browsers don't treat as trusted gestures
+- AudioContext.resume() called from synthetic events is silently rejected
+- Mute button icon showed muted state on init but _musicMuted was actually false
+
+**Fix Applied:**
+- Added _setupAutoResume() in SoundManager: one-time touchstart/touchend/click listeners that unlock AudioContext on first interaction
+- Call sound.resume() directly from mute button touchstart/click handlers (real gesture context)
+- Added resume() call inside toggleMute() when unmuting
+- Added isMuted getter for clean UI state queries
+- Fixed initial mute button icon to match actual unmuted state
+- Added _updateMuteButtonIcon() to sync icon after each toggle
+
+**Key Learning:**
+Synthetic KeyboardEvents (via dispatchEvent) are NOT trusted user gestures. Mobile audio unlock requires resume() to be called within the call stack of a real user interaction (touchstart, touchend, click). Always call AudioContext.resume() directly from real event handlers, not through synthetic event chains.
+
 ### Ghost AI Implementation (Issue #23)
 **Date:** 2026-07-24  
 **Context:** Improved ghost AI with BFS pathfinding and Pac-Man-style personalities

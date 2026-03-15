@@ -18,10 +18,27 @@ class SoundManager {
         this._chompStreak = 0;
         this._lastChompTime = 0;
         this._frightActive = false;
+        this._musicMuted = false;
         this._musicTempo = 1.0;
         this._duckTimer = null;
         this._powerHumNodes = null;
         this._spatialGhostNodes = [];
+
+        // Mobile autoplay policy: resume AudioContext on first user gesture
+        this._setupAutoResume();
+    }
+
+    _setupAutoResume() {
+        if (!this.ctx) return;
+        const unlock = () => {
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+            document.removeEventListener('touchstart', unlock, true);
+            document.removeEventListener('touchend', unlock, true);
+            document.removeEventListener('click', unlock, true);
+        };
+        document.addEventListener('touchstart', unlock, true);
+        document.addEventListener('touchend', unlock, true);
+        document.addEventListener('click', unlock, true);
     }
 
     _initBuses() {
@@ -689,6 +706,10 @@ class SoundManager {
 
     toggleMute() {
         if (!this._musicBus) return;
+        // Resume suspended AudioContext when unmuting (mobile autoplay policy)
+        if (this._musicMuted && this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
         this._musicMuted = !this._musicMuted;
         const now = this.ctx.currentTime;
         this._musicBus.gain.cancelScheduledValues(now);
@@ -701,6 +722,10 @@ class SoundManager {
         }
 
         return this._musicMuted;
+    }
+
+    get isMuted() {
+        return !!this._musicMuted;
     }
 
     resume() {
