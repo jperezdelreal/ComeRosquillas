@@ -885,9 +885,9 @@
             filter: drop-shadow(0 0 8px rgba(255,216,0,0.9));
         }
 
-        /* Action buttons — visible on desktop + touch, fixed position */
+        /* Action buttons — hidden on desktop, shown on touch devices */
         .touch-action-btn {
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             width: 50px;
@@ -914,7 +914,7 @@
             box-shadow: 0 0 12px rgba(255,216,0,0.7);
         }
 
-        /* Touch devices — show D-pad floating, hide keyboard hints */
+        /* Touch devices — show D-pad + action buttons, hide keyboard hints */
         @media (hover: none) and (pointer: coarse) {
             #touchDpad {
                 display: block;
@@ -922,6 +922,9 @@
                 bottom: 20px;
                 left: 20px;
                 z-index: 100;
+            }
+            .touch-action-btn {
+                display: flex;
             }
             #bottomBar {
                 display: none !important;
