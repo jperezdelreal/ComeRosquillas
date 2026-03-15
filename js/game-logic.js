@@ -194,6 +194,10 @@
             // Initialize touch input system
             if (typeof TouchInput !== 'undefined') {
                 this.touchInput = new TouchInput(this);
+                // Sync control mode from settings if available
+                if (this.settingsMenu && this.settingsMenu.settings.controlMode) {
+                    this.touchInput.setControlMode(this.settingsMenu.settings.controlMode);
+                }
             }
             
             // Initialize tutorial system

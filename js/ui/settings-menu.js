@@ -25,6 +25,7 @@ class SettingsMenu {
             aiChaseDistance: 8,
             aiScatterMult: 1.0,
             cameraEffects: true,
+            controlMode: 'joystick',
         };
         
         this.loadSettings();
@@ -119,6 +120,15 @@ class SettingsMenu {
                     <!-- Controls Display -->
                     <section class="settings-section">
                         <h3>${t('settings.controls')}</h3>
+                        
+                        <div class="setting-row">
+                            <label for="controlModeToggle">${t('settings.control_mode')}</label>
+                            <div class="toggle-container">
+                                <input type="checkbox" id="controlModeToggle" ${this.settings.controlMode === 'joystick' ? 'checked' : ''} />
+                                <span class="toggle-label">${this.settings.controlMode === 'joystick' ? t('settings.joystick') : t('settings.dpad')}</span>
+                                <span class="key-hint">${t('settings.control_mode_hint')}</span>
+                            </div>
+                        </div>
                         
                         <div class="controls-display">
                             <div class="control-item">
@@ -385,6 +395,18 @@ class SettingsMenu {
             });
         }
         
+        // Control mode toggle (joystick / d-pad)
+        const controlModeToggle = this.overlay.querySelector('#controlModeToggle');
+        if (controlModeToggle) {
+            controlModeToggle.addEventListener('change', (e) => {
+                this.settings.controlMode = e.target.checked ? 'joystick' : 'dpad';
+                e.target.parentElement.querySelector('.toggle-label').textContent =
+                    this.settings.controlMode === 'joystick' ? t('settings.joystick') : t('settings.dpad');
+                this.saveSettings();
+                this._syncControlModeToGame();
+            });
+        }
+        
         const langSelect = this.overlay.querySelector('#languageSelect');
         if (langSelect) {
             langSelect.addEventListener('change', (e) => {
@@ -577,6 +599,7 @@ class SettingsMenu {
             aiChaseDistance: 8,
             aiScatterMult: 1.0,
             cameraEffects: true,
+            controlMode: 'joystick',
         };
         
         this.saveSettings();
@@ -585,6 +608,7 @@ class SettingsMenu {
         this._syncDebugToGame();
         this._syncAITuning();
         this._syncCameraToGame();
+        this._syncControlModeToGame();
         
         // Reset difficulty in Barney's system if available
         if (typeof setDifficulty === 'function') {
@@ -628,6 +652,14 @@ class SettingsMenu {
         if (camEl) {
             camEl.checked = this.settings.cameraEffects;
             camEl.parentElement.querySelector('.toggle-label').textContent = this.settings.cameraEffects ? t('settings.on') : t('settings.off');
+        }
+        
+        // Update control mode toggle
+        const ctrlEl = this.overlay.querySelector('#controlModeToggle');
+        if (ctrlEl) {
+            ctrlEl.checked = this.settings.controlMode === 'joystick';
+            ctrlEl.parentElement.querySelector('.toggle-label').textContent =
+                this.settings.controlMode === 'joystick' ? t('settings.joystick') : t('settings.dpad');
         }
         
         // Update AI tuning sliders
@@ -735,6 +767,13 @@ class SettingsMenu {
         const game = this._game;
         if (!game) return;
         game._cameraEffectsEnabled = this.settings.cameraEffects;
+    }
+    
+    // Push control mode preference to touch input handler
+    _syncControlModeToGame() {
+        const game = this._game;
+        if (!game || !game.touchInput) return;
+        game.touchInput.setControlMode(this.settings.controlMode);
     }
     
     _buildLanguageOptions() {
