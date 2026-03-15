@@ -885,6 +885,97 @@
             filter: drop-shadow(0 0 8px rgba(255,216,0,0.9));
         }
 
+        /* Virtual joystick — hidden by default, shown on touch devices */
+        #touchJoystick {
+            display: none;
+            width: 160px;
+            height: 160px;
+            pointer-events: auto;
+        }
+        .joystick-base {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle at center,
+                rgba(139, 69, 19, 0.15) 0%,
+                rgba(255, 105, 180, 0.08) 40%,
+                rgba(255, 216, 0, 0.06) 70%,
+                transparent 100%);
+            border: 2px solid rgba(255, 216, 0, 0.35);
+            box-shadow: inset 0 0 20px rgba(255, 105, 180, 0.1);
+        }
+        .joystick-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border-radius: 50%;
+            border: 1.5px dashed rgba(255, 216, 0, 0.2);
+        }
+        .joystick-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #a0522d 30%, #8b4513 100%);
+            border: 1px solid rgba(255, 216, 0, 0.4);
+            opacity: 0.5;
+        }
+        #joystickThumb {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 44px;
+            height: 44px;
+            margin-left: -22px;
+            margin-top: -22px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%,
+                #ff69b4 0%,
+                #ff1493 50%,
+                #c71585 100%);
+            border: 2px solid rgba(255, 216, 0, 0.6);
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.4),
+                        inset 0 0 6px rgba(255, 255, 255, 0.2);
+            transition: transform 0.06s ease-out;
+            z-index: 2;
+            pointer-events: none;
+        }
+        #joystickThumb::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #1a0a2e, #0d0221);
+            border-radius: 50%;
+        }
+        .joystick-dir-up .joystick-ring,
+        .joystick-dir-down .joystick-ring,
+        .joystick-dir-left .joystick-ring,
+        .joystick-dir-right .joystick-ring {
+            border-color: rgba(255, 216, 0, 0.5);
+        }
+        .joystick-dir-up .joystick-base,
+        .joystick-dir-down .joystick-base,
+        .joystick-dir-left .joystick-base,
+        .joystick-dir-right .joystick-base {
+            border-color: rgba(255, 216, 0, 0.6);
+        }
+
+        /* Hide control when not active mode */
+        .touch-control-hidden {
+            display: none !important;
+        }
+
         /* Action buttons — hidden on desktop, shown on touch devices */
         .touch-action-btn {
             display: none;
@@ -914,9 +1005,16 @@
             box-shadow: 0 0 12px rgba(255,216,0,0.7);
         }
 
-        /* Touch devices — show D-pad + action buttons, hide keyboard hints */
+        /* Touch devices — show D-pad/joystick + action buttons, hide keyboard hints */
         @media (hover: none) and (pointer: coarse) {
             #touchDpad {
+                display: block;
+                position: fixed;
+                bottom: 20px;
+                left: 20px;
+                z-index: 100;
+            }
+            #touchJoystick {
                 display: block;
                 position: fixed;
                 bottom: 20px;
@@ -1028,6 +1126,13 @@
                 border-top: 2px solid rgba(255, 216, 0, 0.2);
             }
             #touchDpad {
+                position: static;
+                display: block;
+                width: 160px;
+                height: 160px;
+                flex: 0 0 160px;
+            }
+            #touchJoystick {
                 position: static;
                 display: block;
                 width: 160px;

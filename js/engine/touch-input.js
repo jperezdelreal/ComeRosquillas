@@ -19,8 +19,20 @@ class TouchInput {
         // D-pad state
         this.dpadActive = null
 
+        // Joystick state
+        this._joystickTouchId = null
+        this._joystickDirection = null
+        this._joystickCenterX = 0
+        this._joystickCenterY = 0
+        this._joystickDeadZone = 18 // px — ignore tiny movements near center
+        this._joystickRadius = 60   // px — max travel for the thumb indicator
+
+        // Control mode: 'joystick' (default) or 'dpad'
+        this._controlMode = this._loadControlModePref()
+
         // Button elements
         this.dpadElement = null
+        this.joystickElement = null
         this.pauseButton = null
         this.muteButton = null
         this.fullscreenButton = null
@@ -31,6 +43,38 @@ class TouchInput {
         this.setupTouchElements()
         this.setupTouchHandlers()
         this.setupOrientationWarning()
+
+        // Apply initial control mode visibility
+        this._applyControlMode()
+    }
+
+    // --- Control Mode ---
+
+    _loadControlModePref() {
+        try {
+            const v = localStorage.getItem('comeRosquillas_controlMode')
+            return v === 'dpad' ? 'dpad' : 'joystick'
+        } catch { return 'joystick' }
+    }
+
+    setControlMode(mode) {
+        this._controlMode = mode === 'dpad' ? 'dpad' : 'joystick'
+        try { localStorage.setItem('comeRosquillas_controlMode', this._controlMode) } catch {}
+        this._applyControlMode()
+        // Clear any active direction when switching
+        this._clearJoystickDirection()
+        this.dpadActive = null
+    }
+
+    _applyControlMode() {
+        if (!this.dpadElement || !this.joystickElement) return
+        if (this._controlMode === 'joystick') {
+            this.dpadElement.classList.add('touch-control-hidden')
+            this.joystickElement.classList.remove('touch-control-hidden')
+        } else {
+            this.joystickElement.classList.add('touch-control-hidden')
+            this.dpadElement.classList.remove('touch-control-hidden')
+        }
     }
 
     // --- Haptic Feedback ---
@@ -74,6 +118,18 @@ class TouchInput {
             </svg>
         `
         this.controlsBar.appendChild(this.dpadElement)
+
+        // Virtual analog joystick — donut-themed circular touch zone
+        this.joystickElement = document.createElement('div')
+        this.joystickElement.id = 'touchJoystick'
+        this.joystickElement.innerHTML = `
+            <div class="joystick-base">
+                <div class="joystick-ring"></div>
+                <div class="joystick-thumb" id="joystickThumb"></div>
+                <div class="joystick-center"></div>
+            </div>
+        `
+        this.controlsBar.appendChild(this.joystickElement)
 
         // Button cluster — right side of controls bar
         const btnCluster = document.createElement('div')
@@ -133,6 +189,12 @@ class TouchInput {
         this.setupDpadButton(dpadDown, 'ArrowDown', 'down')
         this.setupDpadButton(dpadLeft, 'ArrowLeft', 'left')
         this.setupDpadButton(dpadRight, 'ArrowRight', 'right')
+
+        // Joystick touch handlers
+        this.joystickElement.addEventListener('touchstart', (e) => this._onJoystickStart(e), { passive: false })
+        this.joystickElement.addEventListener('touchmove', (e) => this._onJoystickMove(e), { passive: false })
+        this.joystickElement.addEventListener('touchend', (e) => this._onJoystickEnd(e), { passive: false })
+        this.joystickElement.addEventListener('touchcancel', (e) => this._onJoystickEnd(e), { passive: false })
 
         // Pause button
         this.pauseButton.addEventListener('touchstart', (e) => {
@@ -326,6 +388,129 @@ class TouchInput {
         const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement)
         this.fullscreenButton.innerHTML = isFS ? '⮌' : '⛶'
         this.fullscreenButton.setAttribute('aria-label', isFS ? 'Exit fullscreen' : 'Enter fullscreen')
+    }
+
+    // --- Virtual Joystick ---
+
+    _onJoystickStart(e) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (this._joystickTouchId !== null) return
+
+        const touch = e.changedTouches[0]
+        this._joystickTouchId = touch.identifier
+
+        // Center = middle of the joystick element
+        const rect = this.joystickElement.getBoundingClientRect()
+        this._joystickCenterX = rect.left + rect.width / 2
+        this._joystickCenterY = rect.top + rect.height / 2
+
+        this._updateJoystick(touch.clientX, touch.clientY)
+        this.vibrate(6)
+    }
+
+    _onJoystickMove(e) {
+        e.preventDefault()
+        e.stopPropagation()
+        for (const touch of e.changedTouches) {
+            if (touch.identifier === this._joystickTouchId) {
+                this._updateJoystick(touch.clientX, touch.clientY)
+                return
+            }
+        }
+    }
+
+    _onJoystickEnd(e) {
+        e.preventDefault()
+        e.stopPropagation()
+        for (const touch of e.changedTouches) {
+            if (touch.identifier === this._joystickTouchId) {
+                this._joystickTouchId = null
+                this._clearJoystickDirection()
+                this._resetThumbPosition()
+                return
+            }
+        }
+    }
+
+    _updateJoystick(touchX, touchY) {
+        const dx = touchX - this._joystickCenterX
+        const dy = touchY - this._joystickCenterY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+
+        // Update thumb visual position (clamped to radius)
+        const clampedDist = Math.min(dist, this._joystickRadius)
+        const angle = Math.atan2(dy, dx)
+        const thumbX = clampedDist * Math.cos(angle)
+        const thumbY = clampedDist * Math.sin(angle)
+        const thumb = this.joystickElement.querySelector('#joystickThumb')
+        if (thumb) {
+            thumb.style.transform = `translate(${thumbX}px, ${thumbY}px)`
+        }
+
+        // Dead zone — no direction
+        if (dist < this._joystickDeadZone) {
+            this._clearJoystickDirection()
+            this._updateJoystickVisualFeedback(null)
+            return
+        }
+
+        // Map angle to cardinal direction
+        // atan2 returns angle in radians: right=0, down=π/2, left=±π, up=-π/2
+        const angleDeg = angle * (180 / Math.PI)
+        let newDirection = null
+
+        if (angleDeg >= -45 && angleDeg < 45) {
+            newDirection = 'right'
+        } else if (angleDeg >= 45 && angleDeg < 135) {
+            newDirection = 'down'
+        } else if (angleDeg >= -135 && angleDeg < -45) {
+            newDirection = 'up'
+        } else {
+            newDirection = 'left'
+        }
+
+        if (newDirection !== this._joystickDirection) {
+            this._clearJoystickDirection()
+            this._joystickDirection = newDirection
+
+            const keyMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }
+            this.game.keys[keyMap[newDirection]] = true
+
+            // For high-score entry, also dispatch keydown event
+            if (this.game.state === ST_HIGH_SCORE_ENTRY) {
+                this.triggerKey(keyMap[newDirection])
+            }
+
+            this.vibrate(5)
+        }
+
+        this._updateJoystickVisualFeedback(newDirection)
+    }
+
+    _clearJoystickDirection() {
+        if (this._joystickDirection) {
+            const keyMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }
+            this.game.keys[keyMap[this._joystickDirection]] = false
+            this._joystickDirection = null
+        }
+    }
+
+    _resetThumbPosition() {
+        const thumb = this.joystickElement.querySelector('#joystickThumb')
+        if (thumb) {
+            thumb.style.transform = 'translate(0px, 0px)'
+        }
+        this._updateJoystickVisualFeedback(null)
+    }
+
+    _updateJoystickVisualFeedback(direction) {
+        const base = this.joystickElement.querySelector('.joystick-base')
+        if (!base) return
+        base.classList.remove('joystick-dir-up', 'joystick-dir-down', 'joystick-dir-left', 'joystick-dir-right')
+        if (direction) {
+            base.classList.add(`joystick-dir-${direction}`)
+        }
     }
 
     // Orientation warning removed — portrait is the natural orientation for this vertical game
