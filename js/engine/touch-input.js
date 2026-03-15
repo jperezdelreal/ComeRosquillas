@@ -95,12 +95,12 @@ class TouchInput {
         this.pauseButton.setAttribute('aria-label', 'Pause')
         btnCluster.appendChild(this.pauseButton)
 
-        // Mute button
+        // Mute button — starts unmuted (audio plays by default)
         this.muteButton = document.createElement('button')
         this.muteButton.id = 'touchMuteBtn'
         this.muteButton.className = 'touch-action-btn'
-        this.muteButton.innerHTML = '🔇'
-        this.muteButton.setAttribute('aria-label', 'Mute')
+        this.muteButton.innerHTML = '🔊'
+        this.muteButton.setAttribute('aria-label', 'Toggle sound')
         btnCluster.appendChild(this.muteButton)
 
         // Fullscreen toggle button
@@ -151,10 +151,12 @@ class TouchInput {
             this.triggerKey('KeyP')
         })
 
-        // Mute button
+        // Mute button — resume AudioContext directly from real user gesture
         this.muteButton.addEventListener('touchstart', (e) => {
             e.preventDefault()
+            this.game.sound.resume()
             this.triggerKey('KeyM')
+            this._updateMuteButtonIcon()
             this.vibrate(10)
             this.muteButton.classList.add('touch-btn-active')
         })
@@ -165,7 +167,9 @@ class TouchInput {
         // Click handler for desktop mouse support
         this.muteButton.addEventListener('click', (e) => {
             e.preventDefault()
+            this.game.sound.resume()
             this.triggerKey('KeyM')
+            this._updateMuteButtonIcon()
         })
 
         // Settings button — opens settings menu via #settingsBtn
@@ -296,6 +300,13 @@ class TouchInput {
     triggerKey(keyCode) {
         const event = new KeyboardEvent('keydown', { code: keyCode })
         document.dispatchEvent(event)
+    }
+
+    _updateMuteButtonIcon() {
+        if (!this.muteButton || !this.game.sound) return
+        const muted = this.game.sound.isMuted
+        this.muteButton.innerHTML = muted ? '🔇' : '🔊'
+        this.muteButton.setAttribute('aria-label', muted ? 'Unmute' : 'Mute')
     }
 
     // --- Fullscreen ---
